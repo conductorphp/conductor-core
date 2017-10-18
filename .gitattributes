@@ -1,0 +1,28 @@
+# See https://help.github.com/articles/dealing-with-line-endings/
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.css text
+*.csv text
+*.html text
+*.js text
+*.txt text
+*.php text
+*.phtml text
+*.scss text
+*.xml text
+
+# Denote binary file types so that deltas may be tracked
+*.eot binary -delta
+*.gif binary -delta
+*.jpg binary -delta
+*.otf binary -delta
+*.png binary -delta
+*.pdf binary -delta
+*.svg binary -delta
+*.swf binary -delta
+*.ttf binary -delta
+*.woff binary -delta
+*.woff2 binary -delta
