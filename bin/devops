@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-chdir(dirname(__DIR__));
+chdir(__DIR__ . '/../../../..');
 require 'vendor/autoload.php';
 
 /**
@@ -23,10 +23,6 @@ call_user_func(function () {
 
     if (!empty($config['debug'])) {
         error_reporting(-1);
-
-        $whoops = new \Whoops\Run;
-        $whoops->pushHandler(new \Whoops\Handler\PlainTextHandler);
-        $whoops->register();
      }
 
     $app->run();

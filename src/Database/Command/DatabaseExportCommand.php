@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use App\Exception\DomainException;
+use DevopsToolCore\Exception;
 use DevopsToolCore\Database\ImportExportAdapter\DatabaseImportExportAdapterInterface;
 use DevopsToolCore\Database\ImportExportAdapter\MydumperDatabaseAdapter;
 use DevopsToolCore\Database\ImportExportAdapter\MysqldumpDatabaseAdapter;
@@ -93,7 +93,7 @@ class DatabaseExportCommand extends Command
                 break;
 
             default:
-                throw new DomainException(
+                throw new Exception\DomainException(
                     sprintf(
                         'Invalid format "%s" specified.',
                         $format

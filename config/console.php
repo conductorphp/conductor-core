@@ -6,6 +6,7 @@ return [
     'commands' => [
         Database\Command\DatabaseExportCommand::class,
         Database\Command\DatabaseImportCommand::class,
-        Database\Command\DatabaseSizesCommand::class,
+        Database\Command\DatabaseMetadataCommand::class,
+        Database\Command\TableMetadataCommand::class,
     ],
 ];

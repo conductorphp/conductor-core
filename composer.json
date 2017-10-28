@@ -19,6 +19,10 @@
         "aws/aws-sdk-php": "^3.18.39",
         "symfony/monolog-bridge": "^3.2"
     },
+    "suggest": {
+        "robofirm/devops-tool-application-orchestration": "Adds application orchestration functionality.",
+        "robofirm/devops-tool-project-create": "Adds project creation functionality from Jira/Confluence project setup to Terraform/Puppet/DevOps Tool repo setup."
+    },
     "autoload": {
         "psr-4": {
             "DevopsToolCore\\": "src/"

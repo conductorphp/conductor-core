@@ -107,4 +107,12 @@ class ShellCommandHelper
 
         return $stdout;
     }
+
+    /**
+     * @return Logger|LoggerInterface
+     */
+    public function getLogger()
+    {
+        return $this->logger;
+    }
 }
