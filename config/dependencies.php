@@ -1,3 +1,7 @@
 <?php
 
-return [];
+return [
+    'abstract_factories' => [
+        \Zend\ServiceManager\AbstractFactory\ReflectionBasedAbstractFactory::class
+    ],
+];
