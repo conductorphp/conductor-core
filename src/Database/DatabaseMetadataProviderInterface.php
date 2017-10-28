@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database;
 
-interface DatabaseMetaDataProviderInterface
+interface DatabaseMetadataProviderInterface
 {
     /**
      * @return array Database names as the keys and metadata as key/value pairs

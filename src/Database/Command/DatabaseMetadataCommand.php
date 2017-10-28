@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseMetaDataProviderInterface;
+use DevopsToolCore\Database\DatabaseMetadataProviderInterface;
 use DevopsToolCore\Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
@@ -13,11 +13,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 class DatabaseMetadataCommand extends Command
 {
     /**
-     * @var DatabaseMetaDataProviderInterface
+     * @var DatabaseMetadataProviderInterface
      */
     private $databaseMetaDataProvider;
 
-    public function __construct(DatabaseMetaDataProviderInterface $databaseMetaDataProvider, $name = null)
+    public function __construct(DatabaseMetadataProviderInterface $databaseMetaDataProvider, $name = null)
     {
         parent::__construct($name);
         $this->databaseMetaDataProvider = $databaseMetaDataProvider;
