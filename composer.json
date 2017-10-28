@@ -28,5 +28,8 @@
         "zf": {
             "config-provider": "DevopsToolCore\\ConfigProvider"
         }
-    }
+    },
+    "bin": [
+        "bin/devops"
+    ],
 }
