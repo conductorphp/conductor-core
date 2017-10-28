@@ -27,9 +27,6 @@
     "extra": {
         "zf": {
             "config-provider": "DevopsToolCore\\ConfigProvider"
-        },
-        "branch-alias": {
-            "dev-master": "1.0.x-dev"
         }
     },
     "bin": [
