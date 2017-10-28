@@ -38,6 +38,7 @@ class TableMetadataCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        error_reporting(-1);
         $tables = $this->getTables($input);
         $outputTable = new Table($output);
         $outputTable

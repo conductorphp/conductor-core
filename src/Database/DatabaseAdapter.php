@@ -7,6 +7,7 @@ use PDO;
 use DevopsToolCore\ShellCommandHelper;
 
 // @todo Add pdo php extension requirement to composer.json
+// @todo Deprecate this class after all usages are removed
 class DatabaseAdapter
 {
     /**

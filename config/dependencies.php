@@ -8,5 +8,7 @@ return [
     ],
     'factories'          => [
         \Psr\Log\LoggerInterface::class => DefaultLoggerFactory::class,
+        Database\DatabaseExportAdapterFactory::class => Database\DatabaseExportAdapterFactoryFactory::class,
+        Database\DatabaseImportAdapterFactory::class => Database\DatabaseImportAdapterFactoryFactory::class,
     ],
 ];

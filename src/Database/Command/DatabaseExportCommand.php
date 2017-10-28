@@ -2,14 +2,9 @@
 
 namespace DevopsToolCore\Database\Command;
 
+use DevopsToolCore\Database\DatabaseExportAdapterFactory;
+use DevopsToolCore\Database\DatabaseExportAdapterInterface;
 use DevopsToolCore\Exception;
-use DevopsToolCore\Database\ImportExportAdapter\DatabaseImportExportAdapterInterface;
-use DevopsToolCore\Database\ImportExportAdapter\MydumperDatabaseAdapter;
-use DevopsToolCore\Database\ImportExportAdapter\MysqldumpDatabaseAdapter;
-use DevopsToolCore\Database\ImportExportAdapter\MysqlTabDelimitedDatabaseAdapter;
-use DevopsToolCore\MonologConsoleHandler;
-use DevopsToolCore\ShellCommandHelper;
-use Monolog\Logger;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,6 +13,21 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class DatabaseExportCommand extends Command
 {
+    /**
+     * @var DatabaseExportAdapterInterface
+     */
+    private $databaseExportAdapter;
+    /**
+     * @var DatabaseExportAdapterFactory
+     */
+    private $databaseExportAdapterFactory;
+
+    public function __construct(DatabaseExportAdapterFactory $databaseExportAdapterFactory, $name = null)
+    {
+        parent::__construct($name);
+        $this->databaseExportAdapterFactory = $databaseExportAdapterFactory;
+    }
+
     protected function configure()
     {
         $this->setName('database:export')
@@ -33,14 +43,7 @@ class DatabaseExportCommand extends Command
             ->addOption(
                 'format',
                 null,
-                InputOption::VALUE_REQUIRED,
-                sprintf(
-                    'Format to export in. Must be "%s" or "%s".',
-                    DatabaseImportExportAdapterInterface::FORMAT_MYDUMPER,
-                    DatabaseImportExportAdapterInterface::FORMAT_SQL,
-                    DatabaseImportExportAdapterInterface::FORMAT_TAB_DELIMITED
-                ),
-                DatabaseImportExportAdapterInterface::FORMAT_SQL
+                InputOption::VALUE_REQUIRED
             )
             ->addOption(
                 'ignore-tables',
@@ -69,60 +72,34 @@ class DatabaseExportCommand extends Command
             ]
         );
 
+        $this->databaseExportAdapter = $this->databaseExportAdapterFactory->create($input->getOption('format'));
+
+        if (!$this->databaseExportAdapter->isUsable()) {
+            throw new Exception\RuntimeException(
+                sprintf(
+                    'The given database export adapter "%s" is not usable in this environment.',
+                    get_class($this->databaseExportAdapter)
+                )
+            );
+        }
+
         $database = $input->getArgument('database');
         $filename = $input->getArgument('filename');
         if (!$filename) {
             $filename = './' . $database . '-' . date('Y-m-d-H-i-s-w');
         }
-        $format = $input->getOption('format');
         $ignoreTables = $input->getOption('ignore-tables') ? explode(',', $input->getOption('ignore-tables')) : [];
 
-        $logger = $this->getLogger($output);
-        $shellCommandHelper = new ShellCommandHelper($logger);
-        switch ($format) {
-            case DatabaseImportExportAdapterInterface::FORMAT_MYDUMPER:
-                $adapter = new MydumperDatabaseAdapter(null, $shellCommandHelper, $logger);
-                break;
-
-            case DatabaseImportExportAdapterInterface::FORMAT_SQL:
-                $adapter = new MysqldumpDatabaseAdapter(null, $shellCommandHelper, $logger);
-                break;
-
-            case DatabaseImportExportAdapterInterface::FORMAT_TAB_DELIMITED:
-                $adapter = new MysqlTabDelimitedDatabaseAdapter(null, $shellCommandHelper, $logger);
-                break;
-
-            default:
-                throw new Exception\DomainException(
-                    sprintf(
-                        'Invalid format "%s" specified.',
-                        $format
-                    )
-                );
-        }
-
         $output->writeln("Exporting database \"$database\"...");
-        $adapter->exportToFile(
+        $this->databaseExportAdapter->exportToFile(
             $database,
             $filename,
             $ignoreTables,
-            $format,
             !$input->getOption('no-remove-definers')
         );
-        $output->writeln("Database \"$database\" exported to \"$filename\"!");
+        $fullFilename = realpath("$filename.{$this->databaseExportAdapter->getFileExtension()}");
+        $output->writeln("Database \"$database\" exported to \"$fullFilename\"!");
         return 0;
-    }
-
-    /**
-     * @param OutputInterface $output
-     *
-     * @return Logger
-     */
-    protected function getLogger(OutputInterface $output)
-    {
-        $logger = new Logger('database:export');
-        $logger->pushHandler(new MonologConsoleHandler($output));
-        return $logger;
     }
 
 }

@@ -36,6 +36,7 @@ class DatabaseMetadataCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        error_reporting(-1);
         $databases = $this->databaseMetaDataProvider->getDatabaseMetadata();
         $databases = $this->sort($databases, $input->getOption('sort'), $input->getOption('reverse-sort'));
         $databases = $this->format(

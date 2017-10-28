@@ -2,13 +2,14 @@
 
 namespace DevopsToolCore\Database\ImportExportAdapter;
 
-use App\Exception;
+use DevopsToolCore\Exception;
+use DevopsToolCore\Database\DatabaseImportAdapterInterface;
 use DevopsToolCore\ShellCommandHelper;
 use DevopsToolCore\Database\DatabaseConfig;
 use Monolog\Handler\NullHandler;
 use Psr\Log\LoggerInterface;
 
-class MysqlTabDelimitedDatabaseAdapter implements DatabaseImportExportAdapterInterface
+class MysqlTabDelimitedDatabaseAdapter implements DatabaseImportAdapterInterface
 {
     /**
      * @var DatabaseConfig

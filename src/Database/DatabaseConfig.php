@@ -2,6 +2,7 @@
 
 namespace DevopsToolCore\Database;
 
+// @todo Deprecate this class. This should be handler in the database platform specific modules.
 class DatabaseConfig
 {
     public $username;
