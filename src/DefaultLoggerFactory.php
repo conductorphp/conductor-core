@@ -2,6 +2,9 @@
 
 namespace DevopsToolCore;
 
+use Monolog\Logger;
+use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
+
 class DefaultLoggerFactory implements \Zend\ServiceManager\Factory\FactoryInterface
 {
 
@@ -20,6 +23,8 @@ class DefaultLoggerFactory implements \Zend\ServiceManager\Factory\FactoryInterf
      */
     public function __invoke(\Interop\Container\ContainerInterface $container, $requestedName, array $options = null)
     {
-        return new \Monolog\Logger('default');
+        return new Logger('default', [
+            (new ConsoleHandler())->setFormatter(new ConsoleFormatter())
+        ]);
     }
 }

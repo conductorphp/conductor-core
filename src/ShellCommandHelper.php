@@ -26,11 +26,10 @@ class ShellCommandHelper
      */
     private $logger;
 
-    public function __construct(LoggerInterface $logger = null)
+    public function __construct(LoggerInterface $logger)
     {
         if (is_null($logger)) {
-            $logger = new Logger('shell-command');
-            $logger->pushHandler(new NullHandler());
+            $logger = new NullHandler();
         }
         $this->logger = $logger;
     }
@@ -114,5 +113,15 @@ class ShellCommandHelper
     public function getLogger()
     {
         return $this->logger;
+    }
+
+    /**
+     * @param LoggerInterface $logger
+     *
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
     }
 }
