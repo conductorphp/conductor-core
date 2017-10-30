@@ -2,6 +2,8 @@
 
 namespace DevopsToolCore\Database;
 
+use Psr\Log\LoggerInterface;
+
 interface DatabaseMetadataProviderInterface
 {
     /**

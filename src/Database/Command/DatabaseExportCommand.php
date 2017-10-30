@@ -4,7 +4,9 @@ namespace DevopsToolCore\Database\Command;
 
 use DevopsToolCore\Database\DatabaseExportAdapterFactory;
 use DevopsToolCore\Database\DatabaseExportAdapterInterface;
-use DevopsToolCore\Exception;
+use DevopsToolCore\MonologConsoleHandlerAwareTrait;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -13,6 +15,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class DatabaseExportCommand extends Command
 {
+    use MonologConsoleHandlerAwareTrait;
+
     /**
      * @var DatabaseExportAdapterInterface
      */
@@ -21,29 +25,49 @@ class DatabaseExportCommand extends Command
      * @var DatabaseExportAdapterFactory
      */
     private $databaseExportAdapterFactory;
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
-    public function __construct(DatabaseExportAdapterFactory $databaseExportAdapterFactory, $name = null)
-    {
-        parent::__construct($name);
+    /**
+     * DatabaseExportCommand constructor.
+     *
+     * @param DatabaseExportAdapterFactory $databaseExportAdapterFactory
+     * @param LoggerInterface|null         $logger
+     * @param string|null                  $name
+     */
+    public function __construct(
+        DatabaseExportAdapterFactory $databaseExportAdapterFactory,
+        LoggerInterface $logger = null,
+        $name = null
+    ) {
         $this->databaseExportAdapterFactory = $databaseExportAdapterFactory;
+        if (is_null($logger)) {
+            $logger = new NullLogger();
+        }
+        $this->logger = $logger;
+        parent::__construct($name);
     }
 
+    /**
+     * @return void
+     */
     protected function configure()
     {
+        $supportedFormats = $this->databaseExportAdapterFactory->getSupportedFormats();
         $this->setName('database:export')
-            ->addArgument('database', InputArgument::REQUIRED, 'Database to export.')
-            ->addArgument('filename', InputArgument::OPTIONAL, 'Filename to export database to.')
-            ->addOption(
-                'path',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Directory to write export files to.',
-                '.'
-            )
-            ->addOption(
+            ->addArgument(
                 'format',
-                null,
-                InputOption::VALUE_REQUIRED
+                InputArgument::REQUIRED,
+                "Format to export to.\nSupported formats: <comment>" . implode(', ', $supportedFormats) . '</comment>'
+            )
+            ->addArgument('database', InputArgument::REQUIRED, 'Database to export.')
+            ->addArgument(
+                'path',
+                InputArgument::OPTIONAL,
+                'Directory to write export to. Must be a writable directory.',
+                './'
             )
             ->addOption(
                 'ignore-tables',
@@ -61,44 +85,32 @@ class DatabaseExportCommand extends Command
             ->setHelp("This command exports a database.");
     }
 
+    /**
+     * @param InputInterface  $input
+     * @param OutputInterface $output
+     *
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        error_reporting(-1);
-        $output->writeln(
-            [
-                'Database: Export',
-                '============',
-                '',
-            ]
-        );
-
-        $this->databaseExportAdapter = $this->databaseExportAdapterFactory->create($input->getOption('format'));
-
-        if (!$this->databaseExportAdapter->isUsable()) {
-            throw new Exception\RuntimeException(
-                sprintf(
-                    'The given database export adapter "%s" is not usable in this environment.',
-                    get_class($this->databaseExportAdapter)
-                )
-            );
-        }
+        $this->injectOutputIntoLogger($output, $this->logger);
+        $this->databaseExportAdapter = $this->databaseExportAdapterFactory->create($input->getArgument('format'));
+        $this->databaseExportAdapter->setLogger($this->logger);
 
         $database = $input->getArgument('database');
-        $filename = $input->getArgument('filename');
-        if (!$filename) {
-            $filename = './' . $database . '-' . date('Y-m-d-H-i-s-w');
-        }
+        $path = $input->getArgument('path');
         $ignoreTables = $input->getOption('ignore-tables') ? explode(',', $input->getOption('ignore-tables')) : [];
 
-        $output->writeln("Exporting database \"$database\"...");
-        $this->databaseExportAdapter->exportToFile(
+        $this->logger->info("Exporting database \"$database\"...");
+        $filename = $this->databaseExportAdapter->exportToFile(
             $database,
-            $filename,
-            $ignoreTables,
-            !$input->getOption('no-remove-definers')
+            $path,
+            [
+                'ignore_tables' => $ignoreTables,
+                'remove_definers' => !$input->getOption('no-remove-definers'),
+            ]
         );
-        $fullFilename = realpath("$filename.{$this->databaseExportAdapter->getFileExtension()}");
-        $output->writeln("Database \"$database\" exported to \"$fullFilename\"!");
+        $this->logger->info("Database \"$database\" exported to \"$filename\"!");
         return 0;
     }
 
