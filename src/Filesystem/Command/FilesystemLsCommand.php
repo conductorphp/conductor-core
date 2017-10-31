@@ -11,6 +11,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class FilesystemLsCommand extends Command
@@ -63,6 +64,7 @@ class FilesystemLsCommand extends Command
                 "Name of adapter to use.\nAvailable Adapters: <comment>" . implode(', ', $filesystemAdapterNames) . '</comment>'
             )
             ->addArgument('directory', InputArgument::REQUIRED, 'Directory to list.')
+            ->addOption('recursive', null,InputOption::VALUE_NONE, 'List directory recursively.')
             ->setDescription('List a directory on a filesystem.')
             ->setHelp("This command list a directory on a filesystem.");
     }
@@ -83,16 +85,17 @@ class FilesystemLsCommand extends Command
 
         $directory = rtrim($input->getArgument('directory'), '/');
         $directoryIsEmpty = true;
-        foreach ($this->filesystemAdapter->listContents($directory) as $file) {
+        foreach ($this->filesystemAdapter->listContents($directory, $input->getOption('recursive')) as $file) {
             $path = trim(substr($file['path'], strlen($directory)), '/');
             if (!$path) {
                 continue;
             }
             $directoryIsEmpty = false;
             $metaData = $this->filesystemAdapter->getMetadata($file['path']);
+
             $tableOutput->addRow([
                 $path,
-                $metaData['type'],
+                !empty($metaData['type']) ? $metaData['type'] : 'dir',
                 !empty($metaData['size']) ? $metaData['size'] : '',
                 !empty($file['timestamp']) ? date('Y-m-d H:i:s T', $file['timestamp']) : '',
             ]);
