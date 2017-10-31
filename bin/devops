@@ -23,7 +23,7 @@ call_user_func(function () {
 
     if (!empty($config['debug'])) {
         error_reporting(-1);
-     }
+    }
 
     $app->run();
 });
