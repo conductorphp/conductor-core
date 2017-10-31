@@ -9,13 +9,6 @@ interface DatabaseExportAdapterInterface
     const DEFAULT_WORKING_DIR = '.devops-database-export';
 
     /**
-     * @param LoggerInterface $logger
-     *
-     * @return void
-     */
-    public function setLogger(LoggerInterface $logger);
-
-    /**
      * Asserts that the adapter is usable in the current environment.
      *
      * @throws \RuntimeException If not usable. Message should include reason adapter is not usable.
@@ -43,5 +36,19 @@ interface DatabaseExportAdapterInterface
         $path,
         array $options = []
     );
+
+    /**
+     * @param LoggerInterface $logger
+     *
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger);
+
+    /**
+     * @param string $name
+     *
+     * @return void
+     */
+    public function selectConnection($name);
 }
 

@@ -26,23 +26,40 @@ class TableMetadataCommand extends Command
      */
     private $logger;
 
+    /**
+     * DatabaseMetadataCommand constructor.
+     *
+     * @param DatabaseMetadataProviderInterface $databaseMetaDataProvider
+     * @param LoggerInterface|null              $logger
+     * @param null                              $name
+     */
     public function __construct(
         DatabaseMetadataProviderInterface $databaseMetaDataProvider,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        parent::__construct($name);
         $this->databaseMetaDataProvider = $databaseMetaDataProvider;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
         $this->logger = $logger;
+        parent::__construct($name);
     }
 
+    /**
+     * @return void
+     */
     protected function configure()
     {
         $this->setName('database:table:metadata')
             ->addArgument('database', InputArgument::REQUIRED, 'Database to get table sizes from')
+            ->addOption(
+                'connection',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Database connection configuration to use.',
+                'default'
+            )
             ->addOption('unit', null, InputOption::VALUE_REQUIRED, 'Unit to display sizes (B, KB, MB, or GB)', 'MB')
             ->addOption('precision', null, InputOption::VALUE_REQUIRED, 'Size display precision', '2')
             ->addOption('sort', null, InputOption::VALUE_REQUIRED, 'Sort key (name, size)', 'name')
@@ -51,10 +68,17 @@ class TableMetadataCommand extends Command
             ->setHelp("This command gets database table metadata.");
     }
 
+    /**
+     * @param InputInterface  $input
+     * @param OutputInterface $output
+     *
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->logger->info('Getting table metadata for database "' . $input->getArgument('database') . '"...');
+        $this->databaseMetaDataProvider->selectConnection($input->getOption('connection'));
         $tables = $this->getTables($input);
         $outputTable = new Table($output);
         $outputTable
@@ -83,6 +107,13 @@ class TableMetadataCommand extends Command
         return $tables;
     }
 
+    /**
+     * @param array  $databases
+     * @param string $sort
+     * @param bool   $reverseSort
+     *
+     * @return array
+     */
     private function sort(array $tables, $sort, $reverseSort)
     {
         switch ($sort) {
@@ -110,6 +141,13 @@ class TableMetadataCommand extends Command
         return $tables;
     }
 
+    /**
+     * @param array  $databases
+     * @param string $unit
+     * @param int    $precision
+     *
+     * @return array
+     */
     private function format($tables, $unit, $precision)
     {
         switch ($unit) {

@@ -70,6 +70,13 @@ class DatabaseExportCommand extends Command
                 './'
             )
             ->addOption(
+                'connection',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Database connection configuration to use.',
+                'default'
+            )
+            ->addOption(
                 'ignore-tables',
                 null,
                 InputOption::VALUE_REQUIRED,
@@ -96,6 +103,7 @@ class DatabaseExportCommand extends Command
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->databaseExportAdapter = $this->databaseExportAdapterFactory->create($input->getArgument('format'));
         $this->databaseExportAdapter->setLogger($this->logger);
+        $this->databaseExportAdapter->selectConnection($input->getOption('connection'));
 
         $database = $input->getArgument('database');
         $path = $input->getArgument('path');

@@ -26,22 +26,39 @@ class DatabaseMetadataCommand extends Command
      */
     private $logger;
 
+    /**
+     * DatabaseMetadataCommand constructor.
+     *
+     * @param DatabaseMetadataProviderInterface $databaseMetaDataProvider
+     * @param LoggerInterface|null              $logger
+     * @param null                              $name
+     */
     public function __construct(
         DatabaseMetadataProviderInterface $databaseMetaDataProvider,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        parent::__construct($name);
         $this->databaseMetaDataProvider = $databaseMetaDataProvider;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
         $this->logger = $logger;
+        parent::__construct($name);
     }
 
+    /**
+     * @return void
+     */
     protected function configure()
     {
         $this->setName('database:metadata')
+            ->addOption(
+                'connection',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Database connection configuration to use.',
+                'default'
+            )
             ->addOption('unit', null, InputOption::VALUE_REQUIRED, 'Unit to display sizes (B, KB, MB, or GB)', 'MB')
             ->addOption('precision', null, InputOption::VALUE_REQUIRED, 'Size display precision', '2')
             ->addOption('sort', null, InputOption::VALUE_REQUIRED, 'Sort key (name, size)', 'name')
@@ -50,10 +67,17 @@ class DatabaseMetadataCommand extends Command
             ->setHelp("This command gets database metadata.");
     }
 
+    /**
+     * @param InputInterface  $input
+     * @param OutputInterface $output
+     *
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->logger->info('Getting database metadata...');
+        $this->databaseMetaDataProvider->selectConnection($input->getOption('connection'));
         $databases = $this->databaseMetaDataProvider->getDatabaseMetadata();
         $databases = $this->sort($databases, $input->getOption('sort'), $input->getOption('reverse-sort'));
         $databases = $this->format(
@@ -72,6 +96,13 @@ class DatabaseMetadataCommand extends Command
         return 0;
     }
 
+    /**
+     * @param array  $databases
+     * @param string $sort
+     * @param bool   $reverseSort
+     *
+     * @return array
+     */
     private function sort(array $databases, $sort, $reverseSort)
     {
         switch ($sort) {
@@ -99,6 +130,13 @@ class DatabaseMetadataCommand extends Command
         return $databases;
     }
 
+    /**
+     * @param array  $databases
+     * @param string $unit
+     * @param int    $precision
+     *
+     * @return array
+     */
     private function format($databases, $unit, $precision)
     {
         switch ($unit) {

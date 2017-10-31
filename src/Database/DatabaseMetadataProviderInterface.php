@@ -2,8 +2,6 @@
 
 namespace DevopsToolCore\Database;
 
-use Psr\Log\LoggerInterface;
-
 interface DatabaseMetadataProviderInterface
 {
     /**
@@ -17,4 +15,11 @@ interface DatabaseMetadataProviderInterface
      * @return array Table names as the keys and metadata as key/value pairs
      */
     public function getTableMetadata($database);
+
+    /**
+     * @param string $name
+     *
+     * @return void
+     */
+    public function selectConnection($name);
 }

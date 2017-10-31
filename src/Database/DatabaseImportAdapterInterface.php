@@ -7,13 +7,6 @@ use Psr\Log\LoggerInterface;
 interface DatabaseImportAdapterInterface
 {
     /**
-     * @param LoggerInterface $logger
-     *
-     * @return void
-     */
-    public function setLogger(LoggerInterface $logger);
-
-    /**
      * Asserts that the adapter is usable in the current environment.
      *
      * @throws \RuntimeException If not usable. Message should include reason adapter is not usable.
@@ -37,5 +30,19 @@ interface DatabaseImportAdapterInterface
      * @return void
      */
     public function importFromFile($filename, $database, array $options = []);
+
+    /**
+     * @param LoggerInterface $logger
+     *
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger);
+
+    /**
+     * @param string $name
+     *
+     * @return void
+     */
+    public function selectConnection($name);
 }
 
