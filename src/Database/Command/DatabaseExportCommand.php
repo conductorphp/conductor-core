@@ -33,16 +33,16 @@ class DatabaseExportCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param DatabaseExportAdapterFactory $databaseExportAdapterFactory
+     * @param DatabaseExportAdapterFactory $filesystemAdapterProvider
      * @param LoggerInterface|null         $logger
      * @param string|null                  $name
      */
     public function __construct(
-        DatabaseExportAdapterFactory $databaseExportAdapterFactory,
+        DatabaseExportAdapterFactory $filesystemAdapterProvider,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->databaseExportAdapterFactory = $databaseExportAdapterFactory;
+        $this->databaseExportAdapterFactory = $filesystemAdapterProvider;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
