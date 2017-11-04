@@ -15,8 +15,9 @@ class ConfigProvider
     public function __invoke()
     {
         return [
-            'console'      => $this->getConsole(),
-            'dependencies' => $this->getDependencies(),
+            'console'      => $this->getConsoleConfig(),
+            'dependencies' => $this->getDependencyConfig(),
+            'filesystem' => $this->getFilesystemConfig(),
         ];
     }
 
@@ -25,7 +26,7 @@ class ConfigProvider
      *
      * @return array
      */
-    private function getDependencies()
+    private function getDependencyConfig()
     {
         return require(__DIR__ . '/../config/dependencies.php');
     }
@@ -33,9 +34,17 @@ class ConfigProvider
     /**
      * @return array
      */
-    private function getConsole()
+    private function getConsoleConfig()
     {
         return require(__DIR__ . '/../config/console.php');
+    }
+
+    /**
+     * @return array
+     */
+    private function getFilesystemConfig()
+    {
+        return require(__DIR__ . '/../config/filesystem.php');
     }
 
 }
