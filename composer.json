@@ -21,7 +21,7 @@
     },
     "suggest": {
         "robofirm/devops-tool-application-orchestration": "Adds application orchestration functionality.",
-        "robofirm/devops-tool-project-create": "Adds project creation functionality from Jira/Confluence project setup to Terraform/Puppet/DevOps Tool repo setup."
+        "robofirm/devops-tool-project-create": "Adds project creation functionality from Jira/Confluence project setup to Terraform/Puppet/DevOps Tool repo setup.",
         "robofirm/devops-tool-mysql-database-support": "Adds support for working with MySQL databases.",
         "robofirm/devops-tool-aws-s3-filesystem-support": "Adds support for working with AWS S3 filesystems."
     },
