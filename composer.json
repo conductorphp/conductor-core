@@ -15,6 +15,7 @@
         "ext-pdo_mysql": "*",
         "monolog/monolog": "^1.21.0",
         "league/flysystem": "^1.0",
+        "emgag/flysystem-hash": "^1.0.1",
         "league/flysystem-sftp": "^1.0",
         "aws/aws-sdk-php": "^3.18.39",
         "symfony/monolog-bridge": "^3.2"

@@ -9,5 +9,7 @@ return [
         Database\Command\DatabaseMetadataCommand::class,
         Database\Command\TableMetadataCommand::class,
         Filesystem\Command\FilesystemLsCommand::class,
+        Filesystem\Command\FilesystemCopyCommand::class,
+        Filesystem\Command\FilesystemSyncCommand::class,
     ],
 ];
