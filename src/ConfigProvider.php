@@ -17,7 +17,7 @@ class ConfigProvider
         return [
             'console'      => $this->getConsoleConfig(),
             'dependencies' => $this->getDependencyConfig(),
-            'filesystem' => $this->getFilesystemConfig(),
+            'filesystem'   => $this->getFilesystemConfig(),
         ];
     }
 
