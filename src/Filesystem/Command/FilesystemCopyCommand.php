@@ -4,7 +4,7 @@ namespace DevopsToolCore\Filesystem\Command;
 
 use DevopsToolCore\Exception;
 use DevopsToolCore\Filesystem\Filesystem;
-use DevopsToolCore\Filesystem\FilesystemAdapterProvider;
+use DevopsToolCore\Filesystem\FilesystemAdapterManager;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -18,7 +18,7 @@ class FilesystemCopyCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     /**
-     * @var FilesystemAdapterProvider
+     * @var FilesystemAdapterManager
      */
     private $filesystemAdapterProvider;
     /**
@@ -29,16 +29,16 @@ class FilesystemCopyCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param FilesystemAdapterProvider $filesystemAdapterProvider
-     * @param LoggerInterface|null      $logger
-     * @param string|null               $name
+     * @param FilesystemAdapterManager $filesystemManager
+     * @param LoggerInterface|null     $logger
+     * @param string|null              $name
      */
     public function __construct(
-        FilesystemAdapterProvider $filesystemAdapterProvider,
+        FilesystemAdapterManager $filesystemManager,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->filesystemAdapterProvider = $filesystemAdapterProvider;
+        $this->filesystemAdapterProvider = $filesystemManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -51,6 +51,7 @@ class FilesystemCopyCommand extends Command
      */
     protected function configure()
     {
+        // @todo Add option for whether to copy over timestamps
         $filesystemAdapterNames = $this->filesystemAdapterProvider->getAdapterNames();
         $this->setName('filesystem:copy')
             ->addArgument(
@@ -84,9 +85,9 @@ class FilesystemCopyCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $sourceFilesystemAdapter = $this->filesystemAdapterProvider->get($input->getArgument('source_adapter'));
+        $sourceFilesystemAdapter = $this->filesystemAdapterProvider->getAdapter($input->getArgument('source_adapter'));
         $sourceFile = $input->getArgument('source_file');
-        $destinationFilesystemAdapter = $this->filesystemAdapterProvider->get(
+        $destinationFilesystemAdapter = $this->filesystemAdapterProvider->getAdapter(
             $input->getArgument('destination_adapter')
         );
         $destinationFile = $input->getArgument('destination_file');

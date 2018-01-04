@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Filesystem\Command;
 
-use DevopsToolCore\Filesystem\FilesystemAdapterProvider;
+use DevopsToolCore\Filesystem\FilesystemAdapterManager;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use League\Flysystem\AdapterInterface;
 use Psr\Log\LoggerInterface;
@@ -23,9 +23,9 @@ class FilesystemLsCommand extends Command
      */
     private $filesystemAdapter;
     /**
-     * @var FilesystemAdapterProvider
+     * @var FilesystemAdapterManager
      */
-    private $filesystemAdapterProvider;
+    private $filesystemManager;
     /**
      * @var LoggerInterface
      */
@@ -34,16 +34,16 @@ class FilesystemLsCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param FilesystemAdapterProvider $filesystemAdapterProvider
-     * @param LoggerInterface|null      $logger
-     * @param string|null               $name
+     * @param FilesystemAdapterManager $filesystemManager
+     * @param LoggerInterface|null     $logger
+     * @param string|null              $name
      */
     public function __construct(
-        FilesystemAdapterProvider $filesystemAdapterProvider,
+        FilesystemAdapterManager $filesystemManager,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->filesystemAdapterProvider = $filesystemAdapterProvider;
+        $this->filesystemManager = $filesystemManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -56,7 +56,7 @@ class FilesystemLsCommand extends Command
      */
     protected function configure()
     {
-        $filesystemAdapterNames = $this->filesystemAdapterProvider->getAdapterNames();
+        $filesystemAdapterNames = $this->filesystemManager->getAdapterNames();
         $this->setName('filesystem:ls')
             ->addArgument(
                 'adapter',
@@ -78,7 +78,7 @@ class FilesystemLsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->filesystemAdapter = $this->filesystemAdapterProvider->get($input->getArgument('adapter'));
+        $this->filesystemAdapter = $this->filesystemManager->getAdapter($input->getArgument('adapter'));
 
         $tableOutput = new Table($output);
         $tableOutput->setHeaders(['Path', 'Type', 'Size', 'Last Updated']);

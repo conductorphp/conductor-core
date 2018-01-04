@@ -10,7 +10,7 @@ return [
         \Psr\Log\LoggerInterface::class              => DefaultLoggerFactory::class,
         Database\DatabaseExportAdapterFactory::class => Database\DatabaseExportAdapterFactoryFactory::class,
         Database\DatabaseImportAdapterFactory::class => Database\DatabaseImportAdapterFactoryFactory::class,
-        Filesystem\FilesystemAdapterProvider::class  => Filesystem\FilesystemAdapterProviderFactory::class,
-        \League\Flysystem\Adapter\Local::class  => Filesystem\LocalAdapterFactory::class,
+        Filesystem\FilesystemAdapterManager::class   => Filesystem\FilesystemAdapterManagerFactory::class,
+        \League\Flysystem\Adapter\Local::class       => Filesystem\LocalAdapterFactory::class,
     ],
 ];

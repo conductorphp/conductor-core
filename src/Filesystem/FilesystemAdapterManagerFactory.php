@@ -10,7 +10,7 @@ use Zend\ServiceManager\Exception\ServiceNotFoundException;
 use Zend\ServiceManager\Factory\FactoryInterface;
 use Zend\ServiceManager\ServiceManager;
 
-class FilesystemAdapterProviderFactory implements FactoryInterface
+class FilesystemAdapterManagerFactory implements FactoryInterface
 {
     /**
      * Create an object
@@ -50,7 +50,7 @@ class FilesystemAdapterProviderFactory implements FactoryInterface
 
             $filesystemAdapters[$name] = $filesystemAdapter;
         }
-        return new FilesystemAdapterProvider($filesystemAdapters);
+        return new FilesystemAdapterManager($filesystemAdapters);
     }
 }
 

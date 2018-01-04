@@ -13,6 +13,9 @@ use League\Flysystem\AwsS3v3\AwsS3Adapter;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
+/**
+ * @todo Deprecate this class
+ */
 class AwsS3FilesystemTransfer implements FilesystemTransferInterface
 {
     /**

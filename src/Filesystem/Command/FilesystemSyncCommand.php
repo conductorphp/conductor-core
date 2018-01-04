@@ -4,7 +4,7 @@ namespace DevopsToolCore\Filesystem\Command;
 
 use DevopsToolCore\Exception;
 use DevopsToolCore\Filesystem\Filesystem;
-use DevopsToolCore\Filesystem\FilesystemAdapterProvider;
+use DevopsToolCore\Filesystem\FilesystemAdapterManager;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Emgag\Flysystem\Hash\HashPlugin;
 use Psr\Log\LoggerInterface;
@@ -19,7 +19,7 @@ class FilesystemSyncCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     /**
-     * @var FilesystemAdapterProvider
+     * @var FilesystemAdapterManager
      */
     private $filesystemAdapterProvider;
     /**
@@ -30,16 +30,16 @@ class FilesystemSyncCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param FilesystemAdapterProvider $filesystemAdapterProvider
-     * @param LoggerInterface|null      $logger
-     * @param string|null               $name
+     * @param FilesystemAdapterManager $filesystemManager
+     * @param LoggerInterface|null     $logger
+     * @param string|null              $name
      */
     public function __construct(
-        FilesystemAdapterProvider $filesystemAdapterProvider,
+        FilesystemAdapterManager $filesystemManager,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->filesystemAdapterProvider = $filesystemAdapterProvider;
+        $this->filesystemAdapterProvider = $filesystemManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -53,7 +53,8 @@ class FilesystemSyncCommand extends Command
     protected function configure()
     {
         // @todo Add option for excludes and option for includes
-        // @todo Add option for whether to copy over permissions
+        // @todo Add option for whether to copy over permissions. Only "visibility" is possible with Flysystem since not
+        //       all filesystems have the same concept of permissions
         // @todo Add option for whether to copy over timestamps
         $filesystemAdapterNames = $this->filesystemAdapterProvider->getAdapterNames();
         $this->setName('filesystem:sync')
@@ -88,9 +89,9 @@ class FilesystemSyncCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $sourceFilesystemAdapter = $this->filesystemAdapterProvider->get($input->getArgument('source_adapter'));
+        $sourceFilesystemAdapter = $this->filesystemAdapterProvider->getAdapter($input->getArgument('source_adapter'));
         $sourceDirectory = rtrim($input->getArgument('source_directory'), '/');
-        $destinationFilesystemAdapter = $this->filesystemAdapterProvider->get(
+        $destinationFilesystemAdapter = $this->filesystemAdapterProvider->getAdapter(
             $input->getArgument('destination_adapter')
         );
         $destinationDirectory = rtrim($input->getArgument('destination_directory'), '/');

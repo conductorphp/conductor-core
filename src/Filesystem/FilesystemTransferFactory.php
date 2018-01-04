@@ -11,6 +11,9 @@ use League\Flysystem\Adapter\Local;
 use League\Flysystem\AwsS3v3\AwsS3Adapter;
 use Psr\Log\LoggerInterface;
 
+/**
+ * @todo Deprecate this class
+ */
 class FilesystemTransferFactory
 {
     /**

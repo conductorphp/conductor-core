@@ -5,7 +5,7 @@ namespace DevopsToolCore\Filesystem;
 use DevopsToolCore\Exception;
 use League\Flysystem\AdapterInterface;
 
-class FilesystemAdapterProvider
+class FilesystemAdapterManager
 {
     /**
      * @var array
@@ -28,7 +28,7 @@ class FilesystemAdapterProvider
      * @throws Exception\DomainException If requested filesystem adapter not found in those provided during construction
      * @return AdapterInterface
      */
-    public function get($name)
+    public function getAdapter($name)
     {
         if (!array_key_exists($name, $this->filesystemAdapters)) {
             throw new Exception\DomainException("Filesystem adapter \"$name\" not found.");
