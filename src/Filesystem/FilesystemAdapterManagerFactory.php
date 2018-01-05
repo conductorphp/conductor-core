@@ -36,16 +36,20 @@ class FilesystemAdapterManagerFactory implements FactoryInterface
         foreach ($config['filesystem']['adapters'] as $name => $adapter) {
             $class = $adapter['class'];
             $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
-            if ($arguments) {
-                if ($container instanceof ServiceManager) {
-                    $filesystemAdapter = $container->build($class, $arguments);
+            try {
+                if ($arguments) {
+                    if ($container instanceof ServiceManager) {
+                        $filesystemAdapter = $container->build($class, $arguments);
+                    } else {
+                        throw new Exception\LogicException(
+                            'Adapter arguments not allowed if not using ' . ServiceManager::class . ' container.'
+                        );
+                    }
                 } else {
-                    throw new Exception\LogicException(
-                        'Adapter arguments not allowed if not using ' . ServiceManager::class . ' container.'
-                    );
+                    $filesystemAdapter = $container->get($class);
                 }
-            } else {
-                $filesystemAdapter = $container->get($class);
+            } catch (ServiceNotCreatedException $e) {
+                throw new Exception\RuntimeException("Error in filesystem/adapters/$name configuration", 0, $e);
             }
 
             $filesystemAdapters[$name] = $filesystemAdapter;
