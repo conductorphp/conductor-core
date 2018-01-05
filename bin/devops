@@ -4,27 +4,40 @@
 chdir(__DIR__ . '/../../../..');
 require 'vendor/autoload.php';
 
-/**
- * Self-called anonymous function that creates its own scope and keep the global namespace clean.
- */
-call_user_func(function () {
-    /** @var \Interop\Container\ContainerInterface $container */
-    $container = require 'config/container.php';
+try {
+    /**
+     * Self-called anonymous function that creates its own scope and keep the global namespace clean.
+     */
+    call_user_func(function () {
+        /** @var \Interop\Container\ContainerInterface $container */
+        $container = require 'config/container.php';
 
-    $app = new \Symfony\Component\Console\Application('Application console');
+        $app = new \Symfony\Component\Console\Application('Application console');
 
-    $config = $container->get('config');
-    $commands = $config['console']['commands'];
-    if ($commands) {
-        foreach ($commands as $command) {
-            $app->add($container->get($command));
+        $config = $container->get('config');
+        $commands = $config['console']['commands'];
+        if ($commands) {
+            foreach ($commands as $command) {
+                $app->add($container->get($command));
+            }
         }
+
+        if (!empty($config['debug'])) {
+            error_reporting(-1);
+        }
+
+        $app->run();
+    });
+} catch (\Exception $e) {
+    $message = "\n\e[1;31mAn Exception Occurred:\n"
+        . $e->getMessage() . "\n"
+        . $e->getTraceAsString() . "\n\n";
+    while ($e = $e->getPrevious()) {
+        $message .= "Previous Exception:\n"
+        . $e->getMessage() . "\n"
+        . $e->getTraceAsString() . "\n\n";
     }
 
-    if (!empty($config['debug'])) {
-        error_reporting(-1);
-    }
-
-    $app->run();
-});
+    echo $message . "\e[1;0m";
+}
 
