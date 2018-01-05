@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseMetadataProviderInterface;
+use DevopsToolCore\Database\DatabaseAdapterManager;
 use DevopsToolCore\Exception;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -18,9 +18,9 @@ class DatabaseMetadataCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     /**
-     * @var DatabaseMetadataProviderInterface
+     * @var DatabaseAdapterManager
      */
-    private $databaseMetaDataProvider;
+    private $databaseAdapterManager;
     /**
      * @var LoggerInterface
      */
@@ -29,16 +29,16 @@ class DatabaseMetadataCommand extends Command
     /**
      * DatabaseMetadataCommand constructor.
      *
-     * @param DatabaseMetadataProviderInterface $databaseMetaDataProvider
-     * @param LoggerInterface|null              $logger
-     * @param null                              $name
+     * @param DatabaseAdapterManager $databaseAdapterManager
+     * @param LoggerInterface|null     $logger
+     * @param null                     $name
      */
     public function __construct(
-        DatabaseMetadataProviderInterface $databaseMetaDataProvider,
+        DatabaseAdapterManager $databaseAdapterManager,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->databaseMetaDataProvider = $databaseMetaDataProvider;
+        $this->databaseAdapterManager = $databaseAdapterManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -53,10 +53,10 @@ class DatabaseMetadataCommand extends Command
     {
         $this->setName('database:metadata')
             ->addOption(
-                'connection',
+                'adapter',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Database connection configuration to use.',
+                'Database adapter configuration to use.',
                 'default'
             )
             ->addOption('unit', null, InputOption::VALUE_REQUIRED, 'Unit to display sizes (B, KB, MB, or GB)', 'MB')
@@ -77,8 +77,8 @@ class DatabaseMetadataCommand extends Command
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->logger->info('Getting database metadata...');
-        $this->databaseMetaDataProvider->selectConnection($input->getOption('connection'));
-        $databases = $this->databaseMetaDataProvider->getDatabaseMetadata();
+        $databaseAdapter = $this->databaseAdapterManager->getAdapter($input->getOption('adapter'));
+        $databases = $databaseAdapter->getDatabaseMetadata();
         $databases = $this->sort($databases, $input->getOption('sort'), $input->getOption('reverse-sort'));
         $databases = $this->format(
             $databases,

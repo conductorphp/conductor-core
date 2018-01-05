@@ -21,6 +21,7 @@ class DatabaseAdapter
 
     public function __construct(PDO $pdo, ShellCommandHelper $shellCommandHelper = null)
     {
+        die(__METHOD__);
         $this->pdo = $pdo;
         $disabled = explode(',', ini_get('disable_functions'));
         if (in_array('exec', $disabled)) {

@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseMetadataProviderInterface;
+use DevopsToolCore\Database\DatabaseAdapterManager;
 use DevopsToolCore\Exception;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -18,27 +18,27 @@ class TableMetadataCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
     /**
-     * @var DatabaseMetadataProviderInterface
+     * @var DatabaseAdapterManager
      */
-    private $databaseMetaDataProvider;
+    private $databaseAdapterManager;
     /**
      * @var LoggerInterface
      */
     private $logger;
 
     /**
-     * DatabaseMetadataCommand constructor.
+     * TableMetadataCommand constructor.
      *
-     * @param DatabaseMetadataProviderInterface $databaseMetaDataProvider
-     * @param LoggerInterface|null              $logger
-     * @param null                              $name
+     * @param DatabaseAdapterManager $databaseAdapterManager
+     * @param LoggerInterface|null     $logger
+     * @param null                     $name
      */
     public function __construct(
-        DatabaseMetadataProviderInterface $databaseMetaDataProvider,
+        DatabaseAdapterManager $databaseAdapterManager,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->databaseMetaDataProvider = $databaseMetaDataProvider;
+        $this->databaseAdapterManager = $databaseAdapterManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -54,10 +54,10 @@ class TableMetadataCommand extends Command
         $this->setName('database:table:metadata')
             ->addArgument('database', InputArgument::REQUIRED, 'Database to get table sizes from')
             ->addOption(
-                'connection',
+                'adapter',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Database connection configuration to use.',
+                'Database adapter configuration to use.',
                 'default'
             )
             ->addOption('unit', null, InputOption::VALUE_REQUIRED, 'Unit to display sizes (B, KB, MB, or GB)', 'MB')
@@ -78,7 +78,6 @@ class TableMetadataCommand extends Command
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->logger->info('Getting table metadata for database "' . $input->getArgument('database') . '"...');
-        $this->databaseMetaDataProvider->selectConnection($input->getOption('connection'));
         $tables = $this->getTables($input);
         $outputTable = new Table($output);
         $outputTable
@@ -97,7 +96,8 @@ class TableMetadataCommand extends Command
      */
     private function getTables(InputInterface $input)
     {
-        $tables = $this->databaseMetaDataProvider->getTableMetadata($input->getArgument('database'));
+        $databaseAdapter = $this->databaseAdapterManager->getAdapter($input->getOption('adapter'));
+        $tables = $databaseAdapter->getTableMetadata($input->getArgument('database'));
         $tables = $this->sort($tables, $input->getOption('sort'), $input->getOption('reverse-sort'));
         $tables = $this->format(
             $tables,
