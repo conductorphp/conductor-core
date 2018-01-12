@@ -79,6 +79,7 @@ class FilesystemSyncCommand extends Command
             ->addOption('ignore-timestamps', null, InputOption::VALUE_NONE, 'Push all files, even if a newer matching file exists on the destination')
             ->addOption('exclude', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Path to exclude, in rsync format')
             ->addOption('include', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Excluded path to include, in rsync format')
+            ->addOption('batch-size', null, InputOption::VALUE_REQUIRED, 'Batch size for copy and delete operations', 100)
             ->setDescription(
                 'Copy a directory from a source filesystem directory to a destination filesystem directory.'
             )
@@ -105,6 +106,7 @@ class FilesystemSyncCommand extends Command
             'ignore_timestamps' => $input->getOption('ignore-timestamps'),
             'excludes' => $input->getOption('exclude'),
             'includes' => $input->getOption('include'),
+            'batch_size' => $input->getOption('batch-size'),
         ];
         $this->mountManager->sync($source, $destination, $options);
         return 0;

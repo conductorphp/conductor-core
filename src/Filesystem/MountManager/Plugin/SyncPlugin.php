@@ -2,10 +2,12 @@
 
 namespace DevopsToolCore\Filesystem\MountManager\Plugin;
 
+use Amp\Loop;
 use DevopsToolCore\Exception;
 use DevopsToolCore\Filesystem\MountManager\MountManager;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use function Amp\asyncCall;
 
 class SyncPlugin implements SyncPluginInterface
 {
@@ -109,8 +111,18 @@ class SyncPlugin implements SyncPluginInterface
     {
         list($filesToPush, $filesToDelete) = $this->determineFilesToPushAndDelete($mountManager, $from, $to, $config);
 
+        $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
         if ($filesToPush) {
-            $this->logger->debug('Pushing ' . number_format(count($filesToPush)) . ' file(s)');
+            $numBatches = ceil(count($filesToPush) / $batchSize);
+            $this->logger->info(
+                sprintf(
+                    'Copying %s file(s) in %s %s of %s',
+                    number_format(count($filesToPush)),
+                    number_format($numBatches),
+                    ($numBatches == 1) ? 'batch' : 'batches',
+                    number_format($batchSize)
+                )
+            );
             $this->putFiles(
                 $mountManager,
                 $from,
@@ -119,15 +131,24 @@ class SyncPlugin implements SyncPluginInterface
                 $filesToPush
             );
         } else {
-            $this->logger->debug('No files to push');
+            $this->logger->info('No files to copy');
         }
 
         if (!empty($config['delete'])) {
             if ($filesToDelete) {
-                $this->logger->debug('Deleting ' . number_format(count($filesToDelete)) . ' file(s)');
-                $this->deleteFiles($mountManager, $to, $filesToDelete);
+                $numBatches = ceil(count($filesToDelete) / $batchSize);
+                $this->logger->info(
+                    sprintf(
+                        'Deleting %s file(s) in %s %s of %s',
+                        number_format(count($filesToDelete)),
+                        number_format($numBatches),
+                        ($numBatches == 1) ? 'batch' : 'batches',
+                        number_format($batchSize)
+                    )
+                );
+                $this->deleteFiles($mountManager, $to, $filesToDelete, $config);
             } else {
-                $this->logger->debug('No files to delete');
+                $this->logger->info('No files to delete');
             }
         }
 
@@ -247,6 +268,8 @@ class SyncPlugin implements SyncPluginInterface
      */
     private function determineFilesToPushAndDelete(MountManager $mountManager, $from, $to, array $config)
     {
+        $this->logger->info('Calculating file sync list');
+
         $delete = !empty($config['delete']);
         $excludes = !empty($config['excludes']) ? $config['excludes'] : [];
         $includes = !empty($config['includes']) ? $config['includes'] : [];
@@ -328,13 +351,17 @@ class SyncPlugin implements SyncPluginInterface
             }
         }
 
-        if ($filesToPush) {
-            $filesToPush = $this->removeImplicitDirectoriesForPush($filesToPush);
+        if ($filesToPush || ($delete && $filesToDelete)) {
+            $this->logger->debug('Removing implicit files from sync list');
+            if ($filesToPush) {
+                $filesToPush = $this->removeImplicitDirectoriesForPush($filesToPush);
+            }
+
+            if ($delete && $filesToDelete) {
+                $filesToDelete = $this->removeImplicitFilesForDelete($filesToDelete);
+            }
         }
 
-        if ($delete && $filesToDelete) {
-            $filesToDelete = $this->removeImplicitFilesForDelete($filesToDelete);
-        }
         return [$filesToPush, $filesToDelete];
     }
 
@@ -354,17 +381,42 @@ class SyncPlugin implements SyncPluginInterface
         list($prefixTo, $pathTo) = $mountManager->getPrefixAndPath($to);
         $pathTo = trim($pathTo, '/');
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
-        foreach ($filesToPush as $file) {
-            if ('file' == $file['type']) {
-                $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
-                $to = "$prefixTo://$pathTo/{$file['relative_path']}";
-                $mountManager->putFile($from, $to, $config);
-            } else {
-                $to = "$pathTo/{$file['relative_path']}";
-                $this->logger->debug("Creating directory $prefixTo://$to");
-                $destinationFilesystem->createDir($to);
-            }
-        }
+
+        $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
+        $batchNumber = 1;
+        $numBatches = ceil(count($filesToPush) / $batchSize);
+        while ($batch = array_slice($filesToPush, $batchSize * ($batchNumber - 1), $batchSize)) {
+            $this->logger->info(
+                'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
+            );
+            asyncCall(
+                function () use (
+                    $mountManager,
+                    $destinationFilesystem,
+                    $batch,
+                    $prefixFrom,
+                    $pathFrom,
+                    $prefixTo,
+                    $pathTo,
+                    $config
+                ) {
+                    foreach ($batch as $file) {
+                        if ('file' == $file['type']) {
+                            $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
+                            $to = "$prefixTo://$pathTo/{$file['relative_path']}";
+                            $mountManager->putFile($from, $to, $config);
+                        } else {
+                            $to = "$pathTo/{$file['relative_path']}";
+                            $this->logger->debug("Creating directory $prefixTo://$to");
+                            $destinationFilesystem->createDir($to);
+                        }
+                    }
+                }
+            );
+
+            Loop::run();
+            $batchNumber++;
+        };
     }
 
     /**
@@ -372,19 +424,41 @@ class SyncPlugin implements SyncPluginInterface
      * @param              $to
      * @param              $filesToDelete
      */
-    private function deleteFiles(MountManager $mountManager, $to, $filesToDelete)
+    private function deleteFiles(MountManager $mountManager, $to, $filesToDelete, array $config)
     {
         list($prefixTo,) = $mountManager->getPrefixAndPath($to);
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
-        foreach ($filesToDelete as $file) {
-            if ('file' == $file['type']) {
-                $this->logger->debug("Deleting file $prefixTo://{$file['path']}");
-                $destinationFilesystem->delete($file['path']);
-            } else {
-                $this->logger->debug("Deleting directory $prefixTo://{$file['path']}");
-                $destinationFilesystem->deleteDir($file['path']);
-            }
-        }
+
+        $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
+        $batchNumber = 1;
+        $numBatches = ceil(count($filesToDelete) / $batchSize);
+
+        while ($batch = array_slice($filesToDelete, $batchSize * ($batchNumber - 1), $batchSize)) {
+            $this->logger->info(
+                'Processing delete batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
+            );
+            asyncCall(
+                function () use (
+                    $mountManager,
+                    $destinationFilesystem,
+                    $batch,
+                    $prefixTo
+                ) {
+                    foreach ($batch as $file) {
+                        if ('file' == $file['type']) {
+                            $this->logger->debug("Deleting file $prefixTo://{$file['path']}");
+                            $destinationFilesystem->delete($file['path']);
+                        } else {
+                            $this->logger->debug("Deleting directory $prefixTo://{$file['path']}");
+                            $destinationFilesystem->deleteDir($file['path']);
+                        }
+                    }
+                }
+            );
+
+            Loop::run();
+            $batchNumber++;
+        };
     }
 
 }
