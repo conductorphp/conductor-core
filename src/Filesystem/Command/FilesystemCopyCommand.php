@@ -2,9 +2,7 @@
 
 namespace DevopsToolCore\Filesystem\Command;
 
-use DevopsToolCore\Exception;
-use DevopsToolCore\Filesystem\Filesystem;
-use DevopsToolCore\Filesystem\FilesystemAdapterManager;
+use DevopsToolCore\Filesystem\MountManager\MountManager;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -18,9 +16,9 @@ class FilesystemCopyCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     /**
-     * @var FilesystemAdapterManager
+     * @var MountManager
      */
-    private $filesystemAdapterProvider;
+    private $mountManager;
     /**
      * @var LoggerInterface
      */
@@ -29,16 +27,16 @@ class FilesystemCopyCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param FilesystemAdapterManager $filesystemManager
-     * @param LoggerInterface|null     $logger
-     * @param string|null              $name
+     * @param MountManager         $mountManager
+     * @param LoggerInterface|null $logger
+     * @param string|null          $name
      */
     public function __construct(
-        FilesystemAdapterManager $filesystemManager,
+        MountManager $mountManager,
         LoggerInterface $logger = null,
         $name = null
     ) {
-        $this->filesystemAdapterProvider = $filesystemManager;
+        $this->mountManager = $mountManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -51,23 +49,26 @@ class FilesystemCopyCommand extends Command
      */
     protected function configure()
     {
-        // @todo Add option for whether to copy over timestamps
-        $filesystemAdapterNames = $this->filesystemAdapterProvider->getAdapterNames();
+        $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:copy')
             ->addArgument(
-                'source_adapter',
+                'source',
                 InputArgument::REQUIRED,
-                "Name of adapter to copy from.\nAvailable Adapters: <comment>" . implode(', ', $filesystemAdapterNames)
+                "Source path in the format {adapter}://{path}.\nAvailable Adapters: <comment>" . implode(
+                    ', ',
+                    $filesystemAdapterNames
+                )
                 . '</comment>'
             )
-            ->addArgument('source_file', InputArgument::REQUIRED, 'Source file to copy from.')
             ->addArgument(
-                'destination_adapter',
+                'destination',
                 InputArgument::REQUIRED,
-                "Name of adapter to copy to.\nAvailable Adapters: <comment>" . implode(', ', $filesystemAdapterNames)
+                "Destination path in the format {adapter}://{path}.\nAvailable Adapters: <comment>" . implode(
+                    ', ',
+                    $filesystemAdapterNames
+                )
                 . '</comment>'
             )
-            ->addArgument('destination_file', InputArgument::REQUIRED, 'Destination file to copy to.')
             ->setDescription(
                 'Copy a single file from a source filesystem directory to a destination filesystem directory.'
             )
@@ -77,7 +78,7 @@ class FilesystemCopyCommand extends Command
     }
 
     /**
-     * @param InputInterface $input
+     * @param InputInterface  $input
      * @param OutputInterface $output
      *
      * @return int
@@ -85,26 +86,10 @@ class FilesystemCopyCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $sourceFilesystemAdapter = $this->filesystemAdapterProvider->getAdapter($input->getArgument('source_adapter'));
-        $sourceFile = $input->getArgument('source_file');
-        $destinationFilesystemAdapter = $this->filesystemAdapterProvider->getAdapter(
-            $input->getArgument('destination_adapter')
-        );
-        $destinationFile = $input->getArgument('destination_file');
-
-        $sourceFilesystem = new Filesystem($sourceFilesystemAdapter);
-        $destinationFilesystem = new Filesystem($destinationFilesystemAdapter);
-
-        $stream = $sourceFilesystem->readStream($sourceFile);
-
-        if (!$stream) {
-            throw new Exception\RuntimeException('Unable to read source file "' . $sourceFile . '".');
-        }
-
-        if (!$destinationFilesystem->writeStream($destinationFile, $stream)) {
-            throw new Exception\RuntimeException('Error writing to destination file "' . $destinationFile . '".');
-        }
-
+        $source = $input->getArgument('source');
+        $destination = $input->getArgument('destination');
+        // @todo Add config options like whether to overwrite files. Not sure which go here vs. the filesystem itself
+        $this->mountManager->copy($source, $destination);
         return 0;
     }
 

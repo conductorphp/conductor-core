@@ -12,6 +12,7 @@ return [
         Database\DatabaseExportAdapterFactory::class => Database\DatabaseExportAdapterFactoryFactory::class,
         Database\DatabaseImportAdapterFactory::class => Database\DatabaseImportAdapterFactoryFactory::class,
         Filesystem\FilesystemAdapterManager::class   => Filesystem\FilesystemAdapterManagerFactory::class,
+        Filesystem\MountManager\MountManager::class  => Filesystem\MountManager\MountManagerFactory::class,
         \League\Flysystem\Adapter\Local::class       => Filesystem\LocalAdapterFactory::class,
     ],
 ];
