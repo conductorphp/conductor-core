@@ -27,7 +27,7 @@ class DatabaseAdapterManager
      * @throws Exception\DomainException If requested database adapter not found in those provided during construction
      * @return DatabaseAdapterInterface
      */
-    public function getAdapter($name)
+    public function getAdapter(string $name): DatabaseAdapterInterface
     {
         if (!array_key_exists($name, $this->databaseAdapters)) {
             throw new Exception\DomainException("Database adapter \"$name\" not found.");
@@ -39,7 +39,7 @@ class DatabaseAdapterManager
     /**
      * @return array
      */
-    public function getAdapterNames()
+    public function getAdapterNames(): array
     {
         return array_keys($this->databaseAdapters);
     }

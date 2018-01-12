@@ -34,7 +34,7 @@ class MountManager extends \League\Flysystem\MountManager
         $this->syncPlugin = new Plugin\SyncPlugin();
     }
 
-    public function setSyncPlugin(Plugin\SyncPlugin $syncPlugin)
+    public function setSyncPlugin(Plugin\SyncPlugin $syncPlugin): void
     {
         $this->syncPlugin = $syncPlugin;
     }
@@ -42,7 +42,7 @@ class MountManager extends \League\Flysystem\MountManager
     /**
      * @param LoggerInterface $logger
      */
-    public function setLogger(LoggerInterface $logger)
+    public function setLogger(LoggerInterface $logger): void
     {
         $this->syncPlugin->setLogger($logger);
         $this->logger = $logger;
@@ -51,7 +51,7 @@ class MountManager extends \League\Flysystem\MountManager
     /**
      * @return array
      */
-    public function getFilesystemPrefixes()
+    public function getFilesystemPrefixes(): array
     {
         return array_keys($this->filesystems);
     }
@@ -65,7 +65,7 @@ class MountManager extends \League\Flysystem\MountManager
      *
      * @return array
      */
-    public function listContents($directory = '', $recursive = false)
+    public function listContents($directory = '', $recursive = false): array
     {
         $result = parent::listContents($directory, $recursive);
 
@@ -86,7 +86,7 @@ class MountManager extends \League\Flysystem\MountManager
      *
      * @return void
      */
-    public function sync($from, $to, array $config = [])
+    public function sync(string $from, string $to, array $config = []): void
     {
         $this->syncPlugin->sync($this, $from, $to, $config);
     }
@@ -101,7 +101,7 @@ class MountManager extends \League\Flysystem\MountManager
      *
      * @return bool
      */
-    public function putFile($from, $to, array $config)
+    public function putFile(string $from, string $to, array $config): bool
     {
         $this->logger->debug("Pushing file $from to $to");
         list($prefixFrom, $from) = $this->getPrefixAndPath($from);
@@ -122,7 +122,7 @@ class MountManager extends \League\Flysystem\MountManager
         return $result;
     }
 
-    public function getPrefixAndPath($path)
+    public function getPrefixAndPath($path): array
     {
         return parent::getPrefixAndPath($path);
     }

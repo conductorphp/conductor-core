@@ -35,7 +35,7 @@ class FilesystemSyncCommand extends Command
     public function __construct(
         MountManager $mountManager,
         LoggerInterface $logger = null,
-        $name = null
+        string $name = null
     ) {
         $this->mountManager = $mountManager;
         if (is_null($logger)) {

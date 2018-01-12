@@ -28,7 +28,7 @@ class FilesystemAdapterManager
      * @throws Exception\DomainException If requested filesystem adapter not found in those provided during construction
      * @return AdapterInterface
      */
-    public function getAdapter($name)
+    public function getAdapter(string $name): AdapterInterface
     {
         if (!array_key_exists($name, $this->filesystemAdapters)) {
             throw new Exception\DomainException("Filesystem adapter \"$name\" not found.");
@@ -40,7 +40,7 @@ class FilesystemAdapterManager
     /**
      * @return array
      */
-    public function getAdapterNames()
+    public function getAdapterNames(): array
     {
         return array_keys($this->filesystemAdapters);
     }

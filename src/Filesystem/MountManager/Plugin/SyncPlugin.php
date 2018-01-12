@@ -36,7 +36,7 @@ class SyncPlugin implements SyncPluginInterface
      *
      * @return void
      */
-    public function sync(MountManager $mountManager, $from, $to, array $config = [])
+    public function sync(MountManager $mountManager, string $from, string $to, array $config = []): void
     {
         if (!$mountManager->has($from)) {
             throw new Exception\RuntimeException("Path \"$from\" does not exist.");
@@ -64,7 +64,7 @@ class SyncPlugin implements SyncPluginInterface
     /**
      * @param LoggerInterface $logger
      */
-    public function setLogger(LoggerInterface $logger)
+    public function setLogger(LoggerInterface $logger): void
     {
         $this->logger = $logger;
     }
@@ -73,13 +73,14 @@ class SyncPlugin implements SyncPluginInterface
      * This method is the same as copy, except that it does a putStream rather than writeStream, allowing it to write
      * even if the file exists.
      *
-     * @param       $from
-     * @param       $to
-     * @param array $config
+     * @param MountManager $mountManager
+     * @param string       $from
+     * @param string       $to
+     * @param array        $config
      *
      * @return bool
      */
-    private function putFile(MountManager $mountManager, $from, $to, array $config)
+    private function putFile(MountManager $mountManager, string $from, string $to, array $config): bool
     {
         $this->logger->debug("Copying file $from to $to");
         list($prefixFrom, $from) = $mountManager->getPrefixAndPath($from);
@@ -101,13 +102,12 @@ class SyncPlugin implements SyncPluginInterface
     }
 
     /**
-     * @param       $from
-     * @param       $to
-     * @param array $config
-     *
-     * @return bool
+     * @param MountManager $mountManager
+     * @param string       $from
+     * @param string       $to
+     * @param array        $config
      */
-    private function syncDirectory(MountManager $mountManager, $from, $to, array $config)
+    private function syncDirectory(MountManager $mountManager, string $from, string $to, array $config): void
     {
         list($filesToPush, $filesToDelete) = $this->determineFilesToPushAndDelete($mountManager, $from, $to, $config);
 
@@ -151,15 +151,15 @@ class SyncPlugin implements SyncPluginInterface
                 $this->logger->info('No files to delete');
             }
         }
-
-        return true;
     }
 
 
     /**
-     * @param $filesToPush
+     * @param array $filesToPush
+     *
+     * @return array
      */
-    private function removeImplicitDirectoriesForPush($filesToPush)
+    private function removeImplicitDirectoriesForPush(array $filesToPush): array
     {
         $implicitDirectories = [];
         foreach ($filesToPush as $file) {
@@ -191,9 +191,11 @@ class SyncPlugin implements SyncPluginInterface
     }
 
     /**
-     * @param $filesToDelete
+     * @param array $filesToDelete
+     *
+     * @return array
      */
-    private function removeImplicitFilesForDelete($filesToDelete)
+    private function removeImplicitFilesForDelete(array $filesToDelete): array
     {
         $directories = [];
         foreach ($filesToDelete as $file) {
@@ -219,7 +221,14 @@ class SyncPlugin implements SyncPluginInterface
         return $filesToDelete;
     }
 
-    private function applyExcludesAndIncludes(array $files, array $excludes = [], array $includes = [])
+    /**
+     * @param array $files
+     * @param array $excludes
+     * @param array $includes
+     *
+     * @return array
+     */
+    private function applyExcludesAndIncludes(array $files, array $excludes = [], array $includes = []): array
     {
         if (!$excludes) {
             return $files;
@@ -238,7 +247,13 @@ class SyncPlugin implements SyncPluginInterface
         return $files;
     }
 
-    private function isMatch($file, $patterns)
+    /**
+     * @param string $file
+     * @param array  $patterns
+     *
+     * @return bool
+     */
+    private function isMatch(string $file, array $patterns): bool
     {
         foreach ($patterns as &$pattern) {
             $pattern = str_replace('\*', '*', preg_quote($pattern, '%'));
@@ -260,13 +275,13 @@ class SyncPlugin implements SyncPluginInterface
 
     /**
      * @param MountManager $mountManager
-     * @param              $from
-     * @param              $to
+     * @param string       $from
+     * @param string       $to
      * @param array        $config
      *
      * @return array
      */
-    private function determineFilesToPushAndDelete(MountManager $mountManager, $from, $to, array $config)
+    private function determineFilesToPushAndDelete(MountManager $mountManager, string $from, string $to, array $config): array
     {
         $this->logger->info('Calculating file sync list');
 
@@ -367,14 +382,12 @@ class SyncPlugin implements SyncPluginInterface
 
     /**
      * @param MountManager $mountManager
-     * @param              $from
-     * @param              $to
+     * @param string       $from
+     * @param string       $to
      * @param array        $config
-     * @param              $filesToPush
-     *
-     * @return void
+     * @param array        $filesToPush
      */
-    private function putFiles(MountManager $mountManager, $from, $to, array $config, $filesToPush)
+    private function putFiles(MountManager $mountManager, string $from, string $to, array $config, array $filesToPush): void
     {
         list($prefixFrom, $pathFrom) = $mountManager->getPrefixAndPath($from);
         $pathFrom = trim($pathFrom, '/');
@@ -421,10 +434,11 @@ class SyncPlugin implements SyncPluginInterface
 
     /**
      * @param MountManager $mountManager
-     * @param              $to
-     * @param              $filesToDelete
+     * @param string       $to
+     * @param array        $filesToDelete
+     * @param array        $config
      */
-    private function deleteFiles(MountManager $mountManager, $to, $filesToDelete, array $config)
+    private function deleteFiles(MountManager $mountManager, string $to, array $filesToDelete, array $config): void
     {
         list($prefixTo,) = $mountManager->getPrefixAndPath($to);
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);

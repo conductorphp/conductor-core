@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseExportAdapterFactory;
+use DevopsToolCore\Database\DatabaseExportAdapterManager;
 use DevopsToolCore\Database\DatabaseExportAdapterInterface;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -22,7 +22,7 @@ class DatabaseExportCommand extends Command
      */
     private $databaseExportAdapter;
     /**
-     * @var DatabaseExportAdapterFactory
+     * @var DatabaseExportAdapterManager
      */
     private $databaseExportAdapterFactory;
     /**
@@ -33,14 +33,14 @@ class DatabaseExportCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param DatabaseExportAdapterFactory $databaseExportAdapterFactory
+     * @param DatabaseExportAdapterManager $databaseExportAdapterFactory
      * @param LoggerInterface|null         $logger
      * @param string|null                  $name
      */
     public function __construct(
-        DatabaseExportAdapterFactory $databaseExportAdapterFactory,
+        DatabaseExportAdapterManager $databaseExportAdapterFactory,
         LoggerInterface $logger = null,
-        $name = null
+        string $name = null
     ) {
         $this->databaseExportAdapterFactory = $databaseExportAdapterFactory;
         if (is_null($logger)) {
@@ -101,7 +101,7 @@ class DatabaseExportCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->databaseExportAdapter = $this->databaseExportAdapterFactory->create($input->getArgument('format'));
+        $this->databaseExportAdapter = $this->databaseExportAdapterFactory->getAdapter($input->getArgument('format'));
         $this->databaseExportAdapter->setLogger($this->logger);
         $this->databaseExportAdapter->selectConnection($input->getOption('connection'));
 

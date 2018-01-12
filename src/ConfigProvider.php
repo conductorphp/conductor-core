@@ -26,7 +26,7 @@ class ConfigProvider
      *
      * @return array
      */
-    private function getDependencyConfig()
+    private function getDependencyConfig(): array
     {
         return require(__DIR__ . '/../config/dependencies.php');
     }
@@ -34,7 +34,7 @@ class ConfigProvider
     /**
      * @return array
      */
-    private function getConsoleConfig()
+    private function getConsoleConfig(): array
     {
         return require(__DIR__ . '/../config/console.php');
     }
@@ -42,7 +42,7 @@ class ConfigProvider
     /**
      * @return array
      */
-    private function getFilesystemConfig()
+    private function getFilesystemConfig(): array
     {
         return require(__DIR__ . '/../config/filesystem.php');
     }

@@ -11,12 +11,12 @@ interface DatabaseImportAdapterInterface
      *
      * @throws \RuntimeException If not usable. Message should include reason adapter is not usable.
      */
-    public function assertIsUsable();
+    public function assertIsUsable(): void;
 
     /**
      * @return array An array with all allowed options as keys and a description of them as values.
      */
-    public function getOptionsHelp();
+    public function getOptionsHelp(): array;
 
     /**
      * @param string $filename      Filename to import from.
@@ -29,20 +29,20 @@ interface DatabaseImportAdapterInterface
      *
      * @return void
      */
-    public function importFromFile($filename, $database, array $options = []);
+    public function importFromFile(string $filename, string $database, array $options = []): void;
 
     /**
      * @param LoggerInterface $logger
      *
      * @return void
      */
-    public function setLogger(LoggerInterface $logger);
+    public function setLogger(LoggerInterface $logger): void;
 
     /**
      * @param string $name
      *
      * @return void
      */
-    public function selectConnection($name);
+    public function selectConnection(string $name): void;
 }
 

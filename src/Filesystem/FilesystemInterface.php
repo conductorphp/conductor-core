@@ -12,5 +12,5 @@ interface FilesystemInterface extends \League\Flysystem\FilesystemInterface
     /**
      * @return AdapterInterface
      */
-    public function getAdapter();
+    public function getAdapter(): AdapterInterface;
 }

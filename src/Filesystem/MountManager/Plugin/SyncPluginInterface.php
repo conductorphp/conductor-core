@@ -8,11 +8,9 @@ interface SyncPluginInterface
 {
     /**
      * @param MountManager $mountManager
-     * @param              $from
-     * @param              $to
+     * @param string       $from
+     * @param string       $to
      * @param array        $config
-     *
-     * @return void
      */
-    public function sync(MountManager $mountManager, $from, $to, array $config = []);
+    public function sync(MountManager $mountManager, string $from, string $to, array $config = []): void;
 }

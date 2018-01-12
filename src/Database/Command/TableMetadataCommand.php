@@ -36,7 +36,7 @@ class TableMetadataCommand extends Command
     public function __construct(
         DatabaseAdapterManager $databaseAdapterManager,
         LoggerInterface $logger = null,
-        $name = null
+        string $name = null
     ) {
         $this->databaseAdapterManager = $databaseAdapterManager;
         if (is_null($logger)) {

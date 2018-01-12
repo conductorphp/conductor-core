@@ -9,8 +9,8 @@ return [
     'factories'          => [
         \Psr\Log\LoggerInterface::class              => DefaultLoggerFactory::class,
         Database\DatabaseAdapterManager::class       => Database\DatabaseAdapterManagerFactory::class,
-        Database\DatabaseExportAdapterFactory::class => Database\DatabaseExportAdapterFactoryFactory::class,
-        Database\DatabaseImportAdapterFactory::class => Database\DatabaseImportAdapterFactoryFactory::class,
+        Database\DatabaseExportAdapterManager::class => Database\DatabaseExportAdapterManagerFactory::class,
+        Database\DatabaseImportAdapterManager::class => Database\DatabaseImportAdapterManagerFactory::class,
         Filesystem\FilesystemAdapterManager::class   => Filesystem\FilesystemAdapterManagerFactory::class,
         Filesystem\MountManager\MountManager::class  => Filesystem\MountManager\MountManagerFactory::class,
         \League\Flysystem\Adapter\Local::class       => Filesystem\LocalAdapterFactory::class,

@@ -12,7 +12,7 @@ trait MonologConsoleHandlerAwareTrait
     /**
      * @param OutputInterface $output
      */
-    private function injectOutputIntoLogger(OutputInterface $output, LoggerInterface $logger)
+    private function injectOutputIntoLogger(OutputInterface $output, LoggerInterface $logger): void
     {
         if ($logger instanceof Logger) {
             foreach ($logger->getHandlers() as $handler) {

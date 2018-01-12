@@ -2,7 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseImportAdapterFactory;
+use DevopsToolCore\Database\DatabaseImportAdapterManager;
 use DevopsToolCore\Database\DatabaseImportAdapterInterface;
 use DevopsToolCore\Exception;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
@@ -23,7 +23,7 @@ class DatabaseImportCommand extends Command
      */
     private $databaseImportAdapter;
     /**
-     * @var DatabaseImportAdapterFactory
+     * @var DatabaseImportAdapterManager
      */
     private $databaseImportAdapterFactory;
     /**
@@ -34,14 +34,14 @@ class DatabaseImportCommand extends Command
     /**
      * DatabaseImportCommand constructor.
      *
-     * @param DatabaseImportAdapterFactory $databaseImportAdapterFactory
+     * @param DatabaseImportAdapterManager $databaseImportAdapterFactory
      * @param LoggerInterface|null         $logger
-     * @param string|null                         $name
+     * @param string|null                  $name
      */
     public function __construct(
-        DatabaseImportAdapterFactory $databaseImportAdapterFactory,
+        DatabaseImportAdapterManager $databaseImportAdapterFactory,
         LoggerInterface $logger = null,
-        $name = null
+        string $name = null
     ) {
         $this->databaseImportAdapterFactory = $databaseImportAdapterFactory;
         if (is_null($logger)) {
@@ -91,7 +91,7 @@ class DatabaseImportCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->databaseImportAdapter = $this->databaseImportAdapterFactory->create($input->getArgument('format'));
+        $this->databaseImportAdapter = $this->databaseImportAdapterFactory->getAdapter($input->getArgument('format'));
         $this->databaseImportAdapter->setLogger($this->logger);
         $this->databaseImportAdapter->selectConnection($input->getOption('connection'));
 

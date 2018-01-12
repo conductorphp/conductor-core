@@ -39,7 +39,7 @@ class ShellCommandHelper
      *
      * @return bool
      */
-    public function isCallable($command)
+    public function isCallable($command): bool
     {
         exec('which ' . escapeshellarg($command) . ' &>/dev/null', $output, $return);
         return 0 === $return;
@@ -52,15 +52,15 @@ class ShellCommandHelper
      * @param array|null $otherOptions Other options to pass to proc_open
      *
      * @throws Exception\RuntimeException if command exits with non-zero status
-     * @return bool|string Standard output from the command
+     * @return string Standard output from the command
      */
     public function runShellCommand(
-        $command,
-        $priority = self::PRIORITY_NORMAL,
-        $cwd = null,
+        string $command,
+        int $priority = self::PRIORITY_NORMAL,
+        string $cwd = null,
         array $env = null,
         array $otherOptions = null
-    ) {
+    ): string {
         $this->logger->debug("Running shell command: $command");
         if (self::PRIORITY_LOW == $priority) {
             $command = 'ionice -c3 nice -n 19 bash -c ' . escapeshellarg($command);
@@ -108,9 +108,9 @@ class ShellCommandHelper
     }
 
     /**
-     * @return Logger|LoggerInterface
+     * @return LoggerInterface
      */
-    public function getLogger()
+    public function getLogger(): LoggerInterface
     {
         return $this->logger;
     }
@@ -120,7 +120,7 @@ class ShellCommandHelper
      *
      * @return void
      */
-    public function setLogger(LoggerInterface $logger)
+    public function setLogger(LoggerInterface $logger): void
     {
         $this->logger = $logger;
     }

@@ -11,14 +11,14 @@ interface DatabaseAdapterInterface
     /**
      * @return array Database names as the keys and metadata as key/value pairs
      */
-    public function getDatabaseMetadata();
+    public function getDatabaseMetadata(): array;
 
     /**
      * @param string $database Database name
      *
      * @return array Table names as the keys and metadata as key/value pairs
      */
-    public function getTableMetadata($database);
+    public function getTableMetadata(string $database): array;
 
     /**
      * @param string $database
@@ -46,7 +46,7 @@ interface DatabaseAdapterInterface
      *
      * @return void
      */
-    public function dropDatabaseIfExists($name);
+    public function dropDatabaseIfExists(string $name): void;
 
 //    public function createDatabase($database);
 
@@ -54,5 +54,5 @@ interface DatabaseAdapterInterface
      *
      * @return string[]
      */
-    public function getDatabases();
+    public function getDatabases(): array;
 }

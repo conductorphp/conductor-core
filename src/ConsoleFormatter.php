@@ -52,7 +52,7 @@ class ConsoleFormatter implements FormatterInterface
     /**
      * {@inheritdoc}
      */
-    public function formatBatch(array $records)
+    public function formatBatch(array $records): array
     {
         foreach ($records as $key => $record) {
             $records[$key] = $this->format($record);
@@ -64,7 +64,7 @@ class ConsoleFormatter implements FormatterInterface
     /**
      * {@inheritdoc}
      */
-    public function format(array $record)
+    public function format(array $record): string
     {
         $record = $this->replacePlaceHolder($record);
 
@@ -96,7 +96,12 @@ class ConsoleFormatter implements FormatterInterface
         return $formatted;
     }
 
-    private function replacePlaceHolder(array $record)
+    /**
+     * @param array $record
+     *
+     * @return array
+     */
+    private function replacePlaceHolder(array $record): array
     {
         $message = $record['message'];
 
@@ -118,7 +123,12 @@ class ConsoleFormatter implements FormatterInterface
         return $record;
     }
 
-    private function dumpData($data)
+    /**
+     * @param $data
+     *
+     * @return string
+     */
+    private function dumpData($data): string
     {
         return print_r($data, true);
     }

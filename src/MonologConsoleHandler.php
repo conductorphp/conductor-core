@@ -33,7 +33,7 @@ class MonologConsoleHandler extends ConsoleHandler
     /**
      * {@inheritdoc}
      */
-    protected function write(array $record)
+    protected function write(array $record): void
     {
         // at this point we've determined for sure that we want to output the record, so use the output's own verbosity
         $this->output->write((string)$record['formatted'], false);
