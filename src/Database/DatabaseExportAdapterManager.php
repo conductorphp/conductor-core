@@ -4,7 +4,7 @@ namespace DevopsToolCore\Database;
 
 use DevopsToolCore\Exception;
 
-class DatabaseExportAdapterFactory
+class DatabaseExportAdapterManager
 {
     /**
      * @var array
@@ -27,7 +27,7 @@ class DatabaseExportAdapterFactory
      * @throws Exception\DomainException If requested export adapter not found in those provided during construction
      * @return DatabaseExportAdapterInterface
      */
-    public function create($format)
+    public function getAdapter(string $format): DatabaseExportAdapterInterface
     {
         if (!array_key_exists($format, $this->databaseExportAdapters)) {
             throw new Exception\DomainException("Database export adapter not found for format \"$format\".");

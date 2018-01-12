@@ -9,7 +9,7 @@ use Zend\ServiceManager\Exception\ServiceNotCreatedException;
 use Zend\ServiceManager\Exception\ServiceNotFoundException;
 use Zend\ServiceManager\Factory\FactoryInterface;
 
-class DatabaseImportAdapterFactoryFactory implements FactoryInterface
+class DatabaseImportAdapterManagerFactory implements FactoryInterface
 {
     /**
      * Create an object
@@ -35,7 +35,7 @@ class DatabaseImportAdapterFactoryFactory implements FactoryInterface
         foreach ($config['database']['import_adapters'] as $name => $class) {
             $databaseImportAdapters[$name] = $container->get($class);
         }
-        return new DatabaseImportAdapterFactory($databaseImportAdapters);
+        return new DatabaseImportAdapterManager($databaseImportAdapters);
     }
 }
 
