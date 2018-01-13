@@ -6,9 +6,8 @@
 namespace DevopsToolCore;
 
 use DevopsToolCore\Exception;
-use Monolog\Handler\NullHandler;
-use Monolog\Logger;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Class DevopsToolCoreRefreshAssets
@@ -26,10 +25,10 @@ class ShellCommandHelper
      */
     private $logger;
 
-    public function __construct(LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger = null)
     {
         if (is_null($logger)) {
-            $logger = new NullHandler();
+            $logger = new NullLogger();
         }
         $this->logger = $logger;
     }
@@ -47,8 +46,8 @@ class ShellCommandHelper
 
     /**
      * @param            $command
-     * @param null       $cwd Current working directory to pass to proc_open
-     * @param array|null $env Environment variables to pass to proc_open
+     * @param null       $cwd          Current working directory to pass to proc_open
+     * @param array|null $env          Environment variables to pass to proc_open
      * @param array|null $otherOptions Other options to pass to proc_open
      *
      * @throws Exception\RuntimeException if command exits with non-zero status
