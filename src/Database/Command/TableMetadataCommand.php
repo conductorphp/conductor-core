@@ -29,16 +29,16 @@ class TableMetadataCommand extends Command
     /**
      * TableMetadataCommand constructor.
      *
-     * @param DatabaseAdapterManager $databaseAdapterManager
-     * @param LoggerInterface|null     $logger
-     * @param null                     $name
+     * @param DatabaseAdapterManager $databaseImportAdapterManager
+     * @param LoggerInterface|null   $logger
+     * @param null                   $name
      */
     public function __construct(
-        DatabaseAdapterManager $databaseAdapterManager,
+        DatabaseAdapterManager $databaseImportAdapterManager,
         LoggerInterface $logger = null,
         string $name = null
     ) {
-        $this->databaseAdapterManager = $databaseAdapterManager;
+        $this->databaseAdapterManager = $databaseImportAdapterManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }

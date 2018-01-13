@@ -2,8 +2,7 @@
 
 namespace DevopsToolCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseExportAdapterManager;
-use DevopsToolCore\Database\DatabaseExportAdapterInterface;
+use DevopsToolCore\Database\DatabaseImportExportAdapterManager;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -18,13 +17,9 @@ class DatabaseExportCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     /**
-     * @var DatabaseExportAdapterInterface
+     * @var DatabaseImportExportAdapterManager
      */
-    private $databaseExportAdapter;
-    /**
-     * @var DatabaseExportAdapterManager
-     */
-    private $databaseExportAdapterFactory;
+    private $databaseImportExportAdapterManager;
     /**
      * @var LoggerInterface
      */
@@ -33,16 +28,16 @@ class DatabaseExportCommand extends Command
     /**
      * DatabaseExportCommand constructor.
      *
-     * @param DatabaseExportAdapterManager $databaseExportAdapterFactory
-     * @param LoggerInterface|null         $logger
-     * @param string|null                  $name
+     * @param DatabaseImportExportAdapterManager $databaseImportExportAdapterManager
+     * @param LoggerInterface|null               $logger
+     * @param string|null                        $name
      */
     public function __construct(
-        DatabaseExportAdapterManager $databaseExportAdapterFactory,
+        DatabaseImportExportAdapterManager $databaseImportExportAdapterManager,
         LoggerInterface $logger = null,
         string $name = null
     ) {
-        $this->databaseExportAdapterFactory = $databaseExportAdapterFactory;
+        $this->databaseImportExportAdapterManager = $databaseImportExportAdapterManager;
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -55,13 +50,8 @@ class DatabaseExportCommand extends Command
      */
     protected function configure()
     {
-        $supportedFormats = $this->databaseExportAdapterFactory->getSupportedFormats();
+        $adapterNames = $this->databaseImportExportAdapterManager->getAdapterNames();
         $this->setName('database:export')
-            ->addArgument(
-                'format',
-                InputArgument::REQUIRED,
-                "Format to export to.\nSupported formats: <comment>" . implode(', ', $supportedFormats) . '</comment>'
-            )
             ->addArgument('database', InputArgument::REQUIRED, 'Database to export.')
             ->addArgument(
                 'path',
@@ -70,10 +60,10 @@ class DatabaseExportCommand extends Command
                 './'
             )
             ->addOption(
-                'connection',
+                'adapter',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Database connection configuration to use.',
+                'Database import/export adapter configuration to use.',
                 'default'
             )
             ->addOption(
@@ -101,16 +91,15 @@ class DatabaseExportCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->databaseExportAdapter = $this->databaseExportAdapterFactory->getAdapter($input->getArgument('format'));
-        $this->databaseExportAdapter->setLogger($this->logger);
-        $this->databaseExportAdapter->selectConnection($input->getOption('connection'));
+        $adapter = $this->databaseImportExportAdapterManager->getAdapter($input->getOption('adapter'));
+        $adapter->setLogger($this->logger);
 
         $database = $input->getArgument('database');
         $path = $input->getArgument('path');
         $ignoreTables = $input->getOption('ignore-tables') ? explode(',', $input->getOption('ignore-tables')) : [];
 
         $this->logger->info("Exporting database \"$database\"...");
-        $filename = $this->databaseExportAdapter->exportToFile(
+        $filename = $adapter->exportToFile(
             $database,
             $path,
             [
