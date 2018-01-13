@@ -51,12 +51,13 @@ class DatabaseMetadataCommand extends Command
      */
     protected function configure()
     {
+        $adapterNames = $this->databaseAdapterManager->getAdapterNames();
         $this->setName('database:metadata')
             ->addOption(
                 'adapter',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Database adapter configuration to use.',
+                'Database adapter configuration to use. Configured adapters: <comment>' . implode(', ', $adapterNames) . '</comment>',
                 'default'
             )
             ->addOption('unit', null, InputOption::VALUE_REQUIRED, 'Unit to display sizes (B, KB, MB, or GB)', 'MB')

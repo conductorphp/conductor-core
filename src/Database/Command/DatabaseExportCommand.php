@@ -63,7 +63,7 @@ class DatabaseExportCommand extends Command
                 'adapter',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Database import/export adapter configuration to use.',
+                'Database import/export adapter configuration to use. Configured adapters: <comment>' . implode(', ', $adapterNames) . '</comment>',
                 'default'
             )
             ->addOption(
