@@ -39,6 +39,11 @@ interface DatabaseImportExportAdapterInterface
     public function importFromFile(string $filename, string $database, array $options = []): void;
 
     /**
+     * @return string
+     */
+    public static function getFileExtension(): string;
+
+    /**
      * @param LoggerInterface $logger
      *
      * @return void
