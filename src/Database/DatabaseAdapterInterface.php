@@ -25,21 +25,28 @@ interface DatabaseAdapterInterface
      *
      * @return bool
      */
-//    public function databaseExists($database);
+    public function databaseExists(string $database): bool;
 
     /**
      * @param string $database
      *
      * @return bool
      */
-//    public function databaseIsEmpty($database);
+    public function databaseIsEmpty(string $database): bool;
 
     /**
      * @param string $database
-     * @param string $filename
-     * @param array|null $stringReplacements
+     *
+     * @return void
      */
-//    public function runSqlFile($database, $filename, array $stringReplacements = null);
+    public function dropDatabase(string $database): void;
+
+    /**
+     * @param string $database
+     *
+     * @return void
+     */
+    public function createDatabase(string $database): void;
 
     /**
      * @param string $name
