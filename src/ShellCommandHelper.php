@@ -93,7 +93,10 @@ class ShellCommandHelper
         }
 
         $stdout = stream_get_contents($pipes[1]);
-        $this->logger->debug(stream_get_contents($pipes[2]));
+        $stderr = stream_get_contents($pipes[2]);
+        if ($stderr) {
+            $this->logger->debug($stderr);
+        }
 
         fclose($pipes[0]);
         fclose($pipes[1]);
