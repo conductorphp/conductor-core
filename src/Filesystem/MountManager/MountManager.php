@@ -101,7 +101,7 @@ class MountManager extends \League\Flysystem\MountManager
      *
      * @return bool
      */
-    public function putFile(string $from, string $to, array $config): bool
+    public function putFile(string $from, string $to, array $config = []): bool
     {
         $this->logger->debug("Pushing file $from to $to");
         list($prefixFrom, $from) = $this->getPrefixAndPath($from);
