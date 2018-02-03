@@ -70,7 +70,7 @@ class MountManager extends \League\Flysystem\MountManager
         $result = parent::listContents($directory, $recursive);
 
         list(, $directory) = $this->getPrefixAndPath($directory);
-        $relativePathPos = strlen($directory) + 1;
+        $relativePathPos = strlen(trim($directory, '/')) + 1;
 
         foreach ($result as &$file) {
             $file['relative_path'] = substr($file['path'], $relativePathPos);
