@@ -77,7 +77,7 @@ class DatabaseMetadataCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->logger->info('Getting database metadata...');
+        $this->logger->info('Getting database metadata.');
         $databaseAdapter = $this->databaseAdapterManager->getAdapter($input->getOption('adapter'));
         $databases = $databaseAdapter->getDatabaseMetadata();
         $databases = $this->sort($databases, $input->getOption('sort'), $input->getOption('reverse-sort'));

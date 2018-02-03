@@ -87,7 +87,7 @@ class DatabaseImportCommand extends Command
         $database = $input->getArgument('database');
         $filename = $input->getArgument('filename');
 
-        $this->logger->info("Importing \"$filename\" into database \"$database\"...");
+        $this->logger->info("Importing \"$filename\" into database \"$database\".");
         $adapter->importFromFile(
             $filename,
             $database,

@@ -78,7 +78,7 @@ class TableMetadataCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->logger->info('Getting table metadata for database "' . $input->getArgument('database') . '"...');
+        $this->logger->info('Getting table metadata for database "' . $input->getArgument('database') . '".');
         $tables = $this->getTables($input);
         $outputTable = new Table($output);
         $outputTable

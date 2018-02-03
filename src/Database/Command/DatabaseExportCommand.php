@@ -98,7 +98,7 @@ class DatabaseExportCommand extends Command
         $path = $input->getArgument('path');
         $ignoreTables = $input->getOption('ignore-tables') ? explode(',', $input->getOption('ignore-tables')) : [];
 
-        $this->logger->info("Exporting database \"$database\"...");
+        $this->logger->info("Exporting database \"$database\".");
         $filename = $adapter->exportToFile(
             $database,
             $path,
