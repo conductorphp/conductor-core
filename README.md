@@ -36,3 +36,35 @@ The DevOps Tool can interact with a number of different filesystems. Here are a 
 The DevOps Tool currently only supports MySQL, but may support others in the future:
 
 * [MySQL](https://bitbucket.org/robofirm/devops-mysql-database-support)
+
+## How to Encrypt Configuration Values:
+
+The DevOps Tool supports encryption of all configuration values.
+
+Replace the last line of `config/config.php` with these lines:
+```php
+$config = $aggregator->getMergedConfig();
+if (!empty($config['crypt_key']) && class_exists('\DevopsToolCore\Crypt\Crypt')) {
+   $config = \DevopsToolCore\Crypt\Crypt::decryptExpressiveConfig($config, $config['crypt_key']);
+}
+```
+
+Generate an encryption key by running:
+```bash
+./vendor/bin/devops crypt:generate-key
+```
+
+Add this key to `config/autoload/local.php`:
+```php
+'crypt_key' => 'thisisyourcryptkey',
+```
+
+Update any configuration items in place by replacing their values with this:
+```
+'somekey' => 'ENC[defuse/php-encryption,thisistheencryptedvalue]'
+```
+
+Get the encrypted value for a string by running:
+```bash
+./vendor/bin/devops crypt:encrypt yourplaintextstring
+```
