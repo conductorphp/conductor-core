@@ -11,6 +11,7 @@ DevOps Tool: Core
 - Added amphp/amp for parallel processing
 - Applied parallel processing to SyncPlugin
 - Removed composer requirements that were pushed to other repos
+- Added Crypt commands and model
 
 # 0.1.0
 - Initial build copied over from DevOps tool

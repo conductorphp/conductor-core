@@ -4,6 +4,9 @@ namespace DevopsToolCore;
 
 return [
     'commands' => [
+        Crypt\Command\GenerateKeyCommand::class,
+        Crypt\Command\DecryptCommand::class,
+        Crypt\Command\EncryptCommand::class,
         Database\Command\DatabaseExportCommand::class,
         Database\Command\DatabaseImportCommand::class,
         Database\Command\DatabaseMetadataCommand::class,
