@@ -30,30 +30,28 @@ class MountManagerFactory implements FactoryInterface
     {
         $filesystems = [];
         $config = $container->get('config');
-        if (!isset($config['filesystem']['adapters'])) {
-            throw new Exception\RuntimeException('No configuration key found for "filesystem/adapters".');
-        }
-
-        foreach ($config['filesystem']['adapters'] as $prefix => $adapter) {
-            $class = $adapter['class'];
-            $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
-            try {
-                if ($arguments) {
-                    if ($container instanceof ServiceManager) {
-                        $filesystemAdapter = $container->build($class, $arguments);
+        if (isset($config['filesystem']['adapters'])) {
+            foreach ($config['filesystem']['adapters'] as $prefix => $adapter) {
+                $class = $adapter['class'];
+                $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
+                try {
+                    if ($arguments) {
+                        if ($container instanceof ServiceManager) {
+                            $filesystemAdapter = $container->build($class, $arguments);
+                        } else {
+                            throw new Exception\LogicException(
+                                'Adapter arguments not allowed if not using ' . ServiceManager::class . ' container.'
+                            );
+                        }
                     } else {
-                        throw new Exception\LogicException(
-                            'Adapter arguments not allowed if not using ' . ServiceManager::class . ' container.'
-                        );
+                        $filesystemAdapter = $container->get($class);
                     }
-                } else {
-                    $filesystemAdapter = $container->get($class);
+                } catch (ServiceNotCreatedException $e) {
+                    throw new Exception\RuntimeException("Error in filesystem/adapters/$prefix configuration", 0, $e);
                 }
-            } catch (ServiceNotCreatedException $e) {
-                throw new Exception\RuntimeException("Error in filesystem/adapters/$prefix configuration", 0, $e);
-            }
 
-            $filesystems[$prefix] = new Filesystem($filesystemAdapter);
+                $filesystems[$prefix] = new Filesystem($filesystemAdapter);
+            }
         }
 
         return new MountManager($filesystems);

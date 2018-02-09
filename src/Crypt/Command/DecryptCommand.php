@@ -2,6 +2,7 @@
 
 namespace DevopsToolCore\Crypt\Command;
 
+use DevopsToolCore\Exception;
 use DevopsToolCore\Crypt\Crypt;
 use DevopsToolCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -31,13 +32,13 @@ class DecryptCommand extends Command
      * GenerateKeyCommand constructor.
      *
      * @param Crypt                $crypt
-     * @param string               $key
+     * @param string|null          $key
      * @param LoggerInterface|null $logger
      * @param string|null          $name
      */
     public function __construct(
         Crypt $crypt,
-        string $key,
+        string $key = null,
         LoggerInterface $logger = null,
         string $name = null
     ) {
@@ -69,6 +70,17 @@ class DecryptCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        if (empty($this->key)) {
+            // Makes an assumption that this command is being built within Zend Expressive. Considering this ok
+            // because we have to allow the factory to generate this class without the key, but we still want to be
+            // able to show a useful error message explaining how to fix.
+            throw new Exception\RuntimeException(
+                'Configuration key "crypt_key" must be set. '
+                . 'This can be generated with the crypt:generate-key command and must be added '
+                . 'to config/autoload/local.php'
+            );
+        }
+
         $ciphertext = $input->getArgument('ciphertext');
         $this->injectOutputIntoLogger($output, $this->logger);
         $output->writeln($this->crypt->decrypt($ciphertext, $this->key));

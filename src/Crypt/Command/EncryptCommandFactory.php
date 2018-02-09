@@ -27,16 +27,8 @@ class EncryptCommandFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $config = $container->get('config');
-        if (empty($config['crypt_key'])) {
-            throw new Exception\RuntimeException(
-                'Configuration key "crypt_key" must be set. '
-                . 'This can be generated with the crypt:generate-key command and must be added '
-                . 'to config/autoload/local.php'
-            );
-        }
-
         $crypt = $container->get('DevopsToolCore\Crypt\Crypt');
-        return new EncryptCommand($crypt, $config['crypt_key']);
+        return new EncryptCommand($crypt, $config['crypt_key'] ?? null);
     }
 }
 
