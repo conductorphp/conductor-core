@@ -3,7 +3,7 @@
  * @author Kirk Madera <kmadera@robofirm.com>
  */
 
-namespace DevopsToolCore\Filesystem;
+namespace ConductorCore\Filesystem;
 
 use League\Flysystem\AdapterInterface;
 

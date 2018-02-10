@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore;
+namespace ConductorCore;
 
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;

@@ -1,12 +1,12 @@
 <?php
 
-namespace DevopsToolCore\Database;
+namespace ConductorCore\Database;
 
 use Psr\Log\LoggerInterface;
 
 interface DatabaseImportExportAdapterInterface
 {
-    const DEFAULT_WORKING_DIR = '.devops-database-export';
+    const DEFAULT_WORKING_DIR = '.conductor-database-export';
 
     /**
      * @param string $database      Database to export.

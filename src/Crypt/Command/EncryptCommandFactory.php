@@ -1,8 +1,8 @@
 <?php
 
-namespace DevopsToolCore\Crypt\Command;
+namespace ConductorCore\Crypt\Command;
 
-use DevopsToolCore\Exception;
+use ConductorCore\Exception;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;
@@ -27,7 +27,7 @@ class EncryptCommandFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $config = $container->get('config');
-        $crypt = $container->get('DevopsToolCore\Crypt\Crypt');
+        $crypt = $container->get('ConductorCore\Crypt\Crypt');
         return new EncryptCommand($crypt, $config['crypt_key'] ?? null);
     }
 }

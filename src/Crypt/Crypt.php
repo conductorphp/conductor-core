@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore\Crypt;
+namespace ConductorCore\Crypt;
 
 use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Key;
@@ -9,7 +9,7 @@ use Defuse\Crypto\Key;
  * Class Crypt
  *
  * @todo    Replace defuse/php-encryption with libsodium methods once we update to PHP 7.2
- * @package DevopsToolCore\Crypt
+ * @package ConductorCore\Crypt
  */
 class Crypt
 {

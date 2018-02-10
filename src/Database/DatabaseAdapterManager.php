@@ -1,8 +1,8 @@
 <?php
 
-namespace DevopsToolCore\Database;
+namespace ConductorCore\Database;
 
-use DevopsToolCore\Exception;
+use ConductorCore\Exception;
 
 class DatabaseAdapterManager
 {

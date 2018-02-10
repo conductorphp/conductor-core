@@ -3,16 +3,16 @@
  * @author Kirk Madera <kmadera@robofirm.com>
  */
 
-namespace DevopsToolCore;
+namespace ConductorCore;
 
-use DevopsToolCore\Exception;
+use ConductorCore\Exception;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Class DevopsToolCoreRefreshAssets
+ * Class ConductorCoreRefreshAssets
  *
- * @package DevopsToolCore
+ * @package ConductorCore
  */
 class ShellCommandHelper
 {

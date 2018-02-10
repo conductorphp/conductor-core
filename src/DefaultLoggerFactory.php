@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore;
+namespace ConductorCore;
 
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;

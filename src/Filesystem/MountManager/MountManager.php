@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore\Filesystem\MountManager;
+namespace ConductorCore\Filesystem\MountManager;
 
 use InvalidArgumentException;
 use League\Flysystem\FilesystemNotFoundException;

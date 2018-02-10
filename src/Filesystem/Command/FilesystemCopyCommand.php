@@ -1,9 +1,9 @@
 <?php
 
-namespace DevopsToolCore\Filesystem\Command;
+namespace ConductorCore\Filesystem\Command;
 
-use DevopsToolCore\Filesystem\MountManager\MountManager;
-use DevopsToolCore\MonologConsoleHandlerAwareTrait;
+use ConductorCore\Filesystem\MountManager\MountManager;
+use ConductorCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;

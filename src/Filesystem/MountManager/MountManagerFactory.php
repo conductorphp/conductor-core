@@ -1,8 +1,8 @@
 <?php
 
-namespace DevopsToolCore\Filesystem\MountManager;
+namespace ConductorCore\Filesystem\MountManager;
 
-use DevopsToolCore\Exception;
+use ConductorCore\Exception;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
 use League\Flysystem\Filesystem;

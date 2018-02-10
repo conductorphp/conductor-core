@@ -6,7 +6,7 @@
  * Overrode to adjust default formatting to be closer to that of Monolog's defaults.
  */
 
-namespace DevopsToolCore;
+namespace ConductorCore;
 
 use Monolog\Formatter\FormatterInterface;
 use Monolog\Logger;

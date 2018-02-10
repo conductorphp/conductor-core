@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore;
+namespace ConductorCore;
 
 return [
     'commands' => [

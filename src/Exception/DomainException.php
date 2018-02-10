@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore\Exception;
+namespace ConductorCore\Exception;
 
 class DomainException extends \DomainException implements ExceptionInterface
 {

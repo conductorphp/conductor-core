@@ -1,9 +1,9 @@
 <?php
 
-namespace DevopsToolCore\Crypt\Command;
+namespace ConductorCore\Crypt\Command;
 
-use DevopsToolCore\Crypt\Crypt;
-use DevopsToolCore\MonologConsoleHandlerAwareTrait;
+use ConductorCore\Crypt\Crypt;
+use ConductorCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;

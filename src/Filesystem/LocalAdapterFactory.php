@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore\Filesystem;
+namespace ConductorCore\Filesystem;
 
 use Aws\S3\S3Client;
 use Interop\Container\ContainerInterface;

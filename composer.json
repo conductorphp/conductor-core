@@ -1,9 +1,9 @@
 {
-    "name": "robofirm/devops-tool-core",
-    "description": "Robofirm DevOps Tool: Core",
+    "name": "conductor/core",
+    "description": "Conductor: Core",
     "type": "library",
-    "homepage": "https://bitbucket.org/robofirm/devops-tool-core",
-    "license": "MIT",
+    "homepage": "https://github.com/conductorphp/conductor-core",
+    "license": "Apache 2.0",
     "authors": [
         {
             "name": "Kirk Madera",
@@ -24,22 +24,22 @@
         "symfony/monolog-bridge": "^3.2"
     },
     "suggest": {
-        "robofirm/devops-tool-application-orchestration": "Adds application orchestration functionality.",
-        "robofirm/devops-tool-mysql-database-support": "Adds support for working with MySQL databases.",
-        "robofirm/devops-tool-aws-s3-filesystem-support": "Adds support for working with AWS S3 filesystems.",
-        "robofirm/devops-tool-azure-blob-filesystem-support": "Adds support for working with Microsoft Azure blob storage containers."
+        "conductor/application-orchestration": "Adds application orchestration functionality.",
+        "conductor/mysql-database-support": "Adds support for working with MySQL databases.",
+        "conductor/aws-s3-filesystem-support": "Adds support for working with AWS S3 filesystems.",
+        "conductor/azure-blob-filesystem-support": "Adds support for working with Microsoft Azure blob storage containers."
     },
     "autoload": {
         "psr-4": {
-            "DevopsToolCore\\": "src/"
+            "ConductorCore\\": "src/"
         }
     },
     "extra": {
         "zf": {
-            "config-provider": "DevopsToolCore\\ConfigProvider"
+            "config-provider": "ConductorCore\\ConfigProvider"
         }
     },
     "bin": [
-        "bin/devops"
+        "bin/conductor"
     ]
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace DevopsToolCore\Database\Command;
+namespace ConductorCore\Database\Command;
 
-use DevopsToolCore\Database\DatabaseAdapterManager;
-use DevopsToolCore\Exception;
-use DevopsToolCore\MonologConsoleHandlerAwareTrait;
+use ConductorCore\Database\DatabaseAdapterManager;
+use ConductorCore\Exception;
+use ConductorCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;

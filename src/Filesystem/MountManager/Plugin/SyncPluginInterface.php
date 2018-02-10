@@ -1,8 +1,8 @@
 <?php
 
-namespace DevopsToolCore\Filesystem\MountManager\Plugin;
+namespace ConductorCore\Filesystem\MountManager\Plugin;
 
-use DevopsToolCore\Filesystem\MountManager\MountManager;
+use ConductorCore\Filesystem\MountManager\MountManager;
 
 interface SyncPluginInterface
 {

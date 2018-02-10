@@ -1,7 +1,8 @@
-DevOps Tool: Core
+Conductor: Core
 ==============================================
 
-# 0.2.0 (Unreleased)
+# 1.0.0 (Unreleased)
+- Renamed to Conductor
 - Added DatabaseAdapterManager
 - Merged DatabaseMetadataProviderInterface into DatabaseAdapterInterface
 - Added exception handling around entire app
@@ -14,4 +15,4 @@ DevOps Tool: Core
 - Added Crypt commands and model
 
 # 0.1.0
-- Initial build copied over from DevOps tool
+- Initial build copied over from devops tool

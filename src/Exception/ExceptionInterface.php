@@ -1,6 +1,6 @@
 <?php
 
-namespace DevopsToolCore\Exception;
+namespace ConductorCore\Exception;
 
 interface ExceptionInterface
 {

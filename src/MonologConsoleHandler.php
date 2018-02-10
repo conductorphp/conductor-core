@@ -6,7 +6,7 @@
  * @todo Remove this class once this PR is merged
  */
 
-namespace DevopsToolCore;
+namespace ConductorCore;
 
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Output\OutputInterface;
