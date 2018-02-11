@@ -27,8 +27,8 @@ The Conductor supports many platforms. Here are a few common platforms:
 
 The Conductor can interact with a number of different filesystems. Here are a few common ones:
 
-* [AWS](https://github.com/conductorphp/conductor-aws-filesystem-support)
-* [Azure](https://github.com/conductorphp/conductor-azure-filesystem-support)
+* [AWS](https://github.com/conductorphp/conductor-aws-s3-filesystem-support)
+* [Azure](https://github.com/conductorphp/conductor-azure-blob-filesystem-support)
 
 The Conductor currently only supports MySQL, but may support others in the future:
 
