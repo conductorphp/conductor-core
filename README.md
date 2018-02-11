@@ -11,31 +11,28 @@ You should create a project with this command:
 composer create-project zendframework/zend-expressive-skeleton myconductortool
 ```
 
-Run `./myconductortool/vendor/bin/conductor` with no arguments to see all available commands. We recommend add `bin` to your path
+Run `./myconductortool/vendor/bin/conductor` with no arguments to see all available commands. We recommend that you add `myconductortool/vendor/bin` to your path.
 
 Below are a few of the most common Conductor modules we suggest:
 
-1. [Application Orchestration](https://bitbucket.org/robofirm/conductor-application-orchestration) - Application 
+1. [Application Orchestration](https://github.com/conductorphp/conductor-application-orchestration) - Application 
    installation, configuration, backups, builds, code deployments, maintenance mode, syncing of environments.
-2. [Project Setup](https://bitbucket.org/robofirm/conductor-project-setup) - Creation of initial project resources
-   including Jira project, Jira user groups, pre-populated Confluence space, pre-populated 
-   Bitbucket repositories for Terraform, Puppet, and App Setup.
 
 The Conductor supports many platforms. Here are a few common platforms:
 
-* [Magento 2](https://bitbucket.org/robofirm/conductor-magento-2-platform-support)
-* [Magento 1](https://bitbucket.org/robofirm/conductor-magento-1-platform-support)
-* [Drupal](https://bitbucket.org/robofirm/conductor-drupal-platform-support)
-* [WordPress](https://bitbucket.org/robofirm/conductor-wordpress-platform-support)
+* [Magento 2](https://github.com/conductorphp/conductor-magento-2-platform-support)
+* [Magento 1](https://github.com/conductorphp/conductor-magento-1-platform-support)
+* [Drupal](https://github.com/conductorphp/conductor-drupal-platform-support)
+* [WordPress](https://github.com/conductorphp/conductor-wordpress-platform-support)
 
 The Conductor can interact with a number of different filesystems. Here are a few common ones:
 
-* [AWS](https://bitbucket.org/robofirm/conductor-aws-filesystem-support)
-* [Azure](https://bitbucket.org/robofirm/conductor-azure-filesystem-support)
+* [AWS](https://github.com/conductorphp/conductor-aws-filesystem-support)
+* [Azure](https://github.com/conductorphp/conductor-azure-filesystem-support)
 
 The Conductor currently only supports MySQL, but may support others in the future:
 
-* [MySQL](https://bitbucket.org/robofirm/conductor-mysql-database-support)
+* [MySQL](https://github.com/conductorphp/conductor-mysql-database-support)
 
 ## How to Encrypt Configuration Values:
 
