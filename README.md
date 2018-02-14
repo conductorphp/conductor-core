@@ -1,8 +1,7 @@
 Conductor: Core
 ====================================
 
-This module offers common core functionality for the  
-[Robofirm Conductor](https://bitbucket.org/robofirm/robofirm-conductor).
+This module offers common core functionality for the Robofirm Conductor.
 
 
 You should create a project with this command:
