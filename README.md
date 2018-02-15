@@ -97,3 +97,8 @@ Get the encrypted value for a string by running, then replace the plain text str
 ```bash
 ./vendor/bin/conductor crypt:encrypt yourplaintextstring
 ```
+
+Replace the plan text string in your configuration with:
+```php
+'ENC[defuse/php-encryption,yourciphertext]'
+```
