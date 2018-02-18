@@ -13,6 +13,7 @@ Conductor: Core
 - Applied parallel processing to SyncPlugin
 - Removed composer requirements that were pushed to other repos
 - Added Crypt commands and model
+- Added posix PHP extension suggestion
 
 # 0.1.0
 - Initial build copied over from devops tool

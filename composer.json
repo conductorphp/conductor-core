@@ -24,6 +24,7 @@
         "symfony/monolog-bridge": "^3.2"
     },
     "suggest": {
+        "ext-posix": "Required to display colors in command line",
         "conductor/application-orchestration": "Adds application orchestration functionality.",
         "conductor/mysql-database-support": "Adds support for working with MySQL databases.",
         "conductor/aws-s3-filesystem-support": "Adds support for working with AWS S3 filesystems.",
