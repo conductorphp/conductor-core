@@ -34,9 +34,13 @@ class MountManagerFactory implements FactoryInterface
             foreach ($config['filesystem']['adapters'] as $prefix => $adapter) {
                 $class = $adapter['class'];
                 $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
+                $filesystemConfig = null;
                 try {
                     if ($arguments) {
                         if ($container instanceof ServiceManager) {
+                            if (!empty($arguments['config'])) {
+                                $filesystemConfig = $arguments['config']; unset($arguments['config']);
+                            }
                             $filesystemAdapter = $container->build($class, $arguments);
                         } else {
                             throw new Exception\LogicException(
@@ -50,7 +54,7 @@ class MountManagerFactory implements FactoryInterface
                     throw new Exception\RuntimeException("Error in filesystem/adapters/$prefix configuration", 0, $e);
                 }
 
-                $filesystems[$prefix] = new Filesystem($filesystemAdapter);
+                $filesystems[$prefix] = new Filesystem($filesystemAdapter, $filesystemConfig);
             }
         }
 
