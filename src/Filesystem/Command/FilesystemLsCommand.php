@@ -119,7 +119,11 @@ class FilesystemLsCommand extends Command
     private function getFileMetadata($filesystem, $path)
     {
         if ('.' !== $path) {
-            $metaData = $filesystem->getMetadata($path);
+            try {
+                $metaData = $filesystem->getMetadata($path);
+            } catch (\Exception $e) {
+                // Do nothing. Assume this is a directory since some filesystems will not return metadata for directories
+            }
         }
 
         if (empty($metaData)) {
