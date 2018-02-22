@@ -86,7 +86,7 @@ class FilesystemLsCommand extends Command
         $path = trim(substr($path, strlen($prefix) + 3), '/');
         $filesystem = $this->mountManager->getFilesystem($prefix);
 
-        $metaData = $this->normalizeMetadata($this->getFilesystemMetadata($filesystem, $path), $path);
+        $metaData = $this->normalizeMetadata($this->getFileMetadata($filesystem, $path), $path);
         $isFile = ('file' == $metaData['type']);
 
         if ($isFile) {
@@ -116,7 +116,7 @@ class FilesystemLsCommand extends Command
         $this->appendOutputRow($tableOutput, $metaData);
         if ($contents) {
             foreach ($contents as $file) {
-                $metaData = $this->normalizeMetadata($this->getFilesystemMetadata($filesystem, $file['path']), $path);
+                $metaData = $this->normalizeMetadata($this->getFileMetadata($filesystem, $file['path']), $path);
                 $this->appendOutputRow($tableOutput, $metaData);
             }
         }
@@ -192,7 +192,7 @@ class FilesystemLsCommand extends Command
      *
      * @return array
      */
-    private function getFilesystemMetadata(FilesystemInterface $filesystem, string $path): array
+    private function getFileMetadata(FilesystemInterface $filesystem, string $path): array
     {
         // Get metadata. Some file adapters will return info for dirs, some will return false, and some will
         // throw an exception
