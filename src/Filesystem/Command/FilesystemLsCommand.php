@@ -2,6 +2,7 @@
 
 namespace ConductorCore\Filesystem\Command;
 
+use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
 use League\Flysystem\FilesystemInterface;
@@ -85,24 +86,38 @@ class FilesystemLsCommand extends Command
         $path = trim(substr($path, strlen($prefix) + 3), '/');
         $filesystem = $this->mountManager->getFilesystem($prefix);
 
-        if ('.' !== $path && !$filesystem->has($path)) {
-            $this->logger->notice("Path \"$path\" does not exist.");
-            return 0;
+        $metaData = $this->normalizeMetadata($this->getFilesystemMetadata($filesystem, $path), $path);
+        $isFile = ('file' == $metaData['type']);
+
+        if ($isFile) {
+            $hasFile = true;
+            $contents = null;
+        } else {
+            $hasFile = $filesystem->has($path);
+            $contents = $filesystem->listContents($path, $input->getOption('recursive'));
         }
 
-        $metaData = $this->getFileMetadata($filesystem, $path);
-        $basePath = $path;
-        if ('file' == $metaData['type']) {
-            if (false !== strpos($path, '/')) {
-                $basePath = preg_replace('%(.*)/[^/]+%', '$1', $path);
+        if (!($hasFile || $contents)) {
+            if (!$hasFile && false !== strpos($path, '/')) {
+                $parentPath = preg_replace('%(.+)/[^/]+%', '$1', $path);
+                $parentContents = $filesystem->listContents($parentPath);
+                if ($parentContents) {
+                    foreach ($parentContents as $parentContent) {
+                        if ($path == $parentContent['path']) {
+                            $tableOutput->render();
+                            return 0;
+                        }
+                    }
+                }
             }
+            throw new Exception\RuntimeException("Path \"$path\" does not exist.");
         }
 
-        $this->appendOutputRow($tableOutput, $metaData, $basePath);
-        if ('dir' == $metaData['type']) {
-            foreach ($filesystem->listContents($path, $input->getOption('recursive')) as $file) {
-                $metaData = $this->getFileMetadata($filesystem, $file['path']);
-                $this->appendOutputRow($tableOutput, $metaData, $basePath);
+        $this->appendOutputRow($tableOutput, $metaData);
+        if ($contents) {
+            foreach ($contents as $file) {
+                $metaData = $this->normalizeMetadata($this->getFilesystemMetadata($filesystem, $file['path']), $path);
+                $this->appendOutputRow($tableOutput, $metaData);
             }
         }
 
@@ -111,54 +126,16 @@ class FilesystemLsCommand extends Command
     }
 
     /**
-     * @param FilesystemInterface $filesystem
-     * @param string $path
-     *
-     * @return array
-     */
-    private function getFileMetadata($filesystem, $path)
-    {
-        if ('.' !== $path) {
-            $metaData = $filesystem->getMetadata($path);
-        }
-
-        if (empty($metaData)) {
-            // Some filesystems will report no metadata for directories, because they only exist in paths
-            // of objects, but are not actually directories themselves. For example, in AWS S3 buckets.
-            $metaData = [
-                'path' => $path,
-                'type' => 'dir',
-            ];
-        }
-        return $metaData;
-    }
-
-    /**
      * @param Table $tableOutput
      * @param array $metaData
-     * @param string|null $basePath
      */
-    protected function appendOutputRow(Table $tableOutput, $metaData, $basePath = null)
+    private function appendOutputRow(Table $tableOutput, array $metaData): void
     {
-        $path = empty($basePath) || '.' == $basePath ? $metaData['path'] : substr($metaData['path'], strlen($basePath) + 1);
-        if (empty($path)) {
-            if ('file' == $metaData['type']) {
-                $path = $metaData['path'];
-            } else {
-                $path = '.';
-            }
-        }
-        if (isset($metaData['size'])) {
-            $size = $this->humanFileSize($metaData['size']);
-        } else {
-            $size = '';
-        }
-
         $tableOutput->addRow(
             [
-                $path,
+                $metaData['path'],
                 isset($metaData['type']) ? $metaData['type'] : 'dir',
-                $size,
+                $metaData['size'],
                 isset($metaData['timestamp']) ? date('Y-m-d H:i:s T', $metaData['timestamp']) : '',
             ]
         );
@@ -178,6 +155,60 @@ class FilesystemLsCommand extends Command
         }
 
         return $size;
+    }
+
+    /**
+     * @param array $metaData
+     * @param string $basePath
+     *
+     * @return array
+     */
+    private function normalizeMetadata(array $metaData, string $basePath): array
+    {
+        if (!empty($basePath) && '.' != $basePath) {
+            $metaData['path'] = substr($metaData['path'], strlen($basePath) + 1);
+        }
+
+        if (empty($metaData['path'])) {
+            $metaData['path'] = '.';
+        }
+
+        if (empty($metaData['type'])) {
+            $metaData['type'] = 'dir';
+        }
+
+        if (isset($metaData['size'])) {
+            $metaData['size'] = $this->humanFileSize($metaData['size']);
+        } else {
+            $metaData['size'] = '';
+        }
+
+        return $metaData;
+    }
+
+    /**
+     * @param FilesystemInterface $filesystem
+     * @param string $path
+     *
+     * @return array
+     */
+    private function getFilesystemMetadata(FilesystemInterface $filesystem, string $path): array
+    {
+        // Get metadata. Some file adapters will return info for dirs, some will return false, and some will
+        // throw an exception
+        try {
+            $metaData = $filesystem->getMetadata($path) ?? [];
+        } catch (\Exception $e) {
+            // Do nothing
+        }
+
+        if (empty($metaData)) {
+            $metaData = [
+                'type' => 'dir',
+                'path' => $path,
+            ];
+        }
+        return $metaData;
     }
 
 }
