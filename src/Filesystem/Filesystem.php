@@ -30,17 +30,13 @@ class Filesystem extends \League\Flysystem\Filesystem
         // Deal with inconsistent adapter behavior.
         // Some adapters always return false for directories.
         // Check if this is an existing directory by checking if it exists in its parent's contents
-        if (false !== strpos($path, '/')) {
-            $parentPath = preg_replace('%(.+)/[^/]+%', '$1', $path);
-        } else {
-            $parentPath = '.';
-        }
-        $parentContents = $this->listContents($parentPath);
-        if ($parentContents) {
-            foreach ($parentContents as $parentContent) {
-                if ($path == $parentContent['path']) {
-                    return true;
-                }
+        $parts = explode('/', $path);
+        array_pop($parts);
+        $parentPath = implode('/', $parts);
+
+        foreach ($this->listContents($parentPath) as $parentContent) {
+            if ($path == $parentContent['path']) {
+                return true;
             }
         }
 
