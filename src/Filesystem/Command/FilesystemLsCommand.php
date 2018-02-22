@@ -141,7 +141,12 @@ class FilesystemLsCommand extends Command
         );
     }
 
-    private function humanFileSize($size)
+    /**
+     * @param int $size
+     *
+     * @return string
+     */
+    private function humanFileSize(int $size): string
     {
         if ($size >= 1 << 30) {
             return number_format($size / (1 << 30), 1) . "G";
