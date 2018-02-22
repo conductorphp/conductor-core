@@ -5,7 +5,6 @@ namespace ConductorCore\Filesystem\Command;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
-use League\Flysystem\FilesystemInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
@@ -15,6 +14,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Class FilesystemLsCommand
+ *
+ * @todo Add support for glob patterns?
+ * @package ConductorCore\Filesystem\Command
+ */
 class FilesystemLsCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
@@ -86,38 +91,20 @@ class FilesystemLsCommand extends Command
         $path = trim(substr($path, strlen($prefix) + 3), '/');
         $filesystem = $this->mountManager->getFilesystem($prefix);
 
-        $metaData = $this->normalizeMetadata($this->getFileMetadata($filesystem, $path), $path);
-        $isFile = ('file' == $metaData['type']);
-
-        if ($isFile) {
-            $hasFile = true;
-            $contents = null;
-        } else {
-            $hasFile = $filesystem->has($path);
-            $contents = $filesystem->listContents($path, $input->getOption('recursive'));
-        }
-
-        if (!($hasFile || $contents)) {
-            if (!$hasFile && false !== strpos($path, '/')) {
-                $parentPath = preg_replace('%(.+)/[^/]+%', '$1', $path);
-                $parentContents = $filesystem->listContents($parentPath);
-                if ($parentContents) {
-                    foreach ($parentContents as $parentContent) {
-                        if ($path == $parentContent['path']) {
-                            $tableOutput->render();
-                            return 0;
-                        }
-                    }
-                }
-            }
+        if (!$filesystem->has($path)) {
             throw new Exception\RuntimeException("Path \"$path\" does not exist.");
         }
 
+        $metaData = $this->normalizeMetadata($filesystem->getMetadata($path), $path);
         $this->appendOutputRow($tableOutput, $metaData);
-        if ($contents) {
-            foreach ($contents as $file) {
-                $metaData = $this->normalizeMetadata($this->getFileMetadata($filesystem, $file['path']), $path);
-                $this->appendOutputRow($tableOutput, $metaData);
+
+        if ('dir' == $metaData['type']) {
+            $contents = $filesystem->listContents($path, $input->getOption('recursive'));
+            if ($contents) {
+                foreach ($contents as $file) {
+                    $metaData = $this->normalizeMetadata($file, $path);
+                    $this->appendOutputRow($tableOutput, $metaData);
+                }
             }
         }
 
@@ -163,15 +150,15 @@ class FilesystemLsCommand extends Command
     }
 
     /**
-     * @param array $metaData
+     * @param array  $metaData
      * @param string $basePath
      *
      * @return array
      */
     private function normalizeMetadata(array $metaData, string $basePath): array
     {
-        if (!empty($basePath) && '.' != $basePath) {
-            $metaData['path'] = substr($metaData['path'], strlen($basePath) + 1);
+        if (empty($basePath)) {
+            $basePath = '.';
         }
 
         if (empty($metaData['path'])) {
@@ -182,37 +169,23 @@ class FilesystemLsCommand extends Command
             $metaData['type'] = 'dir';
         }
 
+        if ($metaData['path'] == $basePath) {
+            if ('file' == $metaData['type']) {
+                $parts = explode('/', $metaData['path']);
+                $metaData['path'] = array_pop($parts);
+            } else {
+                $metaData['path'] = '.';
+            }
+        } elseif ('.' != $basePath) {
+            $metaData['path'] = substr($metaData['path'], strlen($basePath) + 1);
+        }
+
         if (isset($metaData['size'])) {
             $metaData['size'] = $this->humanFileSize($metaData['size']);
         } else {
             $metaData['size'] = '';
         }
 
-        return $metaData;
-    }
-
-    /**
-     * @param FilesystemInterface $filesystem
-     * @param string $path
-     *
-     * @return array
-     */
-    private function getFileMetadata(FilesystemInterface $filesystem, string $path): array
-    {
-        // Get metadata. Some file adapters will return info for dirs, some will return false, and some will
-        // throw an exception
-        try {
-            $metaData = $filesystem->getMetadata($path) ?? [];
-        } catch (\Exception $e) {
-            // Do nothing
-        }
-
-        if (empty($metaData)) {
-            $metaData = [
-                'type' => 'dir',
-                'path' => $path,
-            ];
-        }
         return $metaData;
     }
 
