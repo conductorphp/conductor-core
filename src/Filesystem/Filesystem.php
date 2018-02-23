@@ -5,14 +5,18 @@ namespace ConductorCore\Filesystem;
 use League\Flysystem\FileNotFoundException;
 use League\Flysystem\Util;
 
+/**
+ * Class Filesystem
+ *
+ * Overrode to deal with directories consistently across adapters
+ *
+ * @see https://github.com/thephpleague/flysystem/issues/899
+ * @package ConductorCore\Filesystem
+ */
 class Filesystem extends \League\Flysystem\Filesystem
 {
     /**
-     * Overrode to deal with directories consistently across adapters
-     *
-     * @param string $path
-     *
-     * @return bool
+     * @inheritdoc
      */
     public function has($path)
     {
@@ -44,10 +48,7 @@ class Filesystem extends \League\Flysystem\Filesystem
     }
 
     /**
-     * @param string $path
-     *
-     * @throws FileNotFoundException if file does not exist
-     * @return array
+     * @inheritdoc
      */
     public function getMetadata($path): array
     {
