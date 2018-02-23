@@ -46,16 +46,18 @@ class Crypt
     }
 
     /**
-     * @param callable $config
+     * @param callable|array $config
      *
      * @return callable
      */
-    public static function decryptExpressiveConfig(callable $config, $cryptKey = null): callable
+    public static function decryptExpressiveConfig($config, $cryptKey = null): callable
     {
         // Do nothing if no $cryptKey set. Not throwing an exception here because this allows for simpler code in
         // config/config.php
         if (is_null($cryptKey)) {
-            return $config;
+            return function () use ($config) {
+                yield $config;
+            };
         }
 
         // Return as a generator to deal with merging individual file configs correctly.
@@ -76,8 +78,12 @@ class Crypt
                 return $data;
             };
 
-            foreach ($config() as $data) {
-                yield $decryptConfig($data);
+            if (is_callable($config)) {
+                foreach ($config() as $data) {
+                    yield $decryptConfig($data);
+                }
+            } else {
+                yield $decryptConfig($config);
             }
         };
     }

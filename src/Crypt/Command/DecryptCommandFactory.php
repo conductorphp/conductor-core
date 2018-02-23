@@ -2,7 +2,7 @@
 
 namespace ConductorCore\Crypt\Command;
 
-use ConductorCore\Exception;
+use ConductorCore\Crypt\Crypt;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;
@@ -27,7 +27,7 @@ class DecryptCommandFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $config = $container->get('config');
-        $crypt = $container->get('ConductorCore\Crypt\Crypt');
+        $crypt = $container->get(Crypt::class);
         return new DecryptCommand($crypt, $config['crypt_key'] ?? null);
     }
 }

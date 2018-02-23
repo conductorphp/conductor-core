@@ -14,11 +14,11 @@ class DatabaseAdapterManager
     /**
      * DatabaseExportAdapterFactory constructor.
      *
-     * @param DatabaseAdapterInterface[] $databaseExportAdapters
+     * @param DatabaseAdapterInterface[] $databaseAdapters
      */
-    public function __construct(array $databaseExportAdapters)
+    public function __construct(array $databaseAdapters)
     {
-        $this->databaseAdapters = $databaseExportAdapters;
+        $this->databaseAdapters = $databaseAdapters;
     }
 
     /**
