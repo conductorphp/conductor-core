@@ -52,18 +52,14 @@ class Crypt
      */
     public static function decryptExpressiveConfig($config, $cryptKey = null): callable
     {
-        // Do nothing if no $cryptKey set. Not throwing an exception here because this allows for simpler code in
-        // config/config.php
-        if (is_null($cryptKey)) {
-            return function () use ($config) {
-                yield $config;
-            };
-        }
-
         // Return as a generator to deal with merging individual file configs correctly.
         return function () use ($config, $cryptKey) {
             $crypt = new self();
             $decryptConfig = function ($data) use (&$decryptConfig, $crypt, $cryptKey) {
+                if (is_null($cryptKey)) {
+                    return $data;
+                }
+
                 if (is_array($data)) {
                     foreach ($data as $key => &$value) {
                         $value = $decryptConfig($value);
