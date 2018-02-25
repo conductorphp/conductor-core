@@ -18,6 +18,7 @@ class ConfigProvider
             'console'      => $this->getConsoleConfig(),
             'dependencies' => $this->getDependencyConfig(),
             'filesystem'   => $this->getFilesystemConfig(),
+            'shell'        => $this->getShellConfig(),
         ];
     }
 
@@ -45,6 +46,14 @@ class ConfigProvider
     private function getFilesystemConfig(): array
     {
         return require(__DIR__ . '/../config/filesystem.php');
+    }
+
+    /**
+     * @return array
+     */
+    private function getShellConfig(): array
+    {
+        return require(__DIR__ . '/../config/shell.php');
     }
 
 }

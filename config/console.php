@@ -14,5 +14,6 @@ return [
         Filesystem\Command\FilesystemLsCommand::class,
         Filesystem\Command\FilesystemCopyCommand::class,
         Filesystem\Command\FilesystemSyncCommand::class,
+        Shell\Command\ExecCommand::class,
     ],
 ];
