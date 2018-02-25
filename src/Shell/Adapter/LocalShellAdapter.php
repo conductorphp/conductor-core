@@ -6,6 +6,7 @@
 namespace ConductorCore\Shell\Adapter;
 
 use ConductorCore\Exception;
+use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -14,7 +15,7 @@ use Psr\Log\NullLogger;
  *
  * @package ConductorCore
  */
-class LocalShellAdapter implements ShellAdapterInterface
+class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
 {
     /**
      * @var LoggerInterface
