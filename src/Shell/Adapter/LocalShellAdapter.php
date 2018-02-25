@@ -31,9 +31,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
     }
 
     /**
-     * @param string $command
-     *
-     * @return bool
+     * @inheritdoc
      */
     public function isCallable($command): bool
     {
@@ -42,19 +40,13 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
     }
 
     /**
-     * @param            $command
-     * @param null       $currentWorkingDirectory Current working directory to run command from
-     * @param array|null $environmentVariables   Environment variables to run command with
-     * @param array|null $options                 Additional options
-     *
-     * @throws Exception\RuntimeException if command exits with non-zero status
-     * @return string Standard output from the command
+     * @inheritdoc
      */
     public function runShellCommand(
         string $command,
-        int $priority = ShellAdapterInterface::PRIORITY_NORMAL,
         string $currentWorkingDirectory = null,
         array $environmentVariables = null,
+        int $priority = ShellAdapterInterface::PRIORITY_NORMAL,
         array $options = null
     ): string {
         $this->logger->debug("Running shell command: $command");
