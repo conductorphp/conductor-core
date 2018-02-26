@@ -2,6 +2,7 @@
 
 namespace ConductorCore\Shell\Command;
 
+use ConductorCore\Exception;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
 use ConductorCore\Shell\ShellAdapterManager;
 use Psr\Log\LoggerAwareInterface;
@@ -62,11 +63,25 @@ class ExecCommand extends Command
                 'local'
             )
             ->addOption(
+                'working-directory',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Current working directory to run command from',
+                null
+            )
+            ->addOption(
+                'env',
+                null,
+                InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+                'Environment Variables (--env test1=123 --env test2=456)',
+                null
+            )
+            ->addOption(
                 'priority',
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Priority of -1 (low), 0 (normal), or 1 (high)',
-                '0'
+                0
             )
             ->setDescription('Executes shell command on a given adapter.')
             ->setHelp("This command executes a shell command on a given adapter.");
@@ -85,7 +100,24 @@ class ExecCommand extends Command
         if ($adapter instanceof LoggerAwareInterface) {
             $adapter->setLogger($this->logger);
         }
-        $output->write($adapter->runShellCommand($input->getArgument('cmd')));
+
+        $environmentVariables = [];
+        if ($input->getOption('env')) {
+            foreach ($input->getOption('env') as $value) {
+                if (false === strpos($value, '=')) {
+                    throw new Exception\InvalidArgumentException('Environment variables must be specified in the format --env myvar1=myval1 --env myvar2=myval2.');
+                }
+                [$key, $value] = explode('=', $value);
+                $environmentVariables[$key] = $value;
+            }
+        }
+
+        $output->write($adapter->runShellCommand(
+            $input->getArgument('cmd'),
+            $input->getOption('working-directory'),
+            $environmentVariables,
+            $input->getOption('priority')
+        ));
         return 0;
     }
 
