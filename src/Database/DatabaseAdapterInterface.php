@@ -2,10 +2,6 @@
 
 namespace ConductorCore\Database;
 
-use Exception;
-use PDO;
-use ConductorCore\ShellCommandHelper;
-
 interface DatabaseAdapterInterface
 {
     /**
