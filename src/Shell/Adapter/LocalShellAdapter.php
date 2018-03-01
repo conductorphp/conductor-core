@@ -5,6 +5,7 @@
 
 namespace ConductorCore\Shell\Adapter;
 
+use Amp\Loop;
 use ConductorCore\Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
@@ -49,6 +50,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         int $priority = ShellAdapterInterface::PRIORITY_NORMAL,
         array $options = null
     ): string {
+
         $this->logger->debug("Running shell command: $command");
         if (ShellAdapterInterface::PRIORITY_LOW == $priority) {
             $command = 'ionice -c3 nice -n 19 bash -c ' . escapeshellarg($command);
@@ -65,25 +67,50 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             1 => ['pipe', 'w'],  // stdout
             2 => ['pipe', 'w'],  // stderr
         ];
-        $process = proc_open($command, $descriptorSpec, $pipes, $currentWorkingDirectory, $environmentVariables, $options);
+        $process = proc_open(
+            $command,
+            $descriptorSpec,
+            $pipes,
+            $currentWorkingDirectory,
+            $environmentVariables,
+            $options
+        );
         if (!is_resource($process)) {
             throw new Exception\RuntimeException(sprintf('Failed to open process for command "%s".', $command));
         }
 
-        while ($line = fgets($pipes[2])) {
-            // Do not log empty output lines
-            if (!trim($line)) {
-                continue;
+        $logger = $this->logger;
+        Loop::onReadable(
+            $pipes[2],
+            function ($watcherId, $socket) use ($logger) {
+                $line = fgets($socket);
+                if ($line) {
+                    $logger->debug($line);
+                } elseif (!is_resource($socket) || feof($socket)) {
+                    Loop::cancel($watcherId);
+                }
             }
-            // stderr is really any output other than the command's primary output. We cannot assume this is
-            // error output.
-            $this->logger->debug($line);
-        }
+        );
 
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        if ($stderr) {
-            $this->logger->debug($stderr);
+        $output = '';
+        Loop::onReadable(
+            $pipes[1],
+            function ($watcherId, $socket) use (&$output) {
+                $line = fgets($socket);
+                if ($line) {
+                    $output .= $line;
+                } elseif (!is_resource($socket) || feof($socket)) {
+                    Loop::cancel($watcherId);
+                }
+            }
+        );
+
+        Loop::run();
+
+        $output .= stream_get_contents($pipes[1]);
+        $remainingStderr = stream_get_contents($pipes[2]);
+        if ($remainingStderr) {
+            $this->logger->debug($remainingStderr);
         }
 
         fclose($pipes[0]);
@@ -94,7 +121,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             throw new Exception\RuntimeException("An error occurred while running shell command: \"$command\"");
         }
 
-        return $stdout;
+        return $output;
     }
 
     /**

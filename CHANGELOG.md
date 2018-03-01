@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file, in reverse 
 - Added posix PHP extension suggestion
 - Added support for setting config on filesystems
 - Added shell adapters and commands
+- Fixed timeout issue when running shell commands that don't properly close stderr
 
 # 0.1.0
 - Initial build copied over from devops tool
