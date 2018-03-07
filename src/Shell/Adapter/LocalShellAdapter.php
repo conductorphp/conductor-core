@@ -79,6 +79,9 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             throw new Exception\RuntimeException(sprintf('Failed to open process for command "%s".', $command));
         }
 
+        // Allow for input?
+        //fwrite($pipes[0], ' ');
+
         $logger = $this->logger;
         Loop::onReadable(
             $pipes[2],

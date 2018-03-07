@@ -6,6 +6,9 @@ return [
     'abstract_factories' => [
         \Zend\ServiceManager\AbstractFactory\ReflectionBasedAbstractFactory::class
     ],
+    'aliases' => [
+        Shell\Adapter\ShellAdapterInterface::class => Shell\Adapter\LocalShellAdapter::class,
+    ],
     'factories'          => [
         \Psr\Log\LoggerInterface::class                    => DefaultLoggerFactory::class,
         Crypt\Command\DecryptCommand::class                => Crypt\Command\DecryptCommandFactory::class,
