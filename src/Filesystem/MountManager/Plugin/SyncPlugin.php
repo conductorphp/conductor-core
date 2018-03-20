@@ -402,6 +402,7 @@ class SyncPlugin implements SyncPluginInterface
             $this->logger->info(
                 'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
+            // @todo Figure out how to actually make this run asynchronously
             asyncCall(
                 function () use (
                     $mountManager,

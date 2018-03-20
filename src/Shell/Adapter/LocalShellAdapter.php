@@ -31,6 +31,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         $this->logger = $logger;
     }
 
+
     /**
      * @inheritdoc
      */
