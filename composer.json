@@ -33,6 +33,7 @@
         "ext-posix": "Required to display colors in command line.",
         "ext-xdebug": "Required to test code coverage.",
         "conductor/application-orchestration": "Adds application orchestration functionality.",
+        "conductor/git-vcs-support": "Adds support for Git VCS.",
         "conductor/mysql-database-support": "Adds support for working with MySQL databases.",
         "conductor/aws-s3-filesystem-support": "Adds support for working with AWS S3 filesystems.",
         "conductor/azure-blob-filesystem-support": "Adds support for working with Microsoft Azure blob storage containers.",

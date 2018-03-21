@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file, in reverse 
 - Added support for setting config on filesystems
 - Added shell adapters and commands
 - Fixed timeout issue when running shell commands that don't properly close stderr
+- Added RepositoryAdapterInterface to make Conductor work with other version control systems
 
 # 0.1.0
 - Initial build copied over from devops tool
