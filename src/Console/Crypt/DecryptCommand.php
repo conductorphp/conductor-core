@@ -1,6 +1,6 @@
 <?php
 
-namespace ConductorCore\Crypt\Command;
+namespace ConductorCore\Console\Crypt;
 
 use ConductorCore\Exception;
 use ConductorCore\Crypt\Crypt;

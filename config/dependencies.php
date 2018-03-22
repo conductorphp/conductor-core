@@ -6,13 +6,13 @@ return [
     'abstract_factories' => [
         \Zend\ServiceManager\AbstractFactory\ReflectionBasedAbstractFactory::class
     ],
-    'aliases' => [
+    'aliases'            => [
         Shell\Adapter\ShellAdapterInterface::class => Shell\Adapter\LocalShellAdapter::class,
     ],
     'factories'          => [
         \Psr\Log\LoggerInterface::class                    => DefaultLoggerFactory::class,
-        Crypt\Command\DecryptCommand::class                => Crypt\Command\DecryptCommandFactory::class,
-        Crypt\Command\EncryptCommand::class                => Crypt\Command\EncryptCommandFactory::class,
+        Console\Crypt\DecryptCommand::class                => Console\Crypt\DecryptCommandFactory::class,
+        Console\Crypt\EncryptCommand::class                => Console\Crypt\EncryptCommandFactory::class,
         Database\DatabaseAdapterManager::class             => Database\DatabaseAdapterManagerFactory::class,
         Database\DatabaseImportExportAdapterManager::class => Database\DatabaseImportExportAdapterManagerFactory::class,
         Filesystem\MountManager\MountManager::class        => Filesystem\MountManager\MountManagerFactory::class,

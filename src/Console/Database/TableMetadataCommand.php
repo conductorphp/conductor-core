@@ -1,6 +1,6 @@
 <?php
 
-namespace ConductorCore\Database\Command;
+namespace ConductorCore\Console\Database;
 
 use ConductorCore\Database\DatabaseAdapterManager;
 use ConductorCore\Exception;
@@ -9,14 +9,14 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class DatabaseMetadataCommand extends Command
+class TableMetadataCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
-
     /**
      * @var DatabaseAdapterManager
      */
@@ -27,7 +27,7 @@ class DatabaseMetadataCommand extends Command
     private $logger;
 
     /**
-     * DatabaseMetadataCommand constructor.
+     * TableMetadataCommand constructor.
      *
      * @param DatabaseAdapterManager $databaseImportAdapterManager
      * @param LoggerInterface|null   $logger
@@ -52,7 +52,8 @@ class DatabaseMetadataCommand extends Command
     protected function configure()
     {
         $adapterNames = $this->databaseAdapterManager->getAdapterNames();
-        $this->setName('database:metadata')
+        $this->setName('database:table:metadata')
+            ->addArgument('database', InputArgument::REQUIRED, 'Database to get table sizes from')
             ->addOption(
                 'adapter',
                 null,
@@ -64,8 +65,8 @@ class DatabaseMetadataCommand extends Command
             ->addOption('precision', null, InputOption::VALUE_REQUIRED, 'Size display precision', '2')
             ->addOption('sort', null, InputOption::VALUE_REQUIRED, 'Sort key (name, size)', 'name')
             ->addOption('reverse-sort', null, InputOption::VALUE_NONE, 'Reverse sort')
-            ->setDescription('Get database metadata.')
-            ->setHelp("This command gets database metadata.");
+            ->setDescription('Get database table metadata.')
+            ->setHelp("This command gets database table metadata.");
     }
 
     /**
@@ -77,24 +78,34 @@ class DatabaseMetadataCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
-        $this->logger->info('Getting database metadata.');
-        $databaseAdapter = $this->databaseAdapterManager->getAdapter($input->getOption('adapter'));
-        $databases = $databaseAdapter->getDatabaseMetadata();
-        $databases = $this->sort($databases, $input->getOption('sort'), $input->getOption('reverse-sort'));
-        $databases = $this->format(
-            $databases,
-            $input->getOption('unit'),
-            $input->getOption('precision')
-        );
-
+        $this->logger->info('Getting table metadata for database "' . $input->getArgument('database') . '".');
+        $tables = $this->getTables($input);
         $outputTable = new Table($output);
         $outputTable
-            ->setHeaders(array('Database', 'Size in ' . $input->getOption('unit')));
-        foreach ($databases as $name => $database) {
-            $outputTable->addRow([$name, $database['size']]);
+            ->setHeaders(array('Database', 'Rows', 'Size in ' . $input->getOption('unit')));
+        foreach ($tables as $name => $table) {
+            $outputTable->addRow([$name, $table['rows'], $table['size']]);
         }
         $outputTable->render();
         return 0;
+    }
+
+    /**
+     * @param InputInterface $input
+     *
+     * @return array
+     */
+    private function getTables(InputInterface $input)
+    {
+        $databaseAdapter = $this->databaseAdapterManager->getAdapter($input->getOption('adapter'));
+        $tables = $databaseAdapter->getTableMetadata($input->getArgument('database'));
+        $tables = $this->sort($tables, $input->getOption('sort'), $input->getOption('reverse-sort'));
+        $tables = $this->format(
+            $tables,
+            $input->getOption('unit'),
+            $input->getOption('precision')
+        );
+        return $tables;
     }
 
     /**
@@ -104,16 +115,16 @@ class DatabaseMetadataCommand extends Command
      *
      * @return array
      */
-    private function sort(array $databases, $sort, $reverseSort)
+    private function sort(array $tables, $sort, $reverseSort)
     {
         switch ($sort) {
             case 'name':
-                ksort($databases);
+                ksort($tables);
                 break;
 
             case 'size':
                 uasort(
-                    $databases,
+                    $tables,
                     function ($a, $b) {
                         return $a['size'] > $b['size'];
                     }
@@ -125,10 +136,10 @@ class DatabaseMetadataCommand extends Command
         }
 
         if ($reverseSort) {
-            $databases = array_reverse($databases, true);
+            $tables = array_reverse($tables, true);
         }
 
-        return $databases;
+        return $tables;
     }
 
     /**
@@ -138,7 +149,7 @@ class DatabaseMetadataCommand extends Command
      *
      * @return array
      */
-    private function format($databases, $unit, $precision)
+    private function format($tables, $unit, $precision)
     {
         switch ($unit) {
             case 'B':
@@ -161,10 +172,13 @@ class DatabaseMetadataCommand extends Command
                 throw new Exception\DomainException("Invalid \$unit \"$unit\".");
         }
 
-        foreach ($databases as &$database) {
-            $database['size'] = round($database['size'] / $bytesToUnit, $precision);
+        foreach ($tables as &$table) {
+            $table['rows'] = number_format($table['rows']);
+            $table['size'] = round($table['size'] / $bytesToUnit, $precision);
         }
-        unset($database);
-        return $databases;
+        unset($table);
+        return $tables;
     }
+
+
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace ConductorCore\Shell\Command;
+namespace ConductorCore\Console\Shell;
 
 use ConductorCore\Exception;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
@@ -105,19 +105,23 @@ class ExecCommand extends Command
         if ($input->getOption('env')) {
             foreach ($input->getOption('env') as $value) {
                 if (false === strpos($value, '=')) {
-                    throw new Exception\InvalidArgumentException('Environment variables must be specified in the format --env myvar1=myval1 --env myvar2=myval2.');
+                    throw new Exception\InvalidArgumentException(
+                        'Environment variables must be specified in the format --env myvar1=myval1 --env myvar2=myval2.'
+                    );
                 }
                 [$key, $value] = explode('=', $value);
                 $environmentVariables[$key] = $value;
             }
         }
 
-        $output->write($adapter->runShellCommand(
-            $input->getArgument('cmd'),
-            $input->getOption('working-directory'),
-            $environmentVariables,
-            $input->getOption('priority')
-        ));
+        $output->write(
+            $adapter->runShellCommand(
+                $input->getArgument('cmd'),
+                $input->getOption('working-directory'),
+                $environmentVariables,
+                $input->getOption('priority')
+            )
+        );
         return 0;
     }
 

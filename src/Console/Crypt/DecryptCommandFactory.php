@@ -1,15 +1,15 @@
 <?php
 
-namespace ConductorCore\Crypt\Command;
+namespace ConductorCore\Console\Crypt;
 
-use ConductorCore\Exception;
+use ConductorCore\Crypt\Crypt;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;
 use Zend\ServiceManager\Exception\ServiceNotFoundException;
 use Zend\ServiceManager\Factory\FactoryInterface;
 
-class EncryptCommandFactory implements FactoryInterface
+class DecryptCommandFactory implements FactoryInterface
 {
     /**
      * Create an object
@@ -27,8 +27,8 @@ class EncryptCommandFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $config = $container->get('config');
-        $crypt = $container->get('ConductorCore\Crypt\Crypt');
-        return new EncryptCommand($crypt, $config['crypt_key'] ?? null);
+        $crypt = $container->get(Crypt::class);
+        return new DecryptCommand($crypt, $config['crypt_key'] ?? null);
     }
 }
 

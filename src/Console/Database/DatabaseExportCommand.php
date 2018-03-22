@@ -1,6 +1,6 @@
 <?php
 
-namespace ConductorCore\Database\Command;
+namespace ConductorCore\Console\Database;
 
 use ConductorCore\Database\DatabaseImportExportAdapterManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
@@ -63,7 +63,10 @@ class DatabaseExportCommand extends Command
                 'adapter',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Database import/export adapter configuration to use. Configured adapters: <comment>' . implode(', ', $adapterNames) . '</comment>',
+                'Database import/export adapter configuration to use. Configured adapters: <comment>' . implode(
+                    ', ',
+                    $adapterNames
+                ) . '</comment>',
                 'default'
             )
             ->addOption(
@@ -103,7 +106,7 @@ class DatabaseExportCommand extends Command
             $database,
             $path,
             [
-                'ignore_tables' => $ignoreTables,
+                'ignore_tables'   => $ignoreTables,
                 'remove_definers' => !$input->getOption('no-remove-definers'),
             ]
         );

@@ -1,6 +1,6 @@
 <?php
 
-namespace ConductorCore\Database\Command;
+namespace ConductorCore\Console\Database;
 
 use ConductorCore\Database\DatabaseImportExportAdapterManager;
 use ConductorCore\Database\DatabaseImportExportAdapterInterface;

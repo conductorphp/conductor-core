@@ -1,6 +1,6 @@
 <?php
 
-namespace ConductorCore\Filesystem\Command;
+namespace ConductorCore\Console\Filesystem;
 
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Class FilesystemLsCommand
  *
  * @todo Add support for glob patterns?
- * @package ConductorCore\Filesystem\Command
+ * @package ConductorCore\Console\Filesystem
  */
 class FilesystemLsCommand extends Command
 {

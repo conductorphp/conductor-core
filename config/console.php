@@ -4,16 +4,16 @@ namespace ConductorCore;
 
 return [
     'commands' => [
-        Crypt\Command\GenerateKeyCommand::class,
-        Crypt\Command\DecryptCommand::class,
-        Crypt\Command\EncryptCommand::class,
-        Database\Command\DatabaseExportCommand::class,
-        Database\Command\DatabaseImportCommand::class,
-        Database\Command\DatabaseMetadataCommand::class,
-        Database\Command\TableMetadataCommand::class,
-        Filesystem\Command\FilesystemLsCommand::class,
-        Filesystem\Command\FilesystemCopyCommand::class,
-        Filesystem\Command\FilesystemSyncCommand::class,
-        Shell\Command\ExecCommand::class,
+        Console\Crypt\GenerateKeyCommand::class,
+        Console\Crypt\DecryptCommand::class,
+        Console\Crypt\EncryptCommand::class,
+        Console\Database\DatabaseExportCommand::class,
+        Console\Database\DatabaseImportCommand::class,
+        Console\Database\DatabaseMetadataCommand::class,
+        Console\Database\TableMetadataCommand::class,
+        Console\Filesystem\FilesystemLsCommand::class,
+        Console\Filesystem\FilesystemCopyCommand::class,
+        Console\Filesystem\FilesystemSyncCommand::class,
+        Console\Shell\ExecCommand::class,
     ],
 ];
