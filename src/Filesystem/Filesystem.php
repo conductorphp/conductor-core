@@ -2,7 +2,6 @@
 
 namespace ConductorCore\Filesystem;
 
-use League\Flysystem\FileNotFoundException;
 use League\Flysystem\Util;
 
 /**
@@ -10,7 +9,7 @@ use League\Flysystem\Util;
  *
  * Overrode to deal with directories consistently across adapters
  *
- * @see https://github.com/thephpleague/flysystem/issues/899
+ * @see     https://github.com/thephpleague/flysystem/issues/899
  * @package ConductorCore\Filesystem
  */
 class Filesystem extends \League\Flysystem\Filesystem

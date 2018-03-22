@@ -23,6 +23,11 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
      */
     private $logger;
 
+    /**
+     * LocalShellAdapter constructor.
+     *
+     * @param LoggerInterface|null $logger
+     */
     public function __construct(LoggerInterface $logger = null)
     {
         if (is_null($logger)) {
@@ -30,7 +35,6 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         }
         $this->logger = $logger;
     }
-
 
     /**
      * @inheritdoc

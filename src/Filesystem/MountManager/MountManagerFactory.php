@@ -3,9 +3,9 @@
 namespace ConductorCore\Filesystem\MountManager;
 
 use ConductorCore\Exception;
+use ConductorCore\Filesystem\Filesystem;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
-use ConductorCore\Filesystem\Filesystem;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;
 use Zend\ServiceManager\Exception\ServiceNotFoundException;
 use Zend\ServiceManager\Factory\FactoryInterface;
@@ -39,7 +39,8 @@ class MountManagerFactory implements FactoryInterface
                     if ($arguments) {
                         if ($container instanceof ServiceManager) {
                             if (!empty($arguments['config'])) {
-                                $filesystemConfig = $arguments['config']; unset($arguments['config']);
+                                $filesystemConfig = $arguments['config'];
+                                unset($arguments['config']);
                             }
                             $filesystemAdapter = $container->build($class, $arguments);
                         } else {

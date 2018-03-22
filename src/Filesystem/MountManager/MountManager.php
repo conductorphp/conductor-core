@@ -34,6 +34,9 @@ class MountManager extends \League\Flysystem\MountManager
         $this->syncPlugin = new Plugin\SyncPlugin();
     }
 
+    /**
+     * @param Plugin\SyncPlugin $syncPlugin
+     */
     public function setSyncPlugin(Plugin\SyncPlugin $syncPlugin): void
     {
         $this->syncPlugin = $syncPlugin;

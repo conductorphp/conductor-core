@@ -2,7 +2,6 @@
 
 namespace ConductorCore\Console\Crypt;
 
-use ConductorCore\Exception;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;

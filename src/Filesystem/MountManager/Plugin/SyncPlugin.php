@@ -281,8 +281,12 @@ class SyncPlugin implements SyncPluginInterface
      *
      * @return array
      */
-    private function determineFilesToPushAndDelete(MountManager $mountManager, string $from, string $to, array $config): array
-    {
+    private function determineFilesToPushAndDelete(
+        MountManager $mountManager,
+        string $from,
+        string $to,
+        array $config
+    ): array {
         $this->logger->info('Calculating file sync list');
 
         $delete = !empty($config['delete']);
@@ -387,8 +391,13 @@ class SyncPlugin implements SyncPluginInterface
      * @param array        $config
      * @param array        $filesToPush
      */
-    private function putFiles(MountManager $mountManager, string $from, string $to, array $config, array $filesToPush): void
-    {
+    private function putFiles(
+        MountManager $mountManager,
+        string $from,
+        string $to,
+        array $config,
+        array $filesToPush
+    ): void {
         list($prefixFrom, $pathFrom) = $mountManager->getPrefixAndPath($from);
         $pathFrom = trim($pathFrom, '/');
         list($prefixTo, $pathTo) = $mountManager->getPrefixAndPath($to);

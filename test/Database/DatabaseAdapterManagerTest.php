@@ -28,10 +28,12 @@ class DatabaseAdapterManagerTest extends TestCase
         $this->writeDatabaseAdapter = $this->prophesize(DatabaseAdapterInterface::class);
         // Make the write adapter different from the read one
         $this->writeDatabaseAdapter->run('test', 'test');
-        $this->databaseAdapterManager = new DatabaseAdapterManager([
-            'read' => $this->readDatabaseAdapter->reveal(),
-            'write' => $this->writeDatabaseAdapter->reveal(),
-        ]);
+        $this->databaseAdapterManager = new DatabaseAdapterManager(
+            [
+                'read'  => $this->readDatabaseAdapter->reveal(),
+                'write' => $this->writeDatabaseAdapter->reveal(),
+            ]
+        );
     }
 
     public function testGetAdapterNames()

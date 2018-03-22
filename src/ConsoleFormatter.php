@@ -116,7 +116,7 @@ class ConsoleFormatter implements FormatterInterface
             // Remove quotes added by the dumper around string.
             $v = trim($this->dumpData($v), '"');
             $v = OutputFormatter::escape($v);
-            $replacements['{'.$k.'}'] = sprintf('<comment>%s</comment>', $v);
+            $replacements['{' . $k . '}'] = sprintf('<comment>%s</comment>', $v);
         }
 
         $record['message'] = strtr($message, $replacements);

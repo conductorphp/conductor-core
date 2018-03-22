@@ -17,7 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Class FilesystemLsCommand
  *
- * @todo Add support for glob patterns?
+ * @todo    Add support for glob patterns?
  * @package ConductorCore\Console\Filesystem
  */
 class FilesystemLsCommand extends Command

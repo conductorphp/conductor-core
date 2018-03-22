@@ -2,8 +2,8 @@
 
 namespace ConductorCore\Console\Crypt;
 
-use ConductorCore\Exception;
 use ConductorCore\Crypt\Crypt;
+use ConductorCore\Exception;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;

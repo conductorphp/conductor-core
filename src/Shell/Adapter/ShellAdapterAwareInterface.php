@@ -12,5 +12,8 @@ namespace ConductorCore\Shell\Adapter;
  */
 interface ShellAdapterAwareInterface
 {
+    /**
+     * @param ShellAdapterInterface $shellAdapter
+     */
     public function setShellAdapter(ShellAdapterInterface $shellAdapter): void;
 }

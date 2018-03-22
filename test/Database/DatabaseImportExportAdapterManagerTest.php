@@ -2,7 +2,6 @@
 
 namespace ConductorCoreTest\Database;
 
-use ConductorCore\Database\DatabaseAdapterInterface;
 use ConductorCore\Database\DatabaseAdapterManager;
 use ConductorCore\Database\DatabaseImportExportAdapterInterface;
 use ConductorCore\Database\DatabaseImportExportAdapterManager;
@@ -30,10 +29,12 @@ class DatabaseImportExportAdapterManagerTest extends TestCase
         $this->mydumperImportExportDatabaseAdapter = $this->prophesize(DatabaseImportExportAdapterInterface::class);
         // Make the mydumper adapter different from the mysqldump one
         $this->mydumperImportExportDatabaseAdapter->exportToFile('test', 'test');
-        $this->databaseImportExportAdapterManager = new DatabaseImportExportAdapterManager([
-            'mysqldump' => $this->mysqldumpImportExportDatabaseAdapter->reveal(),
-            'mydumper' => $this->mydumperImportExportDatabaseAdapter->reveal(),
-        ]);
+        $this->databaseImportExportAdapterManager = new DatabaseImportExportAdapterManager(
+            [
+                'mysqldump' => $this->mysqldumpImportExportDatabaseAdapter->reveal(),
+                'mydumper'  => $this->mydumperImportExportDatabaseAdapter->reveal(),
+            ]
+        );
     }
 
     public function testGetAdapterNames()
@@ -43,7 +44,10 @@ class DatabaseImportExportAdapterManagerTest extends TestCase
 
     public function testGetAdapter()
     {
-        $this->assertEquals($this->mysqldumpImportExportDatabaseAdapter->reveal(), $this->databaseImportExportAdapterManager->getAdapter('mysqldump'));
+        $this->assertEquals(
+            $this->mysqldumpImportExportDatabaseAdapter->reveal(),
+            $this->databaseImportExportAdapterManager->getAdapter('mysqldump')
+        );
     }
 
 }
