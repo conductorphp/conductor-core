@@ -23,6 +23,7 @@
         "monolog/monolog": "^1.21.0",
         "symfony/console": "~3.4|~4.0",
         "symfony/monolog-bridge": "^3.2",
+        "symfony/yaml": "^4.0",
         "zendframework/zend-servicemanager": "^3.3"
     },
     "require-dev": {
