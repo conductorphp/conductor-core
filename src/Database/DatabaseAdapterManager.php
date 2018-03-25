@@ -3,13 +3,15 @@
 namespace ConductorCore\Database;
 
 use ConductorCore\Exception;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerInterface;
 
-class DatabaseAdapterManager
+class DatabaseAdapterManager implements LoggerAwareInterface
 {
     /**
      * @var array
      */
-    private $databaseAdapters;
+    private $adapters;
 
     /**
      * DatabaseExportAdapterFactory constructor.
@@ -18,7 +20,7 @@ class DatabaseAdapterManager
      */
     public function __construct(array $databaseAdapters)
     {
-        $this->databaseAdapters = $databaseAdapters;
+        $this->adapters = $databaseAdapters;
     }
 
     /**
@@ -29,11 +31,11 @@ class DatabaseAdapterManager
      */
     public function getAdapter(string $name): DatabaseAdapterInterface
     {
-        if (!array_key_exists($name, $this->databaseAdapters)) {
+        if (!array_key_exists($name, $this->adapters)) {
             throw new Exception\DomainException("Database adapter \"$name\" not found.");
         }
 
-        return clone $this->databaseAdapters[$name];
+        return clone $this->adapters[$name];
     }
 
     /**
@@ -41,7 +43,24 @@ class DatabaseAdapterManager
      */
     public function getAdapterNames(): array
     {
-        return array_keys($this->databaseAdapters);
+        return array_keys($this->adapters);
+    }
+
+    /**
+     * Sets a logger instance on the object.
+     *
+     * @param LoggerInterface $logger
+     *
+     * @return void
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        foreach ($this->adapters as $adapter) {
+            if ($adapter instanceof LoggerAwareInterface) {
+                $adapter->setLogger($logger);
+            }
+        }
+        $this->logger = $logger;
     }
 }
 
