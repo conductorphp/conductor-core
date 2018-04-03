@@ -2,6 +2,7 @@
 
 namespace ConductorCore\Crypt;
 
+use ConductorCore\Exception\RuntimeException;
 use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Key;
 
@@ -55,16 +56,26 @@ class Crypt
         // Return as a generator to deal with merging individual file configs correctly.
         return function () use ($config, $cryptKey) {
             $crypt = new self();
-            $decryptConfig = function ($data) use (&$decryptConfig, $crypt, $cryptKey) {
+            $decryptConfig = function ($data, $dataKey = null) use (&$decryptConfig, $crypt, $cryptKey) {
                 if (is_array($data)) {
                     foreach ($data as $key => &$value) {
-                        $value = $decryptConfig($value);
+                        if ($dataKey) {
+                            $dataKey .= "/$key";
+                        } else {
+                            $dataKey = $key;
+                        }
+                        $value = $decryptConfig($value, $dataKey);
                     }
                     unset($value);
                 } else {
                     if (!is_null($cryptKey) && preg_match('/^ENC\[defuse\/php-encryption,.*\]/', $data)) {
                         $data = preg_replace('/^ENC\[defuse\/php-encryption,(.*)\]/', '$1', $data);
-                        $data = $crypt->decrypt($data, $cryptKey);
+                        try {
+                            $data = $crypt->decrypt($data, $cryptKey);
+                        } catch (\Exception $e) {
+                            $message = "Error decrypting configuration key \"$dataKey\".";
+                            throw new RuntimeException($message, 0, $e);
+                        }
                     }
                 }
                 return $data;
