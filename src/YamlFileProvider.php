@@ -29,7 +29,7 @@ class YamlFileProvider
     public function __invoke()
     {
         foreach ($this->glob($this->pattern) as $file) {
-            yield Yaml::parse(file_get_contents($file));
+            yield Yaml::parse(file_get_contents($file)) ?? [];
         }
     }
 }
