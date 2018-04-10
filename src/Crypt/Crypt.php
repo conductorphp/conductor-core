@@ -2,7 +2,7 @@
 
 namespace ConductorCore\Crypt;
 
-use ConductorCore\Exception\RuntimeException;
+use ConductorCore\Exception;
 use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Key;
 
@@ -14,6 +14,8 @@ use Defuse\Crypto\Key;
  */
 class Crypt
 {
+    const ENCRYPTION_TYPE_DEFUSE_PHP_ENCRYPTION = 'defuse/php-encryption';
+
     /**
      * @return string
      */
@@ -31,7 +33,7 @@ class Crypt
     public function encrypt(string $message, string $key): string
     {
         $key = Key::loadFromAsciiSafeString($key);
-        return Crypto::encrypt($message, $key);
+        return 'ENC[' . self::ENCRYPTION_TYPE_DEFUSE_PHP_ENCRYPTION . ',' . Crypto::encrypt($message, $key) . ']';
     }
 
     /**
@@ -42,8 +44,28 @@ class Crypt
      */
     public function decrypt(string $ciphertext, string $key): string
     {
-        $key = Key::loadFromAsciiSafeString($key);
-        return Crypto::decrypt($ciphertext, $key);
+        preg_match_all('%^ENC\[([^,]+),(.*)\]$%', $ciphertext, $matches);
+        if (3 != count($matches)) {
+            throw new Exception\RuntimeException('$ciphertext must be in the format ENC[$encryptionType,$ciphertext].');
+        }
+
+        $encryptionType = $matches[1][0];
+        $ciphertext = $matches[2][0];
+
+        switch ($encryptionType) {
+            case self::ENCRYPTION_TYPE_DEFUSE_PHP_ENCRYPTION:
+                $key = Key::loadFromAsciiSafeString($key);
+                return Crypto::decrypt($ciphertext, $key);
+
+            default:
+                throw new Exception\RuntimeException(sprintf(
+                    'Unsupported encryption type "%s". Supported encryption types: "%s".',
+                    $encryptionType,
+                    implode('", "', [self::ENCRYPTION_TYPE_DEFUSE_PHP_ENCRYPTION])
+                ));
+        }
+
+
     }
 
     /**
@@ -68,13 +90,12 @@ class Crypt
                     }
                     unset($value);
                 } else {
-                    if (!is_null($cryptKey) && preg_match('/^ENC\[defuse\/php-encryption,.*\]/', $data)) {
-                        $data = preg_replace('/^ENC\[defuse\/php-encryption,(.*)\]/', '$1', $data);
+                    if (!is_null($cryptKey) && preg_match('/^ENC\[[^,]+,.*\]/', $data)) {
                         try {
                             $data = $crypt->decrypt($data, $cryptKey);
                         } catch (\Exception $e) {
                             $message = "Error decrypting configuration key \"$dataKey\".";
-                            throw new RuntimeException($message, 0, $e);
+                            throw new Exception\RuntimeException($message, 0, $e);
                         }
                     }
                 }
