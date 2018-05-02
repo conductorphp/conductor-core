@@ -31,7 +31,18 @@ class MountManagerFactory implements FactoryInterface
         $filesystems = [];
         $config = $container->get('config');
         if (isset($config['filesystem']['adapters'])) {
-            foreach ($config['filesystem']['adapters'] as $prefix => $adapter) {
+            foreach ($config['filesystem']['adapters'] as $name => $adapter) {
+                if (isset($adapter['alias'])) {
+                    if (!isset($config['filesystem']['adapters'][$adapter['alias']])) {
+                        throw new Exception\DomainException(sprintf(
+                            'Filesystem adapter "%s" aliases adapter "%s" which does not exist in configuration.',
+                            $name,
+                            $adapter['alias']
+                        ));
+                    }
+                    $adapter = $config['filesystem']['adapters'][$adapter['alias']];
+                }
+
                 $class = $adapter['class'];
                 $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
                 $filesystemConfig = null;
@@ -52,10 +63,10 @@ class MountManagerFactory implements FactoryInterface
                         $filesystemAdapter = $container->get($class);
                     }
                 } catch (ServiceNotCreatedException $e) {
-                    throw new Exception\RuntimeException("Error in filesystem/adapters/$prefix configuration", 0, $e);
+                    throw new Exception\RuntimeException("Error in filesystem/adapters/$name configuration", 0, $e);
                 }
 
-                $filesystems[$prefix] = new Filesystem($filesystemAdapter, $filesystemConfig);
+                $filesystems[$name] = new Filesystem($filesystemAdapter, $filesystemConfig);
             }
         }
 

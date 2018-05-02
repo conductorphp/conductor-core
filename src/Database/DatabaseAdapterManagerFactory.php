@@ -31,6 +31,16 @@ class DatabaseAdapterManagerFactory implements FactoryInterface
         $config = $container->get('config');
         if (isset($config['database']['adapters'])) {
             foreach ($config['database']['adapters'] as $name => $adapter) {
+                if (isset($adapter['alias'])) {
+                    if (!isset($config['database']['adapters'][$adapter['alias']])) {
+                        throw new Exception\DomainException(sprintf(
+                            'Database adapter "%s" aliases adapter "%s" which does not exist in configuration.',
+                            $name,
+                            $adapter['alias']
+                        ));
+                    }
+                    $adapter = $config['database']['adapters'][$adapter['alias']];
+                }
                 $class = $adapter['class'];
                 $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
                 try {

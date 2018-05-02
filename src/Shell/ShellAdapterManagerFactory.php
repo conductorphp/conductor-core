@@ -31,6 +31,17 @@ class ShellAdapterManagerFactory implements FactoryInterface
         $config = $container->get('config');
         if (isset($config['shell']['adapters'])) {
             foreach ($config['shell']['adapters'] as $name => $adapter) {
+                if (isset($adapter['alias'])) {
+                    if (!isset($config['shell']['adapters'][$adapter['alias']])) {
+                        throw new Exception\DomainException(sprintf(
+                            'Shell adapter "%s" aliases adapter "%s" which does not exist in configuration.',
+                            $name,
+                            $adapter['alias']
+                        ));
+                    }
+                    $adapter = $config['shell']['adapters'][$adapter['alias']];
+                }
+
                 $class = $adapter['class'];
                 $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
                 try {
