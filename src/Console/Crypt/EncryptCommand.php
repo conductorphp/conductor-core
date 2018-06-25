@@ -10,6 +10,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class EncryptCommand extends Command
@@ -57,9 +58,15 @@ class EncryptCommand extends Command
     protected function configure()
     {
         $this->setName('crypt:encrypt')
-            ->addArgument('message', InputArgument::REQUIRED, 'Message to encrypt')
+            ->addArgument('message', InputArgument::OPTIONAL, 'Message to encrypt')
             ->setDescription('Encrypt a message using configured key.')
-            ->setHelp("This command encrypts a message using the configured key.");
+            ->setHelp("This command encrypts a message using the configured key.")
+            ->addOption(
+                'file',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Use file path from message to encrypt.'
+            );
     }
 
     /**
@@ -82,8 +89,29 @@ class EncryptCommand extends Command
         }
 
         $message = $input->getArgument('message');
-        $this->injectOutputIntoLogger($output, $this->logger);
-        $output->writeln($this->crypt->encrypt($message, $this->key));
+        $filePath = $input->getOption('file');
+
+        if(!$filePath) {
+            if (!$message) {
+                throw new Exception\RuntimeException(
+                    'The message must be set unless using the --file method'
+                );
+            }
+            # Encrypt the message
+            $this->injectOutputIntoLogger($output, $this->logger);
+            $output->writeln($this->crypt->encrypt($message, $this->key));
+        }else{
+            if(!file_exists($filePath) || is_dir($filePath) || !is_readable($filePath)) {
+                throw new Exception\RuntimeException(
+                    'When using the --file option the file to encrypt must exist, be readable and it must not be a directory.'
+                );
+            }
+
+            # Encrypt the file contents
+            $this->injectOutputIntoLogger($output, $this->logger);
+            $output->writeln($this->crypt->encrypt(file_get_contents($filePath), $this->key));
+        }
+
         return 0;
     }
 }
