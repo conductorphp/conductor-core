@@ -43,7 +43,7 @@ class CryptTest extends TestCase
         $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
         $config = [
             'plaintext' => self::TEST_MESSAGE,
-            'encrypted' => "ENC[defuse/php-encryption,$ciphertext]",
+            'encrypted' => $ciphertext,
         ];
 
         $generator = $this->crypt::decryptExpressiveConfig($config);
@@ -52,7 +52,7 @@ class CryptTest extends TestCase
             $config = array_replace_recursive($config, $data);
         }
         $this->assertEquals(self::TEST_MESSAGE, $config['plaintext']);
-        $this->assertEquals("ENC[defuse/php-encryption,$ciphertext]", $config['encrypted']);
+        $this->assertEquals($ciphertext, $config['encrypted']);
     }
 
     public function testDecryptExpressiveConfigWithArray()
@@ -60,7 +60,7 @@ class CryptTest extends TestCase
         $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
         $config = [
             'plaintext' => self::TEST_MESSAGE,
-            'encrypted' => "ENC[defuse/php-encryption,$ciphertext]",
+            'encrypted' => $ciphertext,
         ];
 
         $generator = $this->crypt::decryptExpressiveConfig($config, self::TEST_KEY);
@@ -79,7 +79,7 @@ class CryptTest extends TestCase
             return [
                 [
                     'plaintext' => self::TEST_MESSAGE,
-                    'encrypted' => "ENC[defuse/php-encryption,$ciphertext]",
+                    'encrypted' => $ciphertext,
                 ]
             ];
         };
