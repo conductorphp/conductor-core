@@ -45,11 +45,11 @@ interface DatabaseAdapterInterface
     public function createDatabase(string $database): void;
 
     /**
-     * @param string $name
+     * @param string $database
      *
      * @return void
      */
-    public function dropDatabaseIfExists(string $name): void;
+    public function dropDatabaseIfExists(string $database): void;
 
     /**
      * @param string $query
