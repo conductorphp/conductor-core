@@ -1,128 +1,53 @@
 <?php
 
-namespace ConductorSshSupportTest;
+namespace ConductorCoreTest;
 
-use ConductorSshSupport\Shell\Adapter\SshAdapter;
-use ConductorSshSupport\Exception;
-use phpseclib\Crypt\RSA;
-use phpseclib\Net\SSH2;
+use ConductorCore\Exception;
+use ConductorCore\Shell\Adapter\LocalShellAdapter;
 use PHPUnit\Framework\TestCase;
-use Prophecy\Argument;
-use Prophecy\Prophecy\ProphecyInterface;
 
-class SshAdapterTest extends TestCase
+class LocalAdapterTest extends TestCase
 {
     /**
-     * @var ProphecyInterface
+     * @var LocalShellAdapter
      */
-    private $client;
+    private $adapter;
 
     public function setUp()
     {
-        $client = $this->prophesize(SSH2::class);
-        $client->login(Argument::type('string'), Argument::type('string'))->willReturn(true);
-        $client->exec(Argument::type('string'))->willReturn('');
-        $client->getExitStatus()->willReturn(0);
-        $client->getStdError()->willReturn('Standard error');
-        $this->client = $client;
-    }
-
-    public function testThrowsExceptionWithBadLogin()
-    {
-        $this->client->login(Argument::type('string'), Argument::type('string'))->willReturn(false);
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $this->expectException(Exception\RuntimeException::class);
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
-        $adapter->isCallable('anycommand');
-    }
-
-    public function testKeyLogin()
-    {
-        $this->client->login(Argument::type('string'), Argument::type(RSA::class))->willReturn(true);
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', 'anykey');
-        $this->assertTrue($adapter->isCallable('anycommand'));
-    }
-
-    public function testKeyPasswordLogin()
-    {
-        $this->client->login(Argument::type('string'), Argument::type(RSA::class))->willReturn(true);
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', 'anykey', 'anypassword');
-        $this->assertTrue($adapter->isCallable('anycommand'));
-    }
-
-    public function testPasswordLogin()
-    {
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-        
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
-        $this->assertTrue($adapter->isCallable('anycommand'));
+        $this->adapter = new LocalShellAdapter();
     }
 
     public function testIsCallableValidCommand()
     {
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
-        $this->assertTrue($adapter->isCallable('anycommand'));
+        $this->assertTrue($this->adapter->isCallable('ls'));
     }
 
     public function testIsCallableInvalidCommand()
     {
-        $this->client->getExitStatus()->willReturn(1);
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
-        $this->assertFalse($adapter->isCallable('anycommand'));
+        $this->assertFalse($this->adapter->isCallable('badcommand'));
     }
 
     public function testIsCallableThrowsExceptionWhenHostsGiven()
     {
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
         $this->expectException(Exception\RuntimeException::class);
-        $adapter->isCallable('anycommand', ['anyhost']);
+        $this->adapter->isCallable('anycommand', ['anyhost']);
     }
 
     public function testRunShellCommand()
     {
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
-        $this->assertInternalType('string', $adapter->runShellCommand('anycommand'));
+        $this->assertInternalType('string', $this->adapter->runShellCommand('ls'));
     }
 
     public function testRunShellCommandThrowsExceptionOnError()
     {
-        $this->client->getExitStatus()->willReturn(1);
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
         $this->expectException(Exception\RuntimeException::class);
-        $adapter->runShellCommand('anycommand');
+        $this->adapter->runShellCommand('badcommand');
     }
 
     public function testRunShellCommandThrowsExceptionWhenHostsGiven()
     {
-        /** @var SSH2 $client */
-        $client = $this->client->reveal();
-
-        $adapter = new SshAdapter($client, 'anyusername', null, 'anypassword');
         $this->expectException(Exception\RuntimeException::class);
-        $adapter->runShellCommand('anycommand', ['anyhost']);
+        $this->adapter->runShellCommand('ls', ['anyhost']);
     }
 }
