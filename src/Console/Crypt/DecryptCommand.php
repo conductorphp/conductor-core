@@ -105,7 +105,7 @@ class DecryptCommand extends Command
                 ));
             }
 
-            $ciphertext = file_get_contents($file);
+            $ciphertext = trim(file_get_contents($file));
         }
 
         $this->injectOutputIntoLogger($output, $this->logger);

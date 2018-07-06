@@ -105,7 +105,7 @@ class EncryptCommand extends Command
                 ));
             }
 
-            $message = file_get_contents($file);
+            $message = trim(file_get_contents($file));
         }
 
         $this->injectOutputIntoLogger($output, $this->logger);
