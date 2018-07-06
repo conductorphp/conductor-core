@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
 
+$origWorkingDir = getcwd();
 chdir(__DIR__ . '/../../../..');
 require 'vendor/autoload.php';
 
@@ -8,7 +9,7 @@ try {
     /**
      * Self-called anonymous function that creates its own scope and keep the global namespace clean.
      */
-    call_user_func(function () {
+    call_user_func(function () use ($origWorkingDir) {
         /** @var \Interop\Container\ContainerInterface $container */
         $container = require 'config/container.php';
 
@@ -26,6 +27,7 @@ try {
             error_reporting(-1);
         }
 
+        chdir($origWorkingDir);
         $app->run();
     });
 } catch (\Exception $e) {
