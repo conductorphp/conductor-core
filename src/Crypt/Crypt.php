@@ -44,9 +44,13 @@ class Crypt
      */
     public function decrypt(string $ciphertext, string $key): string
     {
-        preg_match_all('%^ENC\[([^,]+),(.*)\]$%', $ciphertext, $matches);
-        if (3 != count($matches)) {
-            throw new Exception\RuntimeException('$ciphertext must be in the format ENC[$encryptionType,$ciphertext].');
+        $numMatches = preg_match_all('%^ENC\[([^,]+),(.*)\]$%', $ciphertext, $matches);
+        if (0 == $numMatches) {
+            throw new Exception\RuntimeException(sprintf(
+                "\$ciphertext must be in the format ENC[\$encryptionType,\$ciphertext].\n"
+                . "Provided ciphertext: %s",
+                $ciphertext
+            ));
         }
 
         $encryptionType = $matches[1][0];
