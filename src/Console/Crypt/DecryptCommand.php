@@ -10,6 +10,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class DecryptCommand extends Command
@@ -57,9 +58,15 @@ class DecryptCommand extends Command
     protected function configure()
     {
         $this->setName('crypt:decrypt')
-            ->addArgument('ciphertext', InputArgument::REQUIRED, 'Ciphertext to decrypt.')
+            ->addArgument('ciphertext', InputArgument::OPTIONAL, 'Ciphertext to decrypt.')
             ->setDescription('Decrypt ciphertext using configured key.')
-            ->setHelp("This command decrypts ciphertext using the configured key.");
+            ->setHelp("This command decrypts ciphertext using the configured key.")
+            ->addOption(
+                'file',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'File path to read ciphertext from.'
+            );
     }
 
     /**
@@ -82,6 +89,25 @@ class DecryptCommand extends Command
         }
 
         $ciphertext = $input->getArgument('ciphertext');
+        $file = $input->getOption('file');
+
+        if (!$ciphertext && !$file) {
+            throw new Exception\RuntimeException(
+                '<ciphertext> or --file must be given.'
+            );
+        }
+
+        if ($file) {
+            if (!file_exists($file) || !is_file($file) || !is_readable($file)) {
+                throw new Exception\RuntimeException(sprintf(
+                    'Path "%s" must be readable file.',
+                    $file
+                ));
+            }
+
+            $ciphertext = file_get_contents($file);
+        }
+
         $this->injectOutputIntoLogger($output, $this->logger);
         $output->writeln($this->crypt->decrypt($ciphertext, $this->key));
         return 0;
