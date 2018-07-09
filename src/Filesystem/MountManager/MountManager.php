@@ -145,18 +145,20 @@ class MountManager extends \League\Flysystem\MountManager
         list($prefixTo, $to) = $this->getPrefixAndPath($to);
         $writeStream = $this->getFilesystem($prefixTo)->putStream($to, $readStream, $config);
 
-        stream_set_blocking($readStream, 0);
-        stream_set_blocking($writeStream, 0);
+        if (is_resource($writeStream)) {
+            stream_set_blocking($readStream, 0);
+            stream_set_blocking($writeStream, 0);
 
-        $read = new \React\Stream\Stream($readStream, $loop);
-        $write = new \React\Stream\Stream($writeStream, $loop);
+            $read = new \React\Stream\Stream($readStream, $loop);
+            $write = new \React\Stream\Stream($writeStream, $loop);
 
-        $read->on('end', function () use ($from, $to) {
-            $this->logger->debug("Stop Pushing file $from to $to");
-        });
+            $read->on('end', function () use ($from, $to) {
+                $this->logger->debug("Stop Pushing file $from to $to");
+            });
 
-        $read->pipe($write);
+            $read->pipe($write);
+        }
 
-        return true;
+        return (bool) $writeStream;
     }
 }
