@@ -7,15 +7,6 @@ use League\Flysystem\FilesystemNotFoundException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
-use React\EventLoop\Factory as EventLoopFactory;
-use React\HttpClient\Client as ReactHttpClient;
-use React\EventLoop\LoopInterface;
-use React\HttpClient\Client;
-use React\HttpClient\Request;
-use React\HttpClient\Response;
-use React\Stream\WritableResourceStream;
-use React\Socket\Connector as Connector;
-
 class MountManager extends \League\Flysystem\MountManager
 {
     use \League\Flysystem\ConfigAwareTrait;
@@ -149,31 +140,13 @@ class MountManager extends \League\Flysystem\MountManager
         $this->logger->debug("Start Pushing file $from to $to");
         list($prefixFrom, $from) = $this->getPrefixAndPath($from);
         $readStream = $this->getFilesystem($prefixFrom)->readStream($from);
-        //$readStream = fopen($url, 'r');
 
-
+        $config['is_parallel'] = true;
         list($prefixTo, $to) = $this->getPrefixAndPath($to);
-//        $this->setConfig($config);
-//        $config = $this->prepareConfig($config);
-//        $writeStream = $this->getFilesystem($prefixTo)->getAdapter()->writeStream($to, $readStream, $config);
-
-//        if (!is_resource($writeStream)) {
-//            if (isset($writeStream['type']) && $writeStream['type'] == 'file') {
-//                $writeStream = fopen($file, 'w');
-//            }
-//        }
-
-        $locationTo = $this->getFilesystem($prefixTo)->getAdapter()->applyPathPrefix($to);
-
-        if(!file_exists(dirname($locationTo)))
-            mkdir(dirname($locationTo), 0777, true);
-
-        $writeStream = fopen($locationTo, 'w');
-
+        $writeStream = $this->getFilesystem($prefixTo)->putStream($to, $readStream, $config);
 
         stream_set_blocking($readStream, 0);
         stream_set_blocking($writeStream, 0);
-
 
         $read = new \React\Stream\Stream($readStream, $loop);
         $write = new \React\Stream\Stream($writeStream, $loop);

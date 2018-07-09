@@ -71,4 +71,28 @@ class Filesystem extends \League\Flysystem\Filesystem
         }
         return $metaData;
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function putStream($path, $resource, array $config = [])
+    {
+        if ( ! is_resource($resource)) {
+            throw new InvalidArgumentException(__METHOD__ . ' expects argument #2 to be a valid resource.');
+        }
+
+        $path = Util::normalizePath($path);
+        $config = $this->prepareConfig($config);
+        Util::rewindStream($resource);
+        $isParallel = $config->get('is_parallel', false);
+
+        if ( ! $this->getAdapter() instanceof CanOverwriteFiles &&$this->has($path)) {
+            $result = $this->getAdapter()->updateStream($path, $resource, $config);
+
+            return $isParallel ? $result : (bool) $result;
+        }
+
+        $result = $this->getAdapter()->writeStream($path, $resource, $config);
+        return $isParallel ? $result : (bool) $result;
+    }
 }
