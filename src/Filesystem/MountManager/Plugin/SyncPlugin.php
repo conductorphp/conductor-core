@@ -404,40 +404,46 @@ class SyncPlugin implements SyncPluginInterface
         $pathTo = trim($pathTo, '/');
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
+
+
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
         $batchNumber = 1;
         $numBatches = ceil(count($filesToPush) / $batchSize);
+
         while ($batch = array_slice($filesToPush, $batchSize * ($batchNumber - 1), $batchSize)) {
             $this->logger->info(
                 'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
             // @todo Figure out how to actually make this run asynchronously
-            asyncCall(
-                function () use (
-                    $mountManager,
-                    $destinationFilesystem,
-                    $batch,
-                    $prefixFrom,
-                    $pathFrom,
-                    $prefixTo,
-                    $pathTo,
-                    $config
-                ) {
-                    foreach ($batch as $file) {
-                        if ('file' == $file['type']) {
-                            $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
-                            $to = "$prefixTo://$pathTo/{$file['relative_path']}";
-                            $mountManager->putFile($from, $to, $config);
-                        } else {
-                            $to = "$pathTo/{$file['relative_path']}";
-                            $this->logger->debug("Creating directory $prefixTo://$to");
-                            $destinationFilesystem->createDir($to);
-                        }
-                    }
-                }
-            );
 
-            Loop::run();
+            $loop = \React\EventLoop\Factory::create();
+
+            $maxBatchSize = count($batch);
+            foreach ($batch as $file) {
+                $maxBatchSize--;
+                if ('file' == $file['type']) {
+                    $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
+                    $to = "$prefixTo://$pathTo/{$file['relative_path']}";
+                    $mountManager->putFileAsync($loop, $from, $to, $config);
+                    //$mountManager->putFile($from, $to, $config);
+                } else {
+                    $to = "$pathTo/{$file['relative_path']}";
+                    $this->logger->debug("Creating directory $prefixTo://$to");
+                    $destinationFilesystem->createDir($to);
+                }
+            }
+
+            $loop->addPeriodicTimer(5, function ($timer) use ($maxBatchSize, $batchNumber, $numBatches) {
+                if (0 === $maxBatchSize) {
+                    $this->logger->info(
+                        'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
+                    );
+                    $timer->cancel();
+                }
+            });
+
+            $loop->run();
+
             $batchNumber++;
         };
     }

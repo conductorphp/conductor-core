@@ -7,8 +7,19 @@ use League\Flysystem\FilesystemNotFoundException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
+use React\EventLoop\Factory as EventLoopFactory;
+use React\HttpClient\Client as ReactHttpClient;
+use React\EventLoop\LoopInterface;
+use React\HttpClient\Client;
+use React\HttpClient\Request;
+use React\HttpClient\Response;
+use React\Stream\WritableResourceStream;
+use React\Socket\Connector as Connector;
+
 class MountManager extends \League\Flysystem\MountManager
 {
+    use \League\Flysystem\ConfigAwareTrait;
+
     /**
      * @var LoggerInterface
      */
@@ -30,6 +41,7 @@ class MountManager extends \League\Flysystem\MountManager
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
+
         $this->logger = $logger;
         $this->syncPlugin = new Plugin\SyncPlugin();
     }
@@ -106,8 +118,9 @@ class MountManager extends \League\Flysystem\MountManager
      */
     public function putFile(string $from, string $to, array $config = []): bool
     {
-        $this->logger->debug("Pushing file $from to $to");
+        $this->logger->debug("Start Pushing file $from to $to");
         list($prefixFrom, $from) = $this->getPrefixAndPath($from);
+
         $buffer = $this->getFilesystem($prefixFrom)->readStream($from);
 
         if ($buffer === false) {
@@ -119,6 +132,7 @@ class MountManager extends \League\Flysystem\MountManager
         $result = $this->getFilesystem($prefixTo)->putStream($to, $buffer, $config);
 
         if (is_resource($buffer)) {
+            $this->logger->debug("End Pushing file $from to $to");
             fclose($buffer);
         }
 
@@ -130,4 +144,46 @@ class MountManager extends \League\Flysystem\MountManager
         return parent::getPrefixAndPath($path);
     }
 
+    public function putFileAsync($loop, string $from, string $to, array $config = []): bool
+    {
+        $this->logger->debug("Start Pushing file $from to $to");
+        list($prefixFrom, $from) = $this->getPrefixAndPath($from);
+        $readStream = $this->getFilesystem($prefixFrom)->readStream($from);
+        //$readStream = fopen($url, 'r');
+
+
+        list($prefixTo, $to) = $this->getPrefixAndPath($to);
+//        $this->setConfig($config);
+//        $config = $this->prepareConfig($config);
+//        $writeStream = $this->getFilesystem($prefixTo)->getAdapter()->writeStream($to, $readStream, $config);
+
+//        if (!is_resource($writeStream)) {
+//            if (isset($writeStream['type']) && $writeStream['type'] == 'file') {
+//                $writeStream = fopen($file, 'w');
+//            }
+//        }
+
+        $locationTo = $this->getFilesystem($prefixTo)->getAdapter()->applyPathPrefix($to);
+
+        if(!file_exists(dirname($locationTo)))
+            mkdir(dirname($locationTo), 0777, true);
+
+        $writeStream = fopen($locationTo, 'w');
+
+
+        stream_set_blocking($readStream, 0);
+        stream_set_blocking($writeStream, 0);
+
+
+        $read = new \React\Stream\Stream($readStream, $loop);
+        $write = new \React\Stream\Stream($writeStream, $loop);
+
+        $read->on('end', function () use ($from, $to) {
+            $this->logger->debug("Stop Pushing file $from to $to");
+        });
+
+        $read->pipe($write);
+
+        return true;
+    }
 }
