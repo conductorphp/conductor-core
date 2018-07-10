@@ -40,29 +40,29 @@ The Conductor supports encryption of all configuration values.
 Update your `config/config.php` with the following:
 ```php
 <?php
-
+ 
 use ConductorCore\Crypt\Crypt;
+use ConductorCore\YamlFileProvider;
 use Zend\ConfigAggregator\ArrayProvider;
 use Zend\ConfigAggregator\ConfigAggregator;
 use Zend\ConfigAggregator\PhpFileProvider;
-
-$environment = $_SERVER['APPLICATION_ENV'] ?? 'development';
-$cryptKey = null;
-if (file_exists(__DIR__ . '/crypt_key.txt')) {
-    $cryptKey = file_get_contents(__DIR__ . '/crypt_key.txt');
+ 
+if (file_exists(__DIR__ . '/env.php')) {
+    $environmentConfig = include __DIR__ . '/env.php';
 }
-
+ 
+$environment = $environmentConfig['environment'] ?? 'development';
+$cryptKey = $environmentConfig['crypt_key'] ?? null;
+ 
 // To enable or disable caching, set the `ConfigAggregator::ENABLE_CACHE` boolean in
 // `config/autoload/local.php`.
 $cacheConfig = [
     'config_cache_path' => 'data/config-cache.php',
 ];
-
+ 
 $aggregator = new ConfigAggregator(
     [
-        // Other modules here
         \ConductorCore\ConfigProvider::class,
-
         \Zend\Router\ConfigProvider::class,
         \Zend\Validator\ConfigProvider::class,
         // Include cache configuration
@@ -76,29 +76,43 @@ $aggregator = new ConfigAggregator(
         //   - `environments/*/*.php`
         //   - `local.php`
         //   - `*.local.php`
-        Crypt::decryptExpressiveConfig(new PhpFileProvider('config/autoload/{,*.}global.php'), $cryptKey),
-        Crypt::decryptExpressiveConfig(new PhpFileProvider('config/autoload/environments/' . $environment . '/{,*.}php'), $cryptKey),
+        // @todo Add environment config here
+        new PhpFileProvider('config/autoload/{,*.}global.php'),
+        Crypt::decryptExpressiveConfig(new YamlFileProvider('config/app/{,*.}yaml'), $cryptKey),
+        Crypt::decryptExpressiveConfig(new YamlFileProvider('config/app/environments/' . $environment . '/{,*.}yaml'), $cryptKey),
         new PhpFileProvider('config/autoload/{,*.}local.php'),
         // Load development config if it exists
         new PhpFileProvider('config/development.config.php'),
         new ArrayProvider(['environment' => $environment, 'crypt_key' => $cryptKey]),
     ], $cacheConfig['config_cache_path']
 );
-
+ 
 return $aggregator->getMergedConfig();
+```
+
+Create a file `config/env.php` with the following contents:
+```php
+<?php
+
+return [
+    'environment' => 'development',
+    'crypt_key' => 'yourcryptkeyhere',
+];
 ```
 
 Generate an encryption key and save it by running:
 ```bash
-./vendor/bin/conductor crypt:generate-key > config/crypt_key.txt
+./vendor/bin/conductor crypt:generate-key
 ```
 
-Get the encrypted value for a string by running, then replace the plain text string in your config:
+Get the encrypted value for a string by writing it to a file, then running:
+```bash
+./vendor/bin/conductor crypt:encrypt --file yourplaintextfile.txt
+```
+
+Or, get the encrypted value for a string by running this directly:
 ```bash
 ./vendor/bin/conductor crypt:encrypt yourplaintextstring
 ```
 
-Replace the plan text string in your configuration with:
-```php
-'ENC[defuse/php-encryption,yourciphertext]'
-```
+Replace the plain text string in your configuration with the returned ciphertext including the wrapping ENC[] tag.
