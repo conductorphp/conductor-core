@@ -65,7 +65,7 @@ class EncryptCommand extends Command
                 'file',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'Use file path from message to encrypt.'
+                'File path to read message from.'
             );
     }
 
@@ -89,29 +89,27 @@ class EncryptCommand extends Command
         }
 
         $message = $input->getArgument('message');
-        $filePath = $input->getOption('file');
+        $file = $input->getOption('file');
 
-        if(!$filePath) {
-            if (!$message) {
-                throw new Exception\RuntimeException(
-                    'The message must be set unless using the --file method'
-                );
-            }
-            # Encrypt the message
-            $this->injectOutputIntoLogger($output, $this->logger);
-            $output->writeln($this->crypt->encrypt($message, $this->key));
-        }else{
-            if(!file_exists($filePath) || is_dir($filePath) || !is_readable($filePath)) {
-                throw new Exception\RuntimeException(
-                    'When using the --file option the file to encrypt must exist, be readable and it must not be a directory.'
-                );
-            }
-
-            # Encrypt the file contents
-            $this->injectOutputIntoLogger($output, $this->logger);
-            $output->writeln($this->crypt->encrypt(file_get_contents($filePath), $this->key));
+        if (!$message && !$file) {
+            throw new Exception\RuntimeException(
+                '<message> or --file must be given.'
+            );
         }
 
+        if ($file) {
+            if (!file_exists($file) || !is_file($file) || !is_readable($file)) {
+                throw new Exception\RuntimeException(sprintf(
+                    'Path "%s" must be readable file.',
+                    $file
+                ));
+            }
+
+            $message = trim(file_get_contents($file));
+        }
+
+        $this->injectOutputIntoLogger($output, $this->logger);
+        $output->writeln($this->crypt->encrypt($message, $this->key));
         return 0;
     }
 }
