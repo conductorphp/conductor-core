@@ -100,6 +100,11 @@ return [
 ];
 ```
 
+The `config/env.php` file should be excluded from version control. In git, you can do so by running:
+```bash
+echo 'config/env.php' >> .gitignore;
+```
+
 Generate an encryption key and save it by running:
 ```bash
 ./vendor/bin/conductor crypt:generate-key
