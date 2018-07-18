@@ -16,7 +16,7 @@ return [
         Database\DatabaseAdapterManager::class             => Database\DatabaseAdapterManagerFactory::class,
         Database\DatabaseImportExportAdapterManager::class => Database\DatabaseImportExportAdapterManagerFactory::class,
         Filesystem\MountManager\MountManager::class        => Filesystem\MountManager\MountManagerFactory::class,
-        \League\Flysystem\Adapter\Local::class             => Filesystem\LocalAdapterFactory::class,
+        Filesystem\Adapter\LocalAdapter::class             => Filesystem\Adapter\LocalAdapterFactory::class,
         Shell\ShellAdapterManager::class                   => Shell\ShellAdapterManagerFactory::class,
     ],
 ];

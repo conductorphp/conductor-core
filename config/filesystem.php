@@ -1,9 +1,12 @@
 <?php
 
+namespace ConductorCore;
+
+
 return [
     'adapters' => [
         'local' => [
-            'class'     => \League\Flysystem\Adapter\Local::class,
+            'class'     => Filesystem\Adapter\LocalAdapter::class,
             'arguments' => [
                 'root'          => '/',
                 'write_flags'   => LOCK_EX,

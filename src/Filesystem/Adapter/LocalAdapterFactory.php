@@ -1,10 +1,9 @@
 <?php
 
-namespace ConductorCore\Filesystem;
+namespace ConductorCore\Filesystem\Adapter;
 
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
-use League\Flysystem\Adapter\Local;
 use ReflectionClass;
 use Zend\ServiceManager\Exception\ServiceNotCreatedException;
 use Zend\ServiceManager\Exception\ServiceNotFoundException;
@@ -28,7 +27,7 @@ class LocalAdapterFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $reflector = new ReflectionClass(Local::class);
+        $reflector = new ReflectionClass(LocalAdapter::class);
         return $reflector->newInstanceArgs($options);
     }
 }

@@ -2,10 +2,15 @@
 
 namespace ConductorCore\Filesystem\MountManager;
 
+use ConductorCore\Exception;
+use ConductorCore\Filesystem\Adapter\WriteStreamAccessibleAdapterInterface;
 use InvalidArgumentException;
 use League\Flysystem\FilesystemNotFoundException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use React\EventLoop\StreamSelectLoop;
+use React\Stream\ReadableResourceStream;
+use React\Stream\WritableResourceStream;
 
 class MountManager extends \League\Flysystem\MountManager
 {
@@ -128,6 +133,46 @@ class MountManager extends \League\Flysystem\MountManager
     public function getPrefixAndPath($path): array
     {
         return parent::getPrefixAndPath($path);
+    }
+
+    public function putFileAsync(StreamSelectLoop $loop, $from, $to, $config)
+    {
+        list($prefixTo, $pathTo) = $this->getPrefixAndPath($to);
+        $toAdapter = $this->getAdapter($to);
+        if (!$toAdapter instanceof WriteStreamAccessibleAdapterInterface) {
+            throw new Exception\RuntimeException(sprintf(
+                'Destination filesystem "%s" must implement %s.',
+                $prefixTo,
+                WriteStreamAccessibleAdapterInterface::class
+            ));
+        }
+
+        $this->logger->debug("Queuing file $from to $to");
+        list($prefixFrom, $from) = $this->getPrefixAndPath($from);
+        $readStream = $this->getFilesystem($prefixFrom)->readStream($from);
+        stream_set_blocking($readStream, false);
+        $source = new ReadableResourceStream(
+            $readStream,
+            $loop
+        );
+
+        if ($source === false) {
+            throw new Exception\RuntimeException(sprintf(
+                'Error occurred opening readable stream "%s".',
+                $prefixFrom
+            ));
+        }
+
+        $writeStream = $toAdapter->getWriteStream($pathTo);
+        stream_set_blocking($writeStream, false);
+        $destination = new WritableResourceStream(
+            $writeStream,
+            $loop
+        );
+
+        $source->pipe($destination);
+
+        // @todo Handle errors?
     }
 
 }

@@ -2,12 +2,13 @@
 
 namespace ConductorCore\Filesystem\MountManager\Plugin;
 
-use Amp\Loop;
 use ConductorCore\Exception;
+use ConductorCore\Filesystem\Adapter\WriteStreamAccessibleAdapterInterface;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use function Amp\asyncCall;
+use React\EventLoop\Factory as EventLoopFactory;
+use React\EventLoop\StreamSelectLoop;
 
 class SyncPlugin implements SyncPluginInterface
 {
@@ -404,6 +405,10 @@ class SyncPlugin implements SyncPluginInterface
         $pathTo = trim($pathTo, '/');
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
+        // @todo Fix assumption that getAdapter() exists
+        $useAsync = ($mountManager->getFilesystem($prefixTo)->getAdapter() instanceof WriteStreamAccessibleAdapterInterface);
+
+        $loop = null;
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
         $batchNumber = 1;
         $numBatches = ceil(count($filesToPush) / $batchSize);
@@ -411,33 +416,32 @@ class SyncPlugin implements SyncPluginInterface
             $this->logger->info(
                 'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
-            // @todo Figure out how to actually make this run asynchronously
-            asyncCall(
-                function () use (
-                    $mountManager,
-                    $destinationFilesystem,
-                    $batch,
-                    $prefixFrom,
-                    $pathFrom,
-                    $prefixTo,
-                    $pathTo,
-                    $config
-                ) {
-                    foreach ($batch as $file) {
-                        if ('file' == $file['type']) {
-                            $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
-                            $to = "$prefixTo://$pathTo/{$file['relative_path']}";
-                            $mountManager->putFile($from, $to, $config);
-                        } else {
-                            $to = "$pathTo/{$file['relative_path']}";
-                            $this->logger->debug("Creating directory $prefixTo://$to");
-                            $destinationFilesystem->createDir($to);
-                        }
-                    }
-                }
-            );
 
-            Loop::run();
+            if ($useAsync) {
+                $loop = new StreamSelectLoop();
+            }
+
+            foreach ($batch as $file) {
+                if ('file' == $file['type']) {
+                    $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
+                    $to = "$prefixTo://$pathTo/{$file['relative_path']}";
+                    if ($useAsync) {
+                        $mountManager->putFileAsync($loop, $from, $to, $config);
+                    } else {
+                        $mountManager->putFile($from, $to, $config);
+                    }
+                } else {
+                    $to = "$pathTo/{$file['relative_path']}";
+                    $this->logger->debug("Creating directory $prefixTo://$to");
+                    $destinationFilesystem->createDir($to);
+                }
+            }
+
+            $this->logger->debug("Syncing...");
+            if ($useAsync) {
+                $loop->run();
+            }
+            $this->logger->debug("Synced");
             $batchNumber++;
         };
     }
