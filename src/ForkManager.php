@@ -133,4 +133,14 @@ class ForkManager
         $this->logger->debug("All child processes finished.");
     }
 
+    /**
+     * Check  if pcntl module enabled.
+     *
+     * @return bool
+     */
+    public static function isPcntlEnabled() : bool
+    {
+        return (bool) extension_loaded('pcntl');
+    }
+
 }
