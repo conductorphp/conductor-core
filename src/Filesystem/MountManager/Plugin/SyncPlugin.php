@@ -8,6 +8,7 @@ use ConductorCore\Filesystem\MountManager\MountManager;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use function Amp\asyncCall;
+use ConductorCore\ForkManager;
 
 class SyncPlugin implements SyncPluginInterface
 {
@@ -405,15 +406,23 @@ class SyncPlugin implements SyncPluginInterface
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
+
+        if (ForkManager::isPcntlEnabled()) {
+            //better to set batchsize less then 100 if multithreading
+            $batchSize = 20;
+        }
+
         $batchNumber = 1;
         $numBatches = ceil(count($filesToPush) / $batchSize);
         while ($batch = array_slice($filesToPush, $batchSize * ($batchNumber - 1), $batchSize)) {
             $this->logger->info(
                 'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
-            // @todo Figure out how to actually make this run asynchronously
-            asyncCall(
-                function () use (
+
+            $forkManager = ForkManager::isPcntlEnabled() ? new ForkManager($this->logger, $batchSize) : null;
+
+            foreach ($batch as $file) {
+                $executor = function () use (
                     $mountManager,
                     $destinationFilesystem,
                     $batch,
@@ -421,23 +430,35 @@ class SyncPlugin implements SyncPluginInterface
                     $pathFrom,
                     $prefixTo,
                     $pathTo,
-                    $config
+                    $config,
+                    $file
                 ) {
-                    foreach ($batch as $file) {
-                        if ('file' == $file['type']) {
-                            $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
-                            $to = "$prefixTo://$pathTo/{$file['relative_path']}";
-                            $mountManager->putFile($from, $to, $config);
-                        } else {
-                            $to = "$pathTo/{$file['relative_path']}";
-                            $this->logger->debug("Creating directory $prefixTo://$to");
-                            $destinationFilesystem->createDir($to);
-                        }
+                    if ('file' == $file['type']) {
+                        $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
+                        $to = "$prefixTo://$pathTo/{$file['relative_path']}";
+                        $mountManager->putFile($from, $to, $config);
+                    } else {
+                        $to = "$pathTo/{$file['relative_path']}";
+                        $this->logger->debug("Creating directory $prefixTo://$to");
+                        $destinationFilesystem->createDir($to);
                     }
-                }
-            );
+                };
 
-            Loop::run();
+                if ($forkManager) {
+                    $forkManager->addWorker($executor);
+                } else {
+                    $executor();
+                }
+            }
+
+            if ($forkManager) {
+                try {
+                    $forkManager->execute();
+                } catch (\Exception $e) {
+                    $this->logger->error($e->getMessage());
+                }
+            }
+
             $batchNumber++;
         };
     }
@@ -454,6 +475,12 @@ class SyncPlugin implements SyncPluginInterface
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
+
+        if (ForkManager::isPcntlEnabled()) {
+            //better to set batchsize less then 100 if multithreading
+            $batchSize = 20;
+        }
+
         $batchNumber = 1;
         $numBatches = ceil(count($filesToDelete) / $batchSize);
 
@@ -461,26 +488,41 @@ class SyncPlugin implements SyncPluginInterface
             $this->logger->info(
                 'Processing delete batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
-            asyncCall(
-                function () use (
+
+            $forkManager = ForkManager::isPcntlEnabled() ? new ForkManager($this->logger, $batchSize) : null;
+
+            foreach ($batch as $file) {
+                $executor = function () use (
                     $mountManager,
                     $destinationFilesystem,
                     $batch,
-                    $prefixTo
+                    $prefixTo,
+                    $file
                 ) {
-                    foreach ($batch as $file) {
-                        if ('file' == $file['type']) {
-                            $this->logger->debug("Deleting file $prefixTo://{$file['path']}");
-                            $destinationFilesystem->delete($file['path']);
-                        } else {
-                            $this->logger->debug("Deleting directory $prefixTo://{$file['path']}");
-                            $destinationFilesystem->deleteDir($file['path']);
-                        }
+                    if ('file' == $file['type']) {
+                        $this->logger->debug("Deleting file $prefixTo://{$file['path']}");
+                        $destinationFilesystem->delete($file['path']);
+                    } else {
+                        $this->logger->debug("Deleting directory $prefixTo://{$file['path']}");
+                        $destinationFilesystem->deleteDir($file['path']);
                     }
-                }
-            );
+                };
 
-            Loop::run();
+                if ($forkManager) {
+                    $forkManager->addWorker($executor);
+                } else {
+                    $executor();
+                }
+            }
+
+            if ($forkManager) {
+                try {
+                    $forkManager->execute();
+                } catch (\Exception $e) {
+                    $this->logger->error($e->getMessage());
+                }
+            }
+
             $batchNumber++;
         };
     }
