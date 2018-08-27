@@ -3,7 +3,10 @@ Conductor: Core
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
-# 1.0.0 (Unreleased)
+# 0.9.1
+- Fixed MountManager excludes/includes processing
+
+# 0.9.0
 - Renamed to Conductor
 - Added DatabaseAdapterManager
 - Merged DatabaseMetadataProviderInterface into DatabaseAdapterInterface
