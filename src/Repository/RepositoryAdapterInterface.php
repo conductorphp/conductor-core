@@ -16,8 +16,9 @@ interface RepositoryAdapterInterface
 
     /**
      * @param string $repoReference
+     * @param bool $shallow
      */
-    public function checkout(string $repoReference): void;
+    public function checkout(string $repoReference, bool $shallow = false): void;
 
     /**
      * @return bool

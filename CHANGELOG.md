@@ -3,6 +3,9 @@ Conductor: Core
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
+# 0.9.2
+- Added consideration for shallow clone
+
 # 0.9.1
 - Fixed MountManager excludes/includes processing
 
