@@ -121,3 +121,7 @@ Or, get the encrypted value for a string by running this directly:
 ```
 
 Replace the plain text string in your configuration with the returned ciphertext including the wrapping ENC[] tag.
+
+## Contributing
+
+* TBD
