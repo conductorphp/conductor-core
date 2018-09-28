@@ -1,7 +1,8 @@
 Conductor: Core
 ===============
 
-All notable changes to this project will be documented in this file, in reverse chronological order by release.
+# 0.9.4
+- Fixed license per https://spdx.org/licenses/
 
 # 0.9.3
 - Added initial documentation structure
