@@ -68,9 +68,9 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         }
 
         $descriptorSpec = [
-            0 => ['pipe', 'r'],  // stdin
-            1 => ['pipe', 'w'],  // stdout
-            2 => ['pipe', 'w'],  // stderr
+            0 => ['pipe', 'r'],                // stdin
+            1 => ['file',"php://stdout", "w"], // stdout
+            2 => ['pipe', 'w'],                // stderr
         ];
         $process = proc_open(
             $command,
@@ -100,19 +100,6 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             }
         );
 
-        $output = '';
-        Loop::onReadable(
-            $pipes[1],
-            function ($watcherId, $socket) use (&$output) {
-                $line = fgets($socket);
-                if ($line) {
-                    $output .= $line;
-                } elseif (!is_resource($socket) || feof($socket)) {
-                    Loop::cancel($watcherId);
-                }
-            }
-        );
-
         Loop::run();
 
         $output .= stream_get_contents($pipes[1]);
@@ -122,7 +109,6 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         }
 
         fclose($pipes[0]);
-        fclose($pipes[1]);
         fclose($pipes[2]);
 
         if (0 != proc_close($process)) {
@@ -131,7 +117,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             );
         }
 
-        return $output;
+        return "";
     }
 
     /**
