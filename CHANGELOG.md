@@ -1,6 +1,9 @@
 Conductor: Core
 ===============
 
+# 0.9.5
+- Updated all shell commands to run through bash
+
 # 0.9.4
 - Fixed license per https://spdx.org/licenses/
 
