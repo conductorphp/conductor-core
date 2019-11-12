@@ -245,27 +245,31 @@ class SyncPlugin implements SyncPluginInterface
             }
         }
 
-        return $files;
+        // Reindex to avoid confusion when comparing last index to count
+        return array_values($files);
     }
 
     /**
      * @param string $file
-     * @param array  $patterns
+     * @param array  $rsyncPatterns Array of match patterns in rsync exclude/include format
+     * @see https://linux.die.net/man/1/rsync at "Include/Exclude Pattern Rules"
      *
      * @return bool
      */
-    private function isMatch(string $file, array $patterns): bool
+    private function isMatch(string $file, array $rsyncPatterns): bool
     {
-        foreach ($patterns as &$pattern) {
-            $pattern = str_replace('\*', '*', preg_quote($pattern, '%'));
+        $regexPatterns = [];
+        foreach ($rsyncPatterns as $rsyncPattern) {
+            $pattern = str_replace('\*', '*', preg_quote($rsyncPattern, '%'));
             $pattern = preg_replace('%([^*])$%', '$1(/|$)', $pattern);
             $pattern = preg_replace('%^([^*/])%', '(^|/)$1', $pattern);
             $pattern = preg_replace('%^/%', '^', $pattern);
             $pattern = str_replace('*', '.*', $pattern);
             $pattern = "%$pattern%";
+            $regexPatterns[] = $pattern;
         }
 
-        foreach ($patterns as $pattern) {
+        foreach ($regexPatterns as $pattern) {
             if (preg_match($pattern, $file)) {
                 return true;
             }

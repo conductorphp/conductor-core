@@ -1,9 +1,22 @@
 Conductor: Core
 ===============
 
-All notable changes to this project will be documented in this file, in reverse chronological order by release.
+# 0.9.5
+- Updated all shell commands to run through bash
 
-# 1.0.0 (Unreleased)
+# 0.9.4
+- Fixed license per https://spdx.org/licenses/
+
+# 0.9.3
+- Added initial documentation structure
+ 
+# 0.9.2
+- Added consideration for shallow clone
+
+# 0.9.1
+- Fixed MountManager excludes/includes processing
+
+# 0.9.0
 - Renamed to Conductor
 - Added DatabaseAdapterManager
 - Merged DatabaseMetadataProviderInterface into DatabaseAdapterInterface

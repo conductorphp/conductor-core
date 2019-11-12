@@ -57,8 +57,9 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
     ): string {
 
         $this->logger->debug("Running shell command: $command");
+        $command = 'bash -c ' . escapeshellarg($command);
         if (ShellAdapterInterface::PRIORITY_LOW == $priority) {
-            $command = 'ionice -c3 nice -n 19 bash -c ' . escapeshellarg($command);
+            $command = 'ionice -c3 nice -n 19 ' . $command;
         } elseif (ShellAdapterInterface::PRIORITY_HIGH == $priority) {
             if (0 == posix_getuid()) {
                 $command = 'ionice -c 1 -n 0 ' . $command;
