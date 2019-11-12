@@ -1,6 +1,9 @@
 Conductor: Core
 ===============
 
+# 0.10.0
+- Added parallel download/upload of files if pcntl PHP extension is enabled
+
 # 0.9.5
 - Updated all shell commands to run through bash
 
