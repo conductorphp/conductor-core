@@ -411,11 +411,6 @@ class SyncPlugin implements SyncPluginInterface
 
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
 
-        if (ForkManager::isPcntlEnabled()) {
-            //better to set batchsize less then 100 if multithreading
-            $batchSize = 20;
-        }
-
         $batchNumber = 1;
         $numBatches = ceil(count($filesToPush) / $batchSize);
         while ($batch = array_slice($filesToPush, $batchSize * ($batchNumber - 1), $batchSize)) {
