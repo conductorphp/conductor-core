@@ -1,6 +1,12 @@
 Conductor: Core
 ===============
 
+# 0.9.7
+- Added documentation for the forking SSL issue.
+- Added composer suggestion for ext-pcntl
+- Reduced default batch size for file syncing since forking may consume too many
+  resources at 100 forks
+
 # 0.9.6
 - Added parallel download/upload of files if pcntl PHP extension is enabled
 

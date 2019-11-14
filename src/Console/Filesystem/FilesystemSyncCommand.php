@@ -104,7 +104,7 @@ class FilesystemSyncCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Batch size for copy and delete operations',
-                100
+                20
             )
             ->setDescription(
                 'Copy a directory from a source filesystem directory to a destination filesystem directory.'

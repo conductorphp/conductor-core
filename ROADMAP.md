@@ -6,5 +6,5 @@ Conductor: Core Roadmap
 - Add malukenho/docheader (See 
   https://github.com/zendframework/zend-expressive-zendviewrenderer/blob/master/composer.json for example)
 - Make an installer wizard that extends Zend Expressive's installer, but specific to Conductor
-- Possibly make amphp/amphp optional and only add to composer suggest
+- Remove amphp/amp package requirement and implement via ForkManager (pcntl PHP extension)
 
