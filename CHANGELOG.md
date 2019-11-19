@@ -3,6 +3,7 @@ Conductor: Core
 
 ## 0.9.8
 - Added filesystem:rm command
+- Added filesystem:mv command
 
 ## 0.9.7
 - Added documentation for the forking SSL issue.

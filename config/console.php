@@ -12,6 +12,7 @@ return [
         Console\Database\DatabaseMetadataCommand::class,
         Console\Database\TableMetadataCommand::class,
         Console\Filesystem\FilesystemLsCommand::class,
+        Console\Filesystem\FilesystemMvCommand::class,
         Console\Filesystem\FilesystemRmCommand::class,
         Console\Filesystem\FilesystemCopyCommand::class,
         Console\Filesystem\FilesystemSyncCommand::class,
