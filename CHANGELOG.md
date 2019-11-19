@@ -1,6 +1,9 @@
 Conductor: Core
 ===============
 
+## 0.9.9
+- Added -f|--force argument to filesystem:rm command
+
 ## 0.9.8
 - Added filesystem:rm command
 - Added filesystem:mv command

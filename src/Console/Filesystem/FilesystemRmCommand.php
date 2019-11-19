@@ -69,6 +69,7 @@ class FilesystemRmCommand extends Command
                 ) . '</comment>'
             )
             ->addOption('recursive', 'r', InputOption::VALUE_NONE, 'Delete directory recursively.')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Do not error if file does not exist or there is an error deleting the file.')
             ->setDescription('Delete a file or directory from a filesystem.')
             ->setHelp("This command deletes a file or directory from a filesystem.");
     }
@@ -87,8 +88,13 @@ class FilesystemRmCommand extends Command
         list($prefix,) = $this->mountManager->filterPrefix([$path]);
         $path = trim(substr($path, strlen($prefix) + 3), '/');
         $filesystem = $this->mountManager->getFilesystem($prefix);
+        $force = $input->getOption('force');
 
         if (!$filesystem->has($path)) {
+            if ($force) {
+                return 0;
+            }
+
             throw new Exception\RuntimeException("Path \"$path\" does not exist.");
         }
 
@@ -100,9 +106,15 @@ class FilesystemRmCommand extends Command
                     . "if you really want to delete it.");
             }
 
-            $filesystem->deleteDir($path);
+            $successful = $filesystem->deleteDir($path);
+            if (!$successful && !$force) {
+                throw new Exception\RuntimeException("Error deleting directory \"$path\".");
+            }
         } else {
-            $filesystem->delete($path);
+            $successful = $filesystem->delete($path);
+            if (!$successful && !$force) {
+                throw new Exception\RuntimeException("Error deleting file \"$path\".");
+            }
         }
 
         return 0;
