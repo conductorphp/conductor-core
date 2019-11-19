@@ -3,6 +3,7 @@ Conductor: Core
 
 ## 0.9.9
 - Added -f|--force argument to filesystem:rm command
+- Added ability to pass multiple paths to filesystem:rm command
 
 ## 0.9.8
 - Added filesystem:rm command

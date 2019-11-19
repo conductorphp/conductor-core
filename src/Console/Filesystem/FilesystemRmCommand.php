@@ -5,6 +5,8 @@ namespace ConductorCore\Console\Filesystem;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
+use League\Flysystem\FilesystemInterface;
+use League\Flysystem\FileNotFoundException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
@@ -61,17 +63,17 @@ class FilesystemRmCommand extends Command
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:rm')
             ->addArgument(
-                'path',
-                InputArgument::REQUIRED,
-                "Path in the format {adapter}://{path}.\nAvailable Adapters: <comment>" . implode(
+                'paths',
+                InputArgument::IS_ARRAY | InputArgument::REQUIRED,
+                "Space-separated paths in the format {adapter}://{path}.\nAvailable Adapters: <comment>" . implode(
                     ', ',
                     $filesystemAdapterNames
                 ) . '</comment>'
             )
-            ->addOption('recursive', 'r', InputOption::VALUE_NONE, 'Delete directory recursively.')
-            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Do not error if file does not exist or there is an error deleting the file.')
-            ->setDescription('Delete a file or directory from a filesystem.')
-            ->setHelp("This command deletes a file or directory from a filesystem.");
+            ->addOption('recursive', 'r', InputOption::VALUE_NONE, 'Delete directories recursively.')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Do not error if a file does not exist or there is an error deleting a file.')
+            ->setDescription('Delete files from a filesystem.')
+            ->setHelp("This command deletes files from a filesystem.");
     }
 
     /**
@@ -84,22 +86,37 @@ class FilesystemRmCommand extends Command
     {
         $this->injectOutputIntoLogger($output, $this->logger);
 
-        $path = $input->getArgument('path');
-        list($prefix,) = $this->mountManager->filterPrefix([$path]);
-        $path = trim(substr($path, strlen($prefix) + 3), '/');
-        $filesystem = $this->mountManager->getFilesystem($prefix);
-        $force = $input->getOption('force');
+        $paths = $input->getArgument('paths');
+        foreach ($paths as $path) {
+            list($prefix,) = $this->mountManager->filterPrefix([$path]);
+            $path = trim(substr($path, strlen($prefix) + 3), '/');
+            $filesystem = $this->mountManager->getFilesystem($prefix);
+            $force = $input->getOption('force');
 
-        if (!$filesystem->has($path)) {
-            if ($force) {
-                return 0;
+            if (!$filesystem->has($path)) {
+                if ($force) {
+                    continue;
+                }
+
+                throw new Exception\RuntimeException("Path \"$path\" does not exist.");
             }
 
-            throw new Exception\RuntimeException("Path \"$path\" does not exist.");
+            $this->deletePath($input, $filesystem, $path, $force);
         }
 
-        $metaData = $this->normalizeMetadata($filesystem->getMetadata($path));
+        return 0;
+    }
 
+    /**
+     * @param InputInterface $input
+     * @param FilesystemInterface $filesystem
+     * @param string $path
+     * @param $force
+     * @throws FileNotFoundException
+     */
+    private function deletePath(InputInterface $input, FilesystemInterface $filesystem, string $path, $force): void
+    {
+        $metaData = $this->normalizeMetadata($filesystem->getMetadata($path));
         if ('dir' == $metaData['type']) {
             if (!$input->getOption('recursive')) {
                 throw new Exception\RuntimeException("Path \"$path\" is a directory. Provide --recursive argument "
@@ -116,10 +133,7 @@ class FilesystemRmCommand extends Command
                 throw new Exception\RuntimeException("Error deleting file \"$path\".");
             }
         }
-
-        return 0;
     }
-
 
     /**
      * @param array  $metaData
