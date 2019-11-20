@@ -182,7 +182,7 @@ class MountManager extends \League\Flysystem\MountManager
         }
 
         // Remove ./, if present
-        $path = preg_replace('%^\.' . DIRECTORY_SEPARATOR . '%', '', $path);
+        $path = preg_replace('%^\.' . DIRECTORY_SEPARATOR . '?%', '', $path);
         $path = $this->workingDirectory . DIRECTORY_SEPARATOR . $path;
         return rtrim($path, DIRECTORY_SEPARATOR);
     }
