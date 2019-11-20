@@ -86,6 +86,7 @@ class FilesystemMvCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
+        $this->mountManager->setWorkingDirectory(getcwd());
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
         $this->mountManager->move($source, $destination);

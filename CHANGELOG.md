@@ -2,8 +2,10 @@ Conductor: Core
 ===============
 
 ## 0.9.9
-- Added -f|--force argument to filesystem:rm command
-- Added ability to pass multiple paths to filesystem:rm command
+- Added -f|--force argument to filesystem:rm command.
+- Added ability to pass multiple paths to filesystem:rm command.
+- Updated to default to local filesystem with current working directory, if prefix not 
+  specified in path.
 
 ## 0.9.8
 - Added filesystem:rm command

@@ -54,7 +54,6 @@ class FilesystemSyncCommand extends Command
      */
     protected function configure()
     {
-
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:sync')
             ->addArgument(
@@ -123,6 +122,7 @@ class FilesystemSyncCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
+        $this->mountManager->setWorkingDirectory(getcwd());
         $this->mountManager->setLogger($this->logger);
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');

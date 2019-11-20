@@ -85,11 +85,12 @@ class FilesystemRmCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
+        $this->mountManager->setWorkingDirectory(getcwd());
 
         $paths = $input->getArgument('paths');
         foreach ($paths as $path) {
-            list($prefix,) = $this->mountManager->filterPrefix([$path]);
-            $path = trim(substr($path, strlen($prefix) + 3), '/');
+            list($prefix, $arguments) = $this->mountManager->filterPrefix([$path]);
+            $path = $arguments[0];
             $filesystem = $this->mountManager->getFilesystem($prefix);
             $force = $input->getOption('force');
 

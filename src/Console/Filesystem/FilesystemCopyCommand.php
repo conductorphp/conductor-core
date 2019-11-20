@@ -86,6 +86,7 @@ class FilesystemCopyCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
+        $this->mountManager->setWorkingDirectory(getcwd());
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
         // @todo Add config options like whether to overwrite files. Not sure which go here vs. the filesystem itself

@@ -2,6 +2,7 @@
 
 namespace ConductorCore\Filesystem\MountManager;
 
+use ConductorCore\Exception;
 use InvalidArgumentException;
 use League\Flysystem\FilesystemNotFoundException;
 use Psr\Log\LoggerInterface;
@@ -17,6 +18,14 @@ class MountManager extends \League\Flysystem\MountManager
      * @var Plugin\SyncPlugin
      */
     private $syncPlugin;
+    /**
+     * @var string
+     */
+    private $defaultPrefix;
+    /**
+     * @var string
+     */
+    private $workingDirectory;
 
     /**
      * MountManager constructor.
@@ -49,6 +58,14 @@ class MountManager extends \League\Flysystem\MountManager
     {
         $this->syncPlugin->setLogger($logger);
         $this->logger = $logger;
+    }
+
+    /**
+     * @param string $path
+     */
+    public function setWorkingDirectory(string $path): void
+    {
+        $this->workingDirectory = $path;
     }
 
     /**
@@ -125,9 +142,49 @@ class MountManager extends \League\Flysystem\MountManager
         return $result;
     }
 
+    /**
+     * Updated to use local prefix if no prefix present in given path. Also, prepend working dir if present
+     *
+     * @inheritDoc
+     */
     public function getPrefixAndPath($path): array
     {
-        return parent::getPrefixAndPath($path);
+        // If no prefix present, set local prefix
+        if (strpos($path, '://') < 1) {
+            try {
+                $path = $this->resolveAbsolutePath($path);
+            } catch (Exception\RuntimeException $e) {
+                throw new InvalidArgumentException('No prefix detected in path: ' . $path, null, $e);
+            }
+
+            // Prepend local prefix and strip initial /
+            $path = ltrim($path, DIRECTORY_SEPARATOR);
+            $path = 'local://' . $path;
+        }
+
+        return explode('://', $path, 2);
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     * @throws Exception\RuntimeException
+     */
+    private function resolveAbsolutePath(string $path): string
+    {
+        if ($path[0] === DIRECTORY_SEPARATOR) {
+            return $path;
+        }
+
+        if (!isset($this->workingDirectory)) {
+            throw new Exception\RuntimeException("Could not resolve absolute path because working directory "
+                . "is not set.");
+        }
+
+        // Remove ./, if present
+        $path = preg_replace('%^\.' . DIRECTORY_SEPARATOR . '%', '', $path);
+        $path = $this->workingDirectory . DIRECTORY_SEPARATOR . $path;
+        return rtrim($path, DIRECTORY_SEPARATOR);
     }
 
 }
