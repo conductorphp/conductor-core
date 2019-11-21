@@ -1,6 +1,10 @@
 Conductor: Core
 ===============
 
+## 0.9.10
+- Added better error messaging when Conductor command is run within a working directory that
+  you don't have read access to.
+
 ## 0.9.9
 - Added -f|--force argument to filesystem:rm command.
 - Added ability to pass multiple paths to filesystem:rm command.
