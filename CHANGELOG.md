@@ -1,6 +1,9 @@
 Conductor: Core
 ===============
 
+## 0.9.11
+- Added config/env.php.dist
+
 ## 0.9.10
 - Added better error messaging when Conductor command is run within a working directory that
   you don't have read access to.
