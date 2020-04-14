@@ -161,6 +161,8 @@ class FilesystemLsCommand extends Command
     {
         if (empty($basePath)) {
             $basePath = '.';
+        } else {
+            $basePath = rtrim($basePath, '/');
         }
 
         if (empty($metaData['path'])) {
