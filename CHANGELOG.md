@@ -1,6 +1,9 @@
 Conductor: Core
 ===============
 
+## 0.9.12
+- Fixed: file:ls command cuts off first character when argument passed includes /
+
 ## 0.9.11
 - Added config/env.php.dist
 
