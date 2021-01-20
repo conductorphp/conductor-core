@@ -443,14 +443,14 @@ class SyncPlugin implements SyncPluginInterface
                     }
                 };
 
-                if ($forkManager) {
+                if ($forkManager && $batchSize != 1) {
                     $forkManager->addWorker($executor);
                 } else {
                     $executor();
                 }
             }
 
-            if ($forkManager) {
+            if ($forkManager && $batchSize != 1) {
                 try {
                     $forkManager->execute();
                 } catch (\Exception $e) {
