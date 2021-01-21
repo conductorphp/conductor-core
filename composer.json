@@ -1,6 +1,6 @@
 {
     "name": "conductor/core",
-    "description": "Conductor: Core",
+    "description": "Conductor Core",
     "type": "library",
     "homepage": "https://github.com/conductorphp/conductor-core",
     "license": "Apache-2.0",
