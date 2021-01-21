@@ -3,7 +3,7 @@
 namespace ConductorCore;
 
 use Symfony\Component\Yaml\Yaml;
-use Zend\ConfigAggregator\GlobTrait;
+use Laminas\ConfigAggregator\GlobTrait;
 
 /**
  * Provide a collection of Yaml files returning config arrays.

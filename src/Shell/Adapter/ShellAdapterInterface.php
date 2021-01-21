@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Kirk Madera <kmadera@robofirm.com>
+ * @author Kirk Madera <kirk.madera@rmgmedia.com>
  */
 
 namespace ConductorCore\Shell\Adapter;
