@@ -413,7 +413,7 @@ class SyncPlugin implements SyncPluginInterface
 
         $batchNumber = 1;
         $numBatches = ceil(count($filesToPush) / $batchSize);
-        while ($batch = array_slice($filesToPush, $batchSize * ($batchNumber - 1), $batchSize)) {
+        while ($batch = array_splice($filesToPush, 0, $batchSize)) {
             $this->logger->info(
                 'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
@@ -424,7 +424,6 @@ class SyncPlugin implements SyncPluginInterface
                 $executor = function () use (
                     $mountManager,
                     $destinationFilesystem,
-                    $batch,
                     $prefixFrom,
                     $pathFrom,
                     $prefixTo,
