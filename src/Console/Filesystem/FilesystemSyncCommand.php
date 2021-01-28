@@ -103,7 +103,14 @@ class FilesystemSyncCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Batch size for copy and delete operations',
-                20
+                100
+            )
+            ->addOption(
+                'max-concurrency',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Max concurrency of files to sync at one time.',
+                10
             )
             ->setDescription(
                 'Copy a directory from a source filesystem directory to a destination filesystem directory.'
@@ -133,6 +140,7 @@ class FilesystemSyncCommand extends Command
             'excludes'          => $input->getOption('exclude'),
             'includes'          => $input->getOption('include'),
             'batch_size'        => $input->getOption('batch-size'),
+            'max_concurrency'   => $input->getOption('max-concurrency'),
         ];
         $this->mountManager->sync($source, $destination, $options);
         return 0;

@@ -2,12 +2,10 @@
 
 namespace ConductorCore\Filesystem\MountManager\Plugin;
 
-use Amp\Loop;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use function Amp\asyncCall;
 use ConductorCore\ForkManager;
 
 class SyncPlugin implements SyncPluginInterface
@@ -410,6 +408,7 @@ class SyncPlugin implements SyncPluginInterface
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
+        $maxConcurrency = !empty($config['max_concurrency']) ? $config['max_concurrency'] : 10;
 
         $batchNumber = 1;
         $numBatches = ceil(count($filesToPush) / $batchSize);
@@ -418,7 +417,8 @@ class SyncPlugin implements SyncPluginInterface
                 'Processing copy batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
 
-            $forkManager = ForkManager::isPcntlEnabled() ? new ForkManager($this->logger, $batchSize) : null;
+            $forkManager = new ForkManager($this->logger);
+            $forkManager->setMaxConcurrency($maxConcurrency);
 
             foreach ($batch as $file) {
                 $executor = function () use (
@@ -444,21 +444,14 @@ class SyncPlugin implements SyncPluginInterface
                     }
                 };
 
-                if ($forkManager && $batchSize != 1) {
-                    $forkManager->addWorker($executor);
-                } else {
-                    $executor();
-                }
+                $forkManager->addWorker($executor);
             }
 
-            if ($forkManager && $batchSize != 1) {
-                try {
-                    $forkManager->execute();
-                } catch (\Exception $e) {
-                    $this->logger->error($e->getMessage());
-                }
+            try {
+                $forkManager->execute();
+            } catch (\Exception $e) {
+                $this->logger->error($e->getMessage());
             }
-
             $batchNumber++;
         };
     }
@@ -475,11 +468,7 @@ class SyncPlugin implements SyncPluginInterface
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
-
-        if (ForkManager::isPcntlEnabled()) {
-            //better to set batchsize less then 100 if multithreading
-            $batchSize = 20;
-        }
+        $maxConcurrency = !empty($config['max_concurrency']) ? $config['max_concurrency'] : 10;
 
         $batchNumber = 1;
         $numBatches = ceil(count($filesToDelete) / $batchSize);
@@ -489,7 +478,8 @@ class SyncPlugin implements SyncPluginInterface
                 'Processing delete batch ' . number_format($batchNumber) . '/' . number_format($numBatches)
             );
 
-            $forkManager = ForkManager::isPcntlEnabled() ? new ForkManager($this->logger, $batchSize) : null;
+            $forkManager = new ForkManager($this->logger);
+            $forkManager->setMaxConcurrency($maxConcurrency);
 
             foreach ($batch as $file) {
                 $executor = function () use (
@@ -508,19 +498,13 @@ class SyncPlugin implements SyncPluginInterface
                     }
                 };
 
-                if ($forkManager) {
-                    $forkManager->addWorker($executor);
-                } else {
-                    $executor();
-                }
+                $forkManager->addWorker($executor);
             }
 
-            if ($forkManager) {
-                try {
-                    $forkManager->execute();
-                } catch (\Exception $e) {
-                    $this->logger->error($e->getMessage());
-                }
+            try {
+                $forkManager->execute();
+            } catch (\Exception $e) {
+                $this->logger->error($e->getMessage());
             }
 
             $batchNumber++;
