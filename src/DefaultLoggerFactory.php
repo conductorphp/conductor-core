@@ -5,7 +5,7 @@ namespace ConductorCore;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 
-class DefaultLoggerFactory implements \Zend\ServiceManager\Factory\FactoryInterface
+class DefaultLoggerFactory implements \Laminas\ServiceManager\Factory\FactoryInterface
 {
 
     /**
@@ -16,8 +16,8 @@ class DefaultLoggerFactory implements \Zend\ServiceManager\Factory\FactoryInterf
      * @param  null|array                            $options
      *
      * @return object
-     * @throws \Zend\ServiceManager\Exception\ServiceNotFoundException if unable to resolve the service.
-     * @throws \Zend\ServiceManager\Exception\ServiceNotCreatedException if an exception is raised when
+     * @throws \Laminas\ServiceManager\Exception\ServiceNotFoundException if unable to resolve the service.
+     * @throws \Laminas\ServiceManager\Exception\ServiceNotCreatedException if an exception is raised when
      *     creating a service.
      * @throws \Interop\Container\Exception\ContainerException if any other error occurs
      */

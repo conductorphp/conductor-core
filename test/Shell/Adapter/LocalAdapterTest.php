@@ -28,12 +28,6 @@ class LocalAdapterTest extends TestCase
         $this->assertFalse($this->adapter->isCallable('badcommand'));
     }
 
-    public function testIsCallableThrowsExceptionWhenHostsGiven()
-    {
-        $this->expectException(Exception\RuntimeException::class);
-        $this->adapter->isCallable('anycommand', ['anyhost']);
-    }
-
     public function testRunShellCommand()
     {
         $this->assertInternalType('string', $this->adapter->runShellCommand('ls'));
@@ -43,11 +37,5 @@ class LocalAdapterTest extends TestCase
     {
         $this->expectException(Exception\RuntimeException::class);
         $this->adapter->runShellCommand('badcommand');
-    }
-
-    public function testRunShellCommandThrowsExceptionWhenHostsGiven()
-    {
-        $this->expectException(Exception\RuntimeException::class);
-        $this->adapter->runShellCommand('ls', ['anyhost']);
     }
 }

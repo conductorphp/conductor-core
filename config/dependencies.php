@@ -4,7 +4,7 @@ namespace ConductorCore;
 
 return [
     'abstract_factories' => [
-        \Zend\ServiceManager\AbstractFactory\ReflectionBasedAbstractFactory::class
+        \Laminas\ServiceManager\AbstractFactory\ReflectionBasedAbstractFactory::class
     ],
     'aliases'            => [
         Shell\Adapter\ShellAdapterInterface::class => Shell\Adapter\LocalShellAdapter::class,

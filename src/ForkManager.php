@@ -189,7 +189,7 @@ class ForkManager
 
     public function __destruct()
     {
-        if(!$this->isParent) {
+        if(!$this->isParent || 0 === count($this->workers)) {
             return;
         }
 

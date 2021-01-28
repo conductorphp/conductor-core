@@ -15,7 +15,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 /**
  * Formats incoming records for console output by coloring them depending on log level.
  *
- * @author Kirk Madera <kmadera@robofirm.com>
+ * @author Kirk Madera <kirk.madera@rmgmedia.com>
  */
 class ConsoleFormatter implements FormatterInterface
 {

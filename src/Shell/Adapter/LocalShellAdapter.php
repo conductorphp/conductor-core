@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Kirk Madera <kmadera@robofirm.com>
+ * @author Kirk Madera <kirk.madera@rmgmedia.com>
  */
 
 namespace ConductorCore\Shell\Adapter;
@@ -41,7 +41,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
      */
     public function isCallable($command): bool
     {
-        exec('which ' . escapeshellarg($command) . ' &>/dev/null', $output, $return);
+        exec('which ' . escapeshellarg($command), $output, $return);
         return 0 === $return;
     }
 
