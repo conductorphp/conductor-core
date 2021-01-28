@@ -3,7 +3,9 @@
 namespace ConductorCore;
 
 use Psr\Log\{LoggerInterface, NullLogger, LogLevel};
-declare(ticks = 1);
+
+declare(ticks=1);
+
 /**
  * Class ForkManager.
  * Forking and Managing child processes.
@@ -15,27 +17,27 @@ class ForkManager
     /**
      * @var int
      */
-    protected $isParent = 1;
+    private $isParent = 1;
 
     /**
      * @var int
      */
-    protected $parentPID;
+    private $parentPid;
 
     /**
      * @var null | int
      */
-    protected $limit = 10;
+    private $maxConcurrency = 10;
 
     /**
      * @var array
      */
-    protected $pids = [];
+    private $pids = [];
 
     /**
      * @var array
      */
-    protected $workers = [];
+    private $workers = [];
 
     /**
      * @var int
@@ -43,29 +45,24 @@ class ForkManager
     public static $dispatchInterval = 0;
 
     /**
-     * @var null | LoggerInterface
+     * @var LoggerInterface
      */
-    protected $logger;
+    private $logger;
 
     /**
      * @var array
      */
-    protected $signalQueue=[];
+    private $signalQueue = [];
 
     /**
      * ForkManager constructor.
      *
      * @param LoggerInterface|null $logger
-     * @param null $limit
      */
     public function __construct(
-        LoggerInterface $logger = null,
-        $limit = null
-    ) {
-        $this->limit = $limit ?? $this->limit;
-        $this->parentPID = getmypid();
-        pcntl_signal(SIGCHLD, [$this, "childSignalHandler"]);
-
+        LoggerInterface $logger = null
+    )
+    {
         if (is_null($logger)) {
             $logger = new NullLogger();
         }
@@ -74,48 +71,90 @@ class ForkManager
 
     /**
      * @return void
-     * @throws \Exception
      */
-    public function execute() : void
+    public function execute(): void
     {
-        echo "Running \n";
-
-        foreach ($this->workers as $workerId => $worker) {
-            while(count($this->pids) >= $this->limit){
-                echo "Maximum children allowed, waiting...\n";
-                //echo ("Pids: ".implode(';',$this->pids)."\n");
-                sleep(1);
-            }
-            $launched = $this->launchJob($worker);
+        if (count($this->workers) === 0) {
+            $this->logger->warning("No workers configured.");
+            return;
         }
 
-        //Wait for child processes to finish before exiting here
-        while(count($this->pids)){
-            //echo "Waiting for current jobs to finish... \n";
-            //echo ("Pids: ".implode(';',$this->pids)."\n");
-            foreach($this->pids as $key => $pid) {
+        if (self::isPcntlEnabled() && count($this->workers) > 1) {
+            $exitStatus = $this->processConcurrently();
+        } else {
+            $exitStatus = 0;
+            $this->processSequentially();
+        }
+        exit($exitStatus);
+    }
+
+    /**
+     * @return int
+     */
+    private function processConcurrently(): int
+    {
+        $status = 0;
+        $this->logger->info(sprintf("Running %s workers with concurrency %s...", count($this->workers), $this->maxConcurrency));
+        $this->parentPid = getmypid();
+        pcntl_signal(SIGCHLD, [$this, "childSignalHandler"]);
+
+        foreach ($this->workers as $workerId => $worker) {
+            while (count($this->pids) >= $this->maxConcurrency) {
+                // $this->logger->debug("Maximum children allowed, waiting...");
+                // $this->logger->debug(sprintf( "Pids: %s, implode(';', $this->pids)));
+                sleep(1);
+            }
+            $this->launchWorker($worker);
+        }
+
+        // Wait for child processes to finish before exiting here
+        while (count($this->pids)) {
+            // $this->logger->debug("Waiting for final workers to finish...");
+            // $this->logger->debug(sprintf( "Pids: %s, implode(';', $this->pids)));
+            foreach ($this->pids as $key => $pid) {
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
                 // child process is finished.
-                if($res == -1 || $res > 0) {
-                    $this->logger->log(LogLevel::DEBUG, "Processes with pid - $pid - finished.");
+                if ($res == -1 || $res > 0) {
+                    $this->logger->debug("Processes with pid - $pid - finished.");
                     unset($this->pids[$key]);
                 }
             }
             sleep(1);
         }
+        return $status;
+    }
+
+
+    private function processSequentially()
+    {
+        $this->logger->info(sprintf("Running %s workers sequentially...", count($this->workers)));
+        foreach ($this->workers as $worker) {
+            $worker();
+        }
     }
 
     /**
-     * Launch a job from the job queue
+     * @param int $maxConcurrency
      */
-    protected function launchJob($worker){
+    public function setMaxConcurrency(int $maxConcurrency): void
+    {
+        $this->maxConcurrency = $maxConcurrency;
+    }
+
+    /**
+     * Launch a worker from the worker queue
+     * @param callable $worker
+     */
+    private function launchWorker(callable $worker): void
+    {
         $pid = pcntl_fork();
-        if($pid == -1){
-            //Problem launching the job
-            $this->logger->log(LogLevel::ERROR, "Can't fork process. Check PCNTL extension.");
-            exit(0);
+        if ($pid === -1) {
+            //Problem launching the worker
+            $this->logger->error("Can't fork process. Check PCNTL extension.");
+            exit(1);
         }
-        else if ($pid){
+
+        if ($pid) {
             // Parent process
             // Sometimes you can receive a signal to the childSignalHandler function before this code executes if
             // the child script executes quickly enough!
@@ -124,56 +163,52 @@ class ForkManager
 
             // In the event that a signal for this pid was caught before we get here, it will be in our signalQueue array
             // So let's go ahead and process it now as if we'd just received the signal
-            if(isset($this->signalQueue[$pid])){
+            if (isset($this->signalQueue[$pid])) {
                 //    echo "found $pid in the signal queue, processing it now \n";
                 $this->childSignalHandler(SIGCHLD, $pid, $this->signalQueue[$pid]);
                 unset($this->signalQueue[$pid]);
             }
-        }
-        else{
+        } else {
             //Forked child, do your deeds....
-            $exitStatus = 0; //Error code if you need to or whatever
             // echo "Doing something fun in pid ".getmypid()."\n";
             call_user_func_array($worker, []);
-            exit($exitStatus);
+            exit(0);
         }
-        return true;
     }
 
-    public function childSignalHandler($signo, $pidArray=null, $status=null){
-        $pid = $pidArray['pid']??null;
-        $status = $pidArray['status']??null;
+    public function childSignalHandler(int $signo, array $pidArray = null, int $status = null): void
+    {
+        $pid = $pidArray['pid'] ?? null;
+        $status = $pidArray['status'] ?? null;
 
         //If no pid is provided, that means we're getting the signal from the system.  Let's figure out
         //which child process ended
-        if(!$pid){
+        if (!$pid) {
             $pid = pcntl_waitpid(-1, $status, WNOHANG);
         }
 
         //Make sure we get all of the exited children
-        while($pid > 0){
+        while ($pid > 0) {
 
-            if($pid && isset($this->pids[$pid])){
+            if ($pid && isset($this->pids[$pid])) {
                 $exitCode = pcntl_wexitstatus($status);
-                if($exitCode != 0){
-                    echo "$pid exited with status ".$exitCode."\n";
+                if ($exitCode !== 0) {
+                    echo "$pid exited with status " . $exitCode . "\n";
                 }
                 unset($this->pids[$pid]);
-            }
-            else if($pid){
-                //Oh no, our job has finished before this parent process could even note that it had been launched!
+            } else if ($pid) {
+                //Oh no, our worker has finished before this parent process could even note that it had been launched!
                 //Let's make note of it and handle it when the parent process is ready for it
                 //echo "..... Adding $pid to the signal queue ..... \n";
                 $this->signalQueue[$pid] = $status;
             }
             $pid = pcntl_waitpid(-1, $status, WNOHANG);
         }
-        return true;
     }
 
-    protected function pause() : void
+    private function pause(): void
     {
-        if (static::$dispatchInterval ) {
+        if (static::$dispatchInterval) {
             sleep(static::$dispatchInterval);
         }
     }
@@ -182,28 +217,19 @@ class ForkManager
      * @param callable $worker
      * @return void
      */
-    public function addWorker(callable $worker) : void
+    public function addWorker(callable $worker): void
     {
         $this->workers[] = $worker;
     }
 
-    public function __destruct()
-    {
-        if(!$this->isParent || 0 === count($this->workers)) {
-            return;
-        }
-
-        $this->logger->debug("All child processes finished.");
-    }
-
     /**
-     * Check  if pcntl module enabled.
+     * Check if pcntl module enabled.
      *
      * @return bool
      */
-    public static function isPcntlEnabled() : bool
+    public static function isPcntlEnabled(): bool
     {
-        return (bool) extension_loaded('pcntl');
+        return (bool)extension_loaded('pcntl');
     }
 
 }
