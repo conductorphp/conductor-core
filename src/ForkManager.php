@@ -80,23 +80,24 @@ class ForkManager
         }
 
         if (self::isPcntlEnabled() && count($this->workers) > 1) {
-            $exitStatus = $this->processConcurrently();
+            $this->processConcurrently();
         } else {
-            $exitStatus = 0;
             $this->processSequentially();
         }
-        exit($exitStatus);
     }
 
     /**
-     * @return int
+     * @throws Exception\RuntimeException if any child process exits with a non-zero status.
      */
-    private function processConcurrently(): int
+    private function processConcurrently(): void
     {
         $status = 0;
         $this->logger->info(sprintf("Running %s workers with concurrency %s...", count($this->workers), $this->maxConcurrency));
         $this->parentPid = getmypid();
         pcntl_signal(SIGCHLD, [$this, "childSignalHandler"]);
+
+        // @todo Handle gathering exit status of child processes better. If one child fails, we want to be able to
+        //       throw an exception at the end of this method. It is not handled in launchWorker as far as I can tell.
 
         foreach ($this->workers as $workerId => $worker) {
             while (count($this->pids) >= $this->maxConcurrency) {
@@ -121,11 +122,13 @@ class ForkManager
             }
             sleep(1);
         }
-        return $status;
+
+        if (0 !== $status) {
+            throw new Exception\RuntimeException('A child process exited with a non-zero status.');
+        }
     }
 
-
-    private function processSequentially()
+    private function processSequentially(): void
     {
         $this->logger->info(sprintf("Running %s workers sequentially...", count($this->workers)));
         foreach ($this->workers as $worker) {
@@ -150,8 +153,7 @@ class ForkManager
         $pid = pcntl_fork();
         if ($pid === -1) {
             //Problem launching the worker
-            $this->logger->error("Can't fork process. Check PCNTL extension.");
-            exit(1);
+            throw new Exception\RuntimeException("Can't fork process. Check PCNTL extension.");
         }
 
         if ($pid) {
@@ -164,15 +166,14 @@ class ForkManager
             // In the event that a signal for this pid was caught before we get here, it will be in our signalQueue array
             // So let's go ahead and process it now as if we'd just received the signal
             if (isset($this->signalQueue[$pid])) {
-                //    echo "found $pid in the signal queue, processing it now \n";
+                //    $this->logger->debug("found $pid in the signal queue, processing it now");
                 $this->childSignalHandler(SIGCHLD, $pid, $this->signalQueue[$pid]);
                 unset($this->signalQueue[$pid]);
             }
         } else {
             //Forked child, do your deeds....
-            // echo "Doing something fun in pid ".getmypid()."\n";
-            call_user_func_array($worker, []);
-            exit(0);
+            // $this->logger->debug("Doing something fun in pid ".getmypid().");
+            $worker();
         }
     }
 
@@ -193,13 +194,13 @@ class ForkManager
             if ($pid && isset($this->pids[$pid])) {
                 $exitCode = pcntl_wexitstatus($status);
                 if ($exitCode !== 0) {
-                    echo "$pid exited with status " . $exitCode . "\n";
+                    $this->logger->error("$pid exited with status " . $exitCode);
                 }
                 unset($this->pids[$pid]);
             } else if ($pid) {
                 //Oh no, our worker has finished before this parent process could even note that it had been launched!
                 //Let's make note of it and handle it when the parent process is ready for it
-                //echo "..... Adding $pid to the signal queue ..... \n";
+                // $this->logger->debug("..... Adding $pid to the signal queue .....");
                 $this->signalQueue[$pid] = $status;
             }
             $pid = pcntl_waitpid(-1, $status, WNOHANG);
