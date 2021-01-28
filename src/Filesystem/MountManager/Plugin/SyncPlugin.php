@@ -438,7 +438,9 @@ class SyncPlugin implements SyncPluginInterface
                     } else {
                         $to = "$pathTo/{$file['relative_path']}";
                         $this->logger->debug("Creating directory $prefixTo://$to");
-                        $destinationFilesystem->createDir($to);
+                        if (!$destinationFilesystem->has($to)) {
+                            $destinationFilesystem->createDir($to);
+                        }
                     }
                 };
 
