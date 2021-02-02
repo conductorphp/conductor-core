@@ -123,7 +123,7 @@ class ForkManager
             sleep(1);
         }
 
-        if (0 !== $status) {
+        if ($status > 0 && $status <= 255) {
             throw new Exception\RuntimeException('A child process exited with a non-zero status.');
         }
     }

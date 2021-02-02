@@ -126,7 +126,8 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         fclose($pipes[1]);
         fclose($pipes[2]);
 
-        if (0 != proc_close($process)) {
+        $status = proc_close($process);
+        if ($status > 0 && $status <= 255) {
             throw new Exception\RuntimeException(
                 "An error occurred while running shell command: \"$command\"\nOutput: $output"
             );
