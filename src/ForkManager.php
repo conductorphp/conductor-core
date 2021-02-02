@@ -116,7 +116,7 @@ class ForkManager
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
                 // child process is finished.
                 if ($res == -1 || $res > 0) {
-                    $this->logger->debug("Processes with pid - $pid - finished.");
+                    $this->logger->debug("Process with pid - $pid - finished.");
                     unset($this->pids[$key]);
                 }
             }
