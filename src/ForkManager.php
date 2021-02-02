@@ -174,6 +174,7 @@ class ForkManager
             //Forked child, do your deeds....
             // $this->logger->debug("Doing something fun in pid ".getmypid().");
             $worker();
+            exit(0);
         }
     }
 
