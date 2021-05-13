@@ -33,6 +33,7 @@
     "suggest": {
         "ext-posix": "Required to display colors in command line.",
         "ext-xdebug": "Required to test code coverage.",
+        "ext-pcntl": "Allows for parallel download/upload of files with remove filesystems via PHP forks.",
         "conductor/application-orchestration": "Adds application orchestration functionality.",
         "conductor/git-vcs-support": "Adds support for Git VCS.",
         "conductor/mysql-database-support": "Adds support for working with MySQL databases.",

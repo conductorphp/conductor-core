@@ -1,22 +1,48 @@
 Conductor: Core
 ===============
 
-# 0.9.5
+## 0.9.11
+- Added config/env.php.dist
+
+## 0.9.10
+- Added better error messaging when Conductor command is run within a working directory that
+  you don't have read access to.
+
+## 0.9.9
+- Added -f|--force argument to filesystem:rm command.
+- Added ability to pass multiple paths to filesystem:rm command.
+- Updated to default to local filesystem with current working directory, if prefix not 
+  specified in path.
+
+## 0.9.8
+- Added filesystem:rm command
+- Added filesystem:mv command
+
+## 0.9.7
+- Added documentation for the forking SSL issue.
+- Added composer suggestion for ext-pcntl
+- Reduced default batch size for file syncing since forking may consume too many
+  resources at 100 forks
+
+## 0.9.6
+- Added parallel download/upload of files if pcntl PHP extension is enabled
+
+## 0.9.5
 - Updated all shell commands to run through bash
 
-# 0.9.4
+## 0.9.4
 - Fixed license per https://spdx.org/licenses/
 
-# 0.9.3
+## 0.9.3
 - Added initial documentation structure
  
-# 0.9.2
+## 0.9.2
 - Added consideration for shallow clone
 
-# 0.9.1
+## 0.9.1
 - Fixed MountManager excludes/includes processing
 
-# 0.9.0
+## 0.9.0
 - Renamed to Conductor
 - Added DatabaseAdapterManager
 - Merged DatabaseMetadataProviderInterface into DatabaseAdapterInterface
@@ -34,5 +60,5 @@ Conductor: Core
 - Fixed timeout issue when running shell commands that don't properly close stderr
 - Added RepositoryAdapterInterface to make Conductor work with other version control systems
 
-# 0.1.0
+## 0.1.0
 - Initial build copied over from devops tool

@@ -54,7 +54,6 @@ class FilesystemSyncCommand extends Command
      */
     protected function configure()
     {
-
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:sync')
             ->addArgument(
@@ -104,7 +103,7 @@ class FilesystemSyncCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Batch size for copy and delete operations',
-                100
+                20
             )
             ->setDescription(
                 'Copy a directory from a source filesystem directory to a destination filesystem directory.'
@@ -123,6 +122,7 @@ class FilesystemSyncCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
+        $this->mountManager->setWorkingDirectory(getcwd());
         $this->mountManager->setLogger($this->logger);
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');

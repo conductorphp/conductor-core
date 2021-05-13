@@ -122,6 +122,34 @@ Or, get the encrypted value for a string by running this directly:
 
 Replace the plain text string in your configuration with the returned ciphertext including the wrapping ENC[] tag.
 
+## Known Issues
+
+### Forking SSL Issue
+
+If you encounter this error or similar while running `conductor app:deploy --snapshot mysnapshot --assets` 
+or `conductor app:snapshot mysnapshot --assets`, read below:
+
+```
+cURL error 35: A PKCS #11 module returned CKR_DEVICE_ERROR, indicating that a problem has occurred with the 
+token or slot. (see http://curl.haxx.se/libcurl/c/libcurl-errors.html)
+```
+
+NSS has a bug in older versions which causes this issue when forking a PHP process. A patch was added to 
+force NSS to reinitialize on PHP process fork. If you see this error, you are running an older version of 
+NSS or curl compiled with older NSS. 
+
+You can work around this issue by adding this line to your `config/config.php` after the namespace definitions.
+
+```php
+putenv("NSS_STRICT_NOFORK=DISABLED");
+```
+
+Alternatively, you can also run this in all environments where file syncing via Conductor is done.
+
+```bash
+export NSS_STRICT_NOFORK=DISABLED
+```
+
 ## Contributing
 
 * TBD

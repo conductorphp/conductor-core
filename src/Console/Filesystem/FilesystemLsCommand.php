@@ -82,13 +82,15 @@ class FilesystemLsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->injectOutputIntoLogger($output, $this->logger);
+        $this->mountManager->setWorkingDirectory(getcwd());
 
         $tableOutput = new Table($output);
         $tableOutput->setHeaders(['Path', 'Type', 'Size', 'Last Updated']);
 
         $path = $input->getArgument('path');
-        list($prefix,) = $this->mountManager->filterPrefix([$path]);
-        $path = trim(substr($path, strlen($prefix) + 3), '/');
+        list($prefix, $arguments) = $this->mountManager->filterPrefix([$path]);
+        $path = $arguments[0];
+
         $filesystem = $this->mountManager->getFilesystem($prefix);
 
         if (!$filesystem->has($path)) {
@@ -159,6 +161,8 @@ class FilesystemLsCommand extends Command
     {
         if (empty($basePath)) {
             $basePath = '.';
+        } else {
+            $basePath = rtrim($basePath, '/');
         }
 
         if (empty($metaData['path'])) {

@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class FilesystemCopyCommand extends Command
+class FilesystemMvCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
@@ -50,7 +50,7 @@ class FilesystemCopyCommand extends Command
     protected function configure()
     {
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
-        $this->setName('filesystem:copy')
+        $this->setName('filesystem:mv')
             ->addArgument(
                 'source',
                 InputArgument::REQUIRED,
@@ -70,10 +70,10 @@ class FilesystemCopyCommand extends Command
                 . '</comment>'
             )
             ->setDescription(
-                'Copy a single file from a source filesystem directory to a destination filesystem directory.'
+                'Move a file or directory from a source filesystem to a destination filesystem.'
             )
             ->setHelp(
-                "This command copies a single file from a source filesystem directory to a destination filesystem directory."
+                "This command moves a file or directory from a source filesystem to a destination filesystem."
             );
     }
 
@@ -89,8 +89,7 @@ class FilesystemCopyCommand extends Command
         $this->mountManager->setWorkingDirectory(getcwd());
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
-        // @todo Add config options like whether to overwrite files. Not sure which go here vs. the filesystem itself
-        $this->mountManager->copy($source, $destination);
+        $this->mountManager->move($source, $destination);
         return 0;
     }
 

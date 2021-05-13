@@ -1,11 +1,14 @@
 #!/usr/bin/env php
 <?php
 
-$origWorkingDir = getcwd();
-chdir(__DIR__ . '/../../../..');
-require 'vendor/autoload.php';
-
 try {
+    $origWorkingDir = getcwd();
+    if (!is_readable($origWorkingDir)) {
+        throw new \Exception('Conductor must be run from within a working directory that you have read access to.');
+    }
+    chdir(__DIR__ . '/../../../..');
+    require 'vendor/autoload.php';
+
     /**
      * Self-called anonymous function that creates its own scope and keep the global namespace clean.
      */
@@ -36,8 +39,8 @@ try {
         . $e->getTraceAsString() . "\n\n";
     while ($e = $e->getPrevious()) {
         $message .= "Previous Exception:\n"
-        . $e->getMessage() . "\n"
-        . $e->getTraceAsString() . "\n\n";
+            . $e->getMessage() . "\n"
+            . $e->getTraceAsString() . "\n\n";
     }
 
     echo $message . "\e[1;0m";
