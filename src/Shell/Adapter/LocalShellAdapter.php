@@ -5,7 +5,6 @@
 
 namespace ConductorCore\Shell\Adapter;
 
-use Amp\Loop;
 use ConductorCore\Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
@@ -85,38 +84,10 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             throw new Exception\RuntimeException(sprintf('Failed to open process for command "%s".', $command));
         }
 
-        // Allow for input?
-        //fwrite($pipes[0], ' ');
-
-        $logger = $this->logger;
-        Loop::onReadable(
-            $pipes[2],
-            function ($watcherId, $socket) use ($logger) {
-                $line = fgets($socket);
-                if ($line) {
-                    $logger->debug($line);
-                } elseif (!is_resource($socket) || feof($socket)) {
-                    Loop::cancel($watcherId);
-                }
-            }
-        );
-
         $output = '';
-        Loop::onReadable(
-            $pipes[1],
-            function ($watcherId, $socket) use (&$output) {
-                $line = fgets($socket);
-                if ($line) {
-                    $output .= $line;
-                } elseif (!is_resource($socket) || feof($socket)) {
-                    Loop::cancel($watcherId);
-                }
-            }
-        );
-
-        Loop::run();
 
         $output .= stream_get_contents($pipes[1]);
+        $output .= stream_get_contents($pipes[2]);
         $remainingStderr = stream_get_contents($pipes[2]);
         if ($remainingStderr) {
             $this->logger->debug($remainingStderr);
