@@ -104,11 +104,11 @@ class MountManager extends \League\Flysystem\MountManager
      * @param string $to   in the format {prefix}://{path}
      * @param array  $config
      *
-     * @return void
+     * @return bool True if all operations succeeded; False if any operations failed
      */
-    public function sync(string $from, string $to, array $config = []): void
+    public function sync(string $from, string $to, array $config = []): bool
     {
-        $this->syncPlugin->sync($this, $from, $to, $config);
+        return $this->syncPlugin->sync($this, $from, $to, $config);
     }
 
     /**
@@ -124,10 +124,16 @@ class MountManager extends \League\Flysystem\MountManager
     public function putFile(string $from, string $to, array $config = []): bool
     {
         $this->logger->debug("Pushing file $from to $to");
+        $origFrom = $from;
         list($prefixFrom, $from) = $this->getPrefixAndPath($from);
         $buffer = $this->getFilesystem($prefixFrom)->readStream($from);
 
         if ($buffer === false) {
+            $this->logger->error(sprintf(
+                'Failed to open stream "%s" for read.',
+                $origFrom
+            ));
+
             return false;
         }
 

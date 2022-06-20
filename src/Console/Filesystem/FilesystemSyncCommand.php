@@ -2,6 +2,7 @@
 
 namespace ConductorCore\Console\Filesystem;
 
+use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -142,7 +143,14 @@ class FilesystemSyncCommand extends Command
             'batch_size'        => $input->getOption('batch-size'),
             'max_concurrency'   => $input->getOption('max-concurrency'),
         ];
-        $this->mountManager->sync($source, $destination, $options);
+        $result = $this->mountManager->sync($source, $destination, $options);
+        if (false === $result) {
+            throw new Exception\RuntimeException(sprintf(
+                'An error occurred syncing "%s" to "%s".',
+                $source,
+                $destination
+            ));
+        }
         return 0;
     }
 

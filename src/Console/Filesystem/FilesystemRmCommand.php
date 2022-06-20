@@ -87,6 +87,7 @@ class FilesystemRmCommand extends Command
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->mountManager->setWorkingDirectory(getcwd());
 
+        $hasErrors = false;
         $paths = $input->getArgument('paths');
         foreach ($paths as $path) {
             list($prefix, $arguments) = $this->mountManager->filterPrefix([$path]);
@@ -102,7 +103,17 @@ class FilesystemRmCommand extends Command
                 throw new Exception\RuntimeException("Path \"$path\" does not exist.");
             }
 
-            $this->deletePath($input, $filesystem, $path, $force);
+            $result = $this->deletePath($input, $filesystem, $path, $force);
+            if (false === $result) {
+                $hasErrors = true;
+            }
+        }
+
+        if ($hasErrors) {
+            throw new Exception\RuntimeException(sprintf(
+                'An error occurred deleting paths: "%s".',
+                implode('", "', $paths)
+            ));
         }
 
         return 0;

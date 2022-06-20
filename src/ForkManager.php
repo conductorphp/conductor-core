@@ -116,14 +116,14 @@ class ForkManager
                 $res = pcntl_waitpid($pid, $status, WNOHANG);
                 // child process is finished.
                 if ($res == -1 || $res > 0) {
-                    $this->logger->debug("Processes with pid - $pid - finished.");
+                    $this->logger->debug("Process with pid - $pid - finished.");
                     unset($this->pids[$key]);
                 }
             }
             sleep(1);
         }
 
-        if (0 !== $status) {
+        if ($status > 0 && $status <= 255) {
             throw new Exception\RuntimeException('A child process exited with a non-zero status.');
         }
     }
@@ -174,6 +174,7 @@ class ForkManager
             //Forked child, do your deeds....
             // $this->logger->debug("Doing something fun in pid ".getmypid().");
             $worker();
+            exit(0);
         }
     }
 

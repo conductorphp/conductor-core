@@ -33,14 +33,15 @@ class SyncPlugin implements SyncPluginInterface
      * @param string $to   in the format {prefix}://{path}
      * @param array  $config
      *
-     * @return void
+     * @return bool True if all operations succeeded; False if any operations failed
      */
-    public function sync(MountManager $mountManager, string $from, string $to, array $config = []): void
+    public function sync(MountManager $mountManager, string $from, string $to, array $config = []): bool
     {
         if (!$mountManager->has($from)) {
             throw new Exception\RuntimeException("Path \"$from\" does not exist.");
         }
 
+        $hasErrors = false;
         $metadata = $mountManager->getMetadata($from);
         $fileExists = $mountManager->has($to);
         if ($metadata && 'file' == $metadata['type']) {
@@ -51,12 +52,19 @@ class SyncPlugin implements SyncPluginInterface
             }
 
             if (!$fileExists || $sourceIsNewer) {
-                $this->putFile($mountManager, $from, $to, $config);
+                $result = $this->putFile($mountManager, $from, $to, $config);
+                if (false === $result) {
+                    $hasErrors = true;
+                }
             }
         } else {
-            $this->syncDirectory($mountManager, $from, $to, $config);
+            $result = $this->syncDirectory($mountManager, $from, $to, $config);
+            if (false === $result) {
+                $hasErrors = true;
+            }
         }
 
+        return !$hasErrors;
     }
 
 
@@ -86,6 +94,12 @@ class SyncPlugin implements SyncPluginInterface
         $buffer = $mountManager->getFilesystem($prefixFrom)->readStream($from);
 
         if ($buffer === false) {
+            $this->logger->error(sprintf(
+                'Failed to open stream "%s://%s" for read.',
+                $prefixFrom,
+                $from
+            ));
+
             return false;
         }
 
@@ -105,9 +119,11 @@ class SyncPlugin implements SyncPluginInterface
      * @param string       $from
      * @param string       $to
      * @param array        $config
+     * @return bool True if all operations succeeded; False if any operations failed
      */
-    private function syncDirectory(MountManager $mountManager, string $from, string $to, array $config): void
+    private function syncDirectory(MountManager $mountManager, string $from, string $to, array $config): bool
     {
+        $hasErrors = false;
         list($filesToPush, $filesToDelete) = $this->determineFilesToPushAndDelete($mountManager, $from, $to, $config);
 
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
@@ -122,13 +138,16 @@ class SyncPlugin implements SyncPluginInterface
                     number_format($batchSize)
                 )
             );
-            $this->putFiles(
+            $result = $this->putFiles(
                 $mountManager,
                 $from,
                 $to,
                 $config,
                 $filesToPush
             );
+            if ($result === false) {
+                $hasErrors = true;
+            }
         } else {
             $this->logger->info('No files to copy');
         }
@@ -145,11 +164,16 @@ class SyncPlugin implements SyncPluginInterface
                         number_format($batchSize)
                     )
                 );
-                $this->deleteFiles($mountManager, $to, $filesToDelete, $config);
+                $result = $this->deleteFiles($mountManager, $to, $filesToDelete, $config);
+                if ($result === false) {
+                    $hasErrors = true;
+                }
             } else {
                 $this->logger->info('No files to delete');
             }
         }
+
+        return !$hasErrors;
     }
 
 
@@ -393,6 +417,7 @@ class SyncPlugin implements SyncPluginInterface
      * @param string       $to
      * @param array        $config
      * @param array        $filesToPush
+     * @return bool True if all operations succeeded; False if any operations failed
      */
     private function putFiles(
         MountManager $mountManager,
@@ -400,7 +425,8 @@ class SyncPlugin implements SyncPluginInterface
         string $to,
         array $config,
         array $filesToPush
-    ): void {
+    ): bool {
+        $hasErrors = false;
         list($prefixFrom, $pathFrom) = $mountManager->getPrefixAndPath($from);
         $pathFrom = trim($pathFrom, '/');
         list($prefixTo, $pathTo) = $mountManager->getPrefixAndPath($to);
@@ -434,12 +460,25 @@ class SyncPlugin implements SyncPluginInterface
                     if ('file' == $file['type']) {
                         $from = "$prefixFrom://$pathFrom/{$file['relative_path']}";
                         $to = "$prefixTo://$pathTo/{$file['relative_path']}";
-                        $mountManager->putFile($from, $to, $config);
+                        $result = $mountManager->putFile($from, $to, $config);
+                        if ($result === false) {
+                            throw new Exception\RuntimeException(sprintf(
+                                'Failed to copy file "%s" to "%s".',
+                                $from,
+                                $to
+                            ));
+                        }
                     } else {
                         $to = "$pathTo/{$file['relative_path']}";
                         $this->logger->debug("Creating directory $prefixTo://$to");
                         if (!$destinationFilesystem->has($to)) {
-                            $destinationFilesystem->createDir($to);
+                            $result = $destinationFilesystem->createDir($to);
+                            if ($result === false) {
+                                throw new Exception\RuntimeException(sprintf(
+                                    'Failed to create directory "%s".',
+                                    $to,
+                                ));
+                            }
                         }
                     }
                 };
@@ -451,9 +490,12 @@ class SyncPlugin implements SyncPluginInterface
                 $forkManager->execute();
             } catch (\Exception $e) {
                 $this->logger->error($e->getMessage());
+                $hasErrors = true;
             }
             $batchNumber++;
         };
+
+        return !$hasErrors;
     }
 
     /**
@@ -461,9 +503,11 @@ class SyncPlugin implements SyncPluginInterface
      * @param string       $to
      * @param array        $filesToDelete
      * @param array        $config
+     * @return bool True if all operations succeeded; False if any operations failed
      */
-    private function deleteFiles(MountManager $mountManager, string $to, array $filesToDelete, array $config): void
+    private function deleteFiles(MountManager $mountManager, string $to, array $filesToDelete, array $config): bool
     {
+        $hasErrors = false;
         list($prefixTo,) = $mountManager->getPrefixAndPath($to);
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
@@ -505,10 +549,13 @@ class SyncPlugin implements SyncPluginInterface
                 $forkManager->execute();
             } catch (\Exception $e) {
                 $this->logger->error($e->getMessage());
+                $hasErrors = true;
             }
 
             $batchNumber++;
         };
+
+        return !$hasErrors;
     }
 
 }
