@@ -90,7 +90,14 @@ class FilesystemCopyCommand extends Command
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
         // @todo Add config options like whether to overwrite files. Not sure which go here vs. the filesystem itself
-        $this->mountManager->copy($source, $destination);
+        $result = $this->mountManager->copy($source, $destination);
+        if ($result === false) {
+            throw new Exception\RuntimeException(sprintf(
+                'Failed to copy file "%s" to "%s".',
+                $source,
+                $destination
+            ));
+        }
         return 0;
     }
 

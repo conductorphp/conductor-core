@@ -2,6 +2,7 @@
 
 namespace ConductorCore\Console\Filesystem;
 
+use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -89,7 +90,14 @@ class FilesystemMvCommand extends Command
         $this->mountManager->setWorkingDirectory(getcwd());
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
-        $this->mountManager->move($source, $destination);
+        $result = $this->mountManager->move($source, $destination);
+        if ($result === false) {
+            throw new Exception\RuntimeException(sprintf(
+                'Failed to move file "%s" to "%s".',
+                $source,
+                $destination
+            ));
+        }
         return 0;
     }
 
