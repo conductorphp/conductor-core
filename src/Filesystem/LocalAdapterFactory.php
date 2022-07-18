@@ -29,6 +29,6 @@ class LocalAdapterFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
         $reflector = new ReflectionClass(Local::class);
-        return $reflector->newInstanceArgs($options);
+        return $reflector->newInstanceArgs(array_values($options));
     }
 }
