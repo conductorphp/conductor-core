@@ -30,6 +30,10 @@
         "symfony/monolog-bridge": "^6.1",
         "symfony/yaml": "^6.1"
     },
+    "require-dev": {
+        "laminas/laminas-coding-standard": "^2.3",
+        "phpunit/phpunit": "^9.5"
+    },
     "suggest": {
         "ext-posix": "Required to display colors in command line.",
         "ext-xdebug": "Required to test code coverage.",
@@ -68,9 +72,5 @@
         "cs-fix": "phpcbf",
         "test": "phpunit --colors=always",
         "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
-    },
-    "require-dev": {
-        "laminas/laminas-coding-standard": "^2.3",
-        "phpunit/phpunit": "^9.5"
     }
 }
