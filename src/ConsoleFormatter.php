@@ -10,6 +10,7 @@ namespace ConductorCore;
 
 use Monolog\Formatter\FormatterInterface;
 use Monolog\Logger;
+use Monolog\LogRecord;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 
 /**
@@ -61,10 +62,7 @@ class ConsoleFormatter implements FormatterInterface
         return $records;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function format(array $record): string
+    public function format(LogRecord $record): string
     {
         $record = $this->replacePlaceHolder($record);
 
@@ -97,11 +95,11 @@ class ConsoleFormatter implements FormatterInterface
     }
 
     /**
-     * @param array $record
+     * @param LogRecord $record
      *
-     * @return array
+     * @return LogRecord
      */
-    private function replacePlaceHolder(array $record): array
+    private function replacePlaceHolder(LogRecord $record): LogRecord
     {
         $message = $record['message'];
 

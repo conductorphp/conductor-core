@@ -5,7 +5,7 @@ namespace ConductorCore\Console\Filesystem;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
-use League\Flysystem\FilesystemInterface;
+use League\Flysystem\FilesystemOperator;
 use League\Flysystem\FileNotFoundException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -121,44 +121,24 @@ class FilesystemRmCommand extends Command
 
     /**
      * @param InputInterface $input
-     * @param FilesystemInterface $filesystem
+     * @param FilesystemOperator $filesystem
      * @param string $path
      * @param $force
      * @throws FileNotFoundException
      */
-    private function deletePath(InputInterface $input, FilesystemInterface $filesystem, string $path, $force): void
+    private function deletePath(InputInterface $input, FilesystemOperator $filesystem, string $path, $force): void
     {
-        $metaData = $this->normalizeMetadata($filesystem->getMetadata($path));
-        if ('dir' == $metaData['type']) {
+        $isDir = $filesystem->directoryExists($path);
+        if ($isDir) {
             if (!$input->getOption('recursive')) {
                 throw new Exception\RuntimeException("Path \"$path\" is a directory. Provide --recursive argument "
                     . "if you really want to delete it.");
             }
 
-            $successful = $filesystem->deleteDir($path);
-            if (!$successful && !$force) {
-                throw new Exception\RuntimeException("Error deleting directory \"$path\".");
-            }
+            $filesystem->deleteDirectory($path);
         } else {
-            $successful = $filesystem->delete($path);
-            if (!$successful && !$force) {
-                throw new Exception\RuntimeException("Error deleting file \"$path\".");
-            }
+            $filesystem->delete($path);
         }
-    }
-
-    /**
-     * @param array  $metaData
-     *
-     * @return array
-     */
-    private function normalizeMetadata(array $metaData): array
-    {
-        if (empty($metaData['type'])) {
-            $metaData['type'] = 'dir';
-        }
-
-        return $metaData;
     }
 
 }

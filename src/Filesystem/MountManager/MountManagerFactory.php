@@ -3,13 +3,13 @@
 namespace ConductorCore\Filesystem\MountManager;
 
 use ConductorCore\Exception;
-use ConductorCore\Filesystem\Filesystem;
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use Laminas\ServiceManager\Exception\ServiceNotFoundException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Laminas\ServiceManager\ServiceManager;
+use League\Flysystem\Filesystem;
 
 class MountManagerFactory implements FactoryInterface
 {
@@ -45,7 +45,7 @@ class MountManagerFactory implements FactoryInterface
 
                 $class = $adapter['class'];
                 $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
-                $filesystemConfig = null;
+                $filesystemConfig = [];
                 try {
                     if ($arguments) {
                         if ($container instanceof ServiceManager) {

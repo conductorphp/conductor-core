@@ -4,7 +4,7 @@ namespace ConductorCore\Filesystem;
 
 use Interop\Container\ContainerInterface;
 use Interop\Container\Exception\ContainerException;
-use League\Flysystem\Adapter\Local;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use ReflectionClass;
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use Laminas\ServiceManager\Exception\ServiceNotFoundException;
@@ -28,7 +28,7 @@ class LocalAdapterFactory implements FactoryInterface
      */
     public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $reflector = new ReflectionClass(Local::class);
-        return $reflector->newInstanceArgs(array_values($options));
+        $reflector = new ReflectionClass(LocalFilesystemAdapter::class);
+        return $reflector->newInstanceArgs($options);
     }
 }

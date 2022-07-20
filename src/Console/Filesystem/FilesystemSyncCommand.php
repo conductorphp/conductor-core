@@ -135,6 +135,12 @@ class FilesystemSyncCommand extends Command
         $source = $input->getArgument('source');
         $destination = $input->getArgument('destination');
 
+        [$prefix, $arguments] = $this->mountManager->filterPrefix([$source]);
+        $source = "$prefix://{$arguments[0]}";
+
+        [$prefix, $arguments] = $this->mountManager->filterPrefix([$destination]);
+        $destination = "$prefix://{$arguments[0]}";
+        
         $options = [
             'delete'            => $input->getOption('delete'),
             'ignore_timestamps' => $input->getOption('ignore-timestamps'),

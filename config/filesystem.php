@@ -3,12 +3,10 @@
 return [
     'adapters' => [
         'local' => [
-            'class'     => \League\Flysystem\Adapter\Local::class,
+            'class'     => \League\Flysystem\Local\LocalFilesystemAdapter::class,
             'arguments' => [
-                'root'          => '/',
-                'write_flags'   => LOCK_EX,
-                'link_handling' => \League\Flysystem\Adapter\Local::SKIP_LINKS,
-                'permissions'   => [],
+                'location'          => '/',
+                'linkHandling' => \League\Flysystem\Local\LocalFilesystemAdapter::SKIP_LINKS,
             ],
         ],
     ],

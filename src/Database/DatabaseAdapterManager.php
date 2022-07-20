@@ -53,7 +53,7 @@ class DatabaseAdapterManager implements LoggerAwareInterface
      *
      * @return void
      */
-    public function setLogger(LoggerInterface $logger)
+    public function setLogger(LoggerInterface $logger): void
     {
         foreach ($this->adapters as $adapter) {
             if ($adapter instanceof LoggerAwareInterface) {

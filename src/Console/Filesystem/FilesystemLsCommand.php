@@ -96,15 +96,29 @@ class FilesystemLsCommand extends Command
         if (!$filesystem->has($path)) {
             throw new Exception\RuntimeException("Path \"$path\" does not exist.");
         }
+        $isDirectory = $filesystem->directoryExists($path);
+        $metaData = [
+            'path' => $path,
+            'type' => $isDirectory ? 'dir' : 'file',
+            'size' => $isDirectory ? 0 : $filesystem->fileSize($path),
+            'lastModified' => $filesystem->lastModified($path),
+        ];
 
-        $metaData = $this->normalizeMetadata($filesystem->getMetadata($path), $path);
+        $metaData = $this->normalizeMetadata($metaData, $path);
         $this->appendOutputRow($tableOutput, $metaData);
 
-        if ('dir' == $metaData['type']) {
+        if ($isDirectory) {
             $contents = $filesystem->listContents($path, $input->getOption('recursive'));
             if ($contents) {
                 foreach ($contents as $file) {
-                    $metaData = $this->normalizeMetadata($file, $path);
+                    $isDirectory = $file->isDir();
+                    $metaData = [
+                        'path' => $file->path(),
+                        'type' => $isDirectory ? 'dir' : 'file',
+                        'size' => $isDirectory ? 0 : $filesystem->fileSize($file->path()),
+                        'lastModified' => $filesystem->lastModified($file->path()),
+                    ];
+                    $metaData = $this->normalizeMetadata($metaData, $path);
                     $this->appendOutputRow($tableOutput, $metaData);
                 }
             }
@@ -125,7 +139,7 @@ class FilesystemLsCommand extends Command
                 $metaData['path'],
                 isset($metaData['type']) ? $metaData['type'] : 'dir',
                 $metaData['size'],
-                isset($metaData['timestamp']) ? date('Y-m-d H:i:s T', $metaData['timestamp']) : '',
+                isset($metaData['lastModified']) ? date('Y-m-d H:i:s T', $metaData['lastModified']) : '',
             ]
         );
     }

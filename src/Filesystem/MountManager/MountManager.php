@@ -4,12 +4,17 @@ namespace ConductorCore\Filesystem\MountManager;
 
 use ConductorCore\Exception;
 use InvalidArgumentException;
-use League\Flysystem\FilesystemNotFoundException;
+use League\Flysystem\DirectoryListing;
+use League\Flysystem\FileAttributes;
+use League\Flysystem\FilesystemException;
+use League\Flysystem\FilesystemOperator;
+use League\Flysystem\UnableToResolveFilesystemMount;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 class MountManager extends \League\Flysystem\MountManager
 {
+    private $filesystems;
     /**
      * @var LoggerInterface
      */
@@ -35,6 +40,7 @@ class MountManager extends \League\Flysystem\MountManager
      */
     public function __construct(array $filesystems = [], LoggerInterface $logger = null)
     {
+        $this->filesystems = $filesystems;
         parent::__construct($filesystems);
         if (is_null($logger)) {
             $logger = new NullLogger();
@@ -76,28 +82,25 @@ class MountManager extends \League\Flysystem\MountManager
         return array_keys($this->filesystems);
     }
 
-    /**
-     * @param string $directory
-     * @param bool   $recursive
-     *
-     * @throws InvalidArgumentException
-     * @throws FilesystemNotFoundException
-     *
-     * @return array
-     */
-    public function listContents($directory = '', $recursive = false): array
-    {
-        $result = parent::listContents($directory, $recursive);
+    // /**
+    //  * @param string $location 
+    //  * @param bool $deep 
+    //  * @return DirectoryListing 
+    //  * @throws UnableToResolveFilesystemMount 
+    //  * @throws FilesystemException 
+    //  * @throws InvalidArgumentException 
+    //  */
+    // public function listContents(string $location, bool $deep = self::LIST_SHALLOW): DirectoryListing
+    // {
+    //     $result = parent::listContents($location, $deep);
 
-        list(, $directory) = $this->getPrefixAndPath($directory);
-        $relativePathPos = strlen(trim($directory, '/')) + 1;
+    //     list(, $location) = $this->getPrefixAndPath($location);
+    //     $relativePathPos = strlen(trim($location, '/')) + 1;
 
-        foreach ($result as &$file) {
-            $file['relative_path'] = substr($file['path'], $relativePathPos);
-        }
-
-        return $result;
-    }
+    //     return $result->map(function(FileAttributes $file) use ($relativePathPos) {
+    //         return )$file + ['relative_path' => substr($file['path'], $relativePathPos)];
+    //     });
+    // }
 
     /**
      * @param string $from in the format {prefix}://{path}
@@ -111,42 +114,39 @@ class MountManager extends \League\Flysystem\MountManager
         return $this->syncPlugin->sync($this, $from, $to, $config);
     }
 
-    /**
-     * This method is the same as copy, except that it does a putStream rather than writeStream, allowing it to write
-     * even if the file exists.
-     *
-     * @param       $from
-     * @param       $to
-     * @param array $config
-     *
-     * @return bool
-     */
-    public function putFile(string $from, string $to, array $config = []): bool
-    {
-        $this->logger->debug("Pushing file $from to $to");
-        $origFrom = $from;
-        list($prefixFrom, $from) = $this->getPrefixAndPath($from);
-        $buffer = $this->getFilesystem($prefixFrom)->readStream($from);
+    // /**
+    //  * @param       $from
+    //  * @param       $to
+    //  * @param array $config
+    //  *
+    //  * @return bool
+    //  */
+    // public function putFile(string $from, string $to, array $config = []): bool
+    // {
+    //     $this->logger->debug("Pushing file $from to $to");
+    //     $origFrom = $from;
+    //     list($prefixFrom, $from) = $this->getPrefixAndPath($from);
+    //     $buffer = $this->getFilesystem($prefixFrom)->readStream($from);
 
-        if ($buffer === false) {
-            $this->logger->error(sprintf(
-                'Failed to open stream "%s" for read.',
-                $origFrom
-            ));
+    //     if ($buffer === false) {
+    //         $this->logger->error(sprintf(
+    //             'Failed to open stream "%s" for read.',
+    //             $origFrom
+    //         ));
 
-            return false;
-        }
+    //         return false;
+    //     }
 
-        list($prefixTo, $to) = $this->getPrefixAndPath($to);
+    //     list($prefixTo, $to) = $this->getPrefixAndPath($to);
 
-        $result = $this->getFilesystem($prefixTo)->putStream($to, $buffer, $config);
+    //     $this->getFilesystem($prefixTo)->writeStream($to, $buffer, $config);
 
-        if (is_resource($buffer)) {
-            fclose($buffer);
-        }
+    //     if (is_resource($buffer)) {
+    //         fclose($buffer);
+    //     }
 
-        return $result;
-    }
+    //     return true;
+    // }
 
     /**
      * Updated to use local prefix if no prefix present in given path. Also, prepend working dir if present
@@ -160,7 +160,7 @@ class MountManager extends \League\Flysystem\MountManager
             try {
                 $path = $this->resolveAbsolutePath($path);
             } catch (Exception\RuntimeException $e) {
-                throw new InvalidArgumentException('No prefix detected in path: ' . $path, null, $e);
+                throw new InvalidArgumentException('No prefix detected in path: ' . $path, 0, $e);
             }
 
             // Prepend local prefix and strip initial /
@@ -191,6 +191,51 @@ class MountManager extends \League\Flysystem\MountManager
         $path = preg_replace('%^\.' . DIRECTORY_SEPARATOR . '?%', '', $path);
         $path = $this->workingDirectory . DIRECTORY_SEPARATOR . $path;
         return rtrim($path, DIRECTORY_SEPARATOR);
+    }
+
+    /**
+     * Get the filesystem with the corresponding prefix.
+     *
+     * @param string $prefix
+     *
+     * @throws FilesystemNotFoundException
+     *
+     * @return FilesystemOperator
+     */
+    public function getFilesystem($prefix): FilesystemOperator
+    {
+        if ( ! isset($this->filesystems[$prefix])) {
+            throw new \Exception('No filesystem mounted with prefix ' . $prefix);
+        }
+
+        return $this->filesystems[$prefix];
+    }
+
+    /**
+     * Retrieve the prefix from an arguments array.
+     *
+     * @param array $arguments
+     *
+     * @throws InvalidArgumentException
+     *
+     * @return array [:prefix, :arguments]
+     */
+    public function filterPrefix(array $arguments)
+    {
+        if (empty($arguments)) {
+            throw new InvalidArgumentException('At least one argument needed');
+        }
+
+        $path = array_shift($arguments);
+
+        if ( ! is_string($path)) {
+            throw new InvalidArgumentException('First argument should be a string');
+        }
+
+        list($prefix, $path) = $this->getPrefixAndPath($path);
+        array_unshift($arguments, $path);
+
+        return [$prefix, $arguments];
     }
 
 }
