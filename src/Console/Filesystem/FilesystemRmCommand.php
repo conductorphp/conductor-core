@@ -90,7 +90,7 @@ class FilesystemRmCommand extends Command
         $hasErrors = false;
         $paths = $input->getArgument('paths');
         foreach ($paths as $path) {
-            list($prefix, $arguments) = $this->mountManager->filterPrefix([$path]);
+            [$prefix, $arguments] = $this->mountManager->filterPrefix([$path]);
             $path = $arguments[0];
             $filesystem = $this->mountManager->getFilesystem($prefix);
             $force = $input->getOption('force');

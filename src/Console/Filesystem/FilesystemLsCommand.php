@@ -88,7 +88,7 @@ class FilesystemLsCommand extends Command
         $tableOutput->setHeaders(['Path', 'Type', 'Size', 'Last Updated']);
 
         $path = $input->getArgument('path');
-        list($prefix, $arguments) = $this->mountManager->filterPrefix([$path]);
+        [$prefix, $arguments] = $this->mountManager->filterPrefix([$path]);
         $path = $arguments[0];
 
         $filesystem = $this->mountManager->getFilesystem($prefix);

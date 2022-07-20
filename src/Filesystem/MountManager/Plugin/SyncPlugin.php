@@ -93,7 +93,7 @@ class SyncPlugin implements SyncPluginInterface
     private function putFile(MountManager $mountManager, string $from, string $to, array $config): bool
     {
         $this->logger->debug("Copying file $from to $to");
-        list($prefixFrom, $from) = $mountManager->getPrefixAndPath($from);
+        [$prefixFrom, $from] = $mountManager->getPrefixAndPath($from);
         $buffer = $mountManager->getFilesystem($prefixFrom)->readStream($from);
 
         if ($buffer === false) {
@@ -106,7 +106,7 @@ class SyncPlugin implements SyncPluginInterface
             return false;
         }
 
-        list($prefixTo, $to) = $mountManager->getPrefixAndPath($to);
+        [$prefixTo, $to] = $mountManager->getPrefixAndPath($to);
 
         $result = $mountManager->getFilesystem($prefixTo)->writeStream($to, $buffer, $config);
 
@@ -394,9 +394,9 @@ class SyncPlugin implements SyncPluginInterface
         DirectoryListing $filesToPush
     ): bool {
         $hasErrors = false;
-        list($prefixFrom, $pathFrom) = $mountManager->getPrefixAndPath($from);
+        [$prefixFrom, $pathFrom] = $mountManager->getPrefixAndPath($from);
         $pathFrom = trim($pathFrom, '/');
-        list($prefixTo, $pathTo) = $mountManager->getPrefixAndPath($to);
+        [$prefixTo, $pathTo] = $mountManager->getPrefixAndPath($to);
         $pathTo = trim($pathTo, '/');
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 

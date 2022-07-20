@@ -232,7 +232,7 @@ class MountManager extends \League\Flysystem\MountManager
             throw new InvalidArgumentException('First argument should be a string');
         }
 
-        list($prefix, $path) = $this->getPrefixAndPath($path);
+        [$prefix, $path] = $this->getPrefixAndPath($path);
         array_unshift($arguments, $path);
 
         return [$prefix, $arguments];
