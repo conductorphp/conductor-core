@@ -82,26 +82,6 @@ class MountManager extends \League\Flysystem\MountManager
         return array_keys($this->filesystems);
     }
 
-    // /**
-    //  * @param string $location 
-    //  * @param bool $deep 
-    //  * @return DirectoryListing 
-    //  * @throws UnableToResolveFilesystemMount 
-    //  * @throws FilesystemException 
-    //  * @throws InvalidArgumentException 
-    //  */
-    // public function listContents(string $location, bool $deep = self::LIST_SHALLOW): DirectoryListing
-    // {
-    //     $result = parent::listContents($location, $deep);
-
-    //     list(, $location) = $this->getPrefixAndPath($location);
-    //     $relativePathPos = strlen(trim($location, '/')) + 1;
-
-    //     return $result->map(function(FileAttributes $file) use ($relativePathPos) {
-    //         return )$file + ['relative_path' => substr($file['path'], $relativePathPos)];
-    //     });
-    // }
-
     /**
      * @param string $from in the format {prefix}://{path}
      * @param string $to   in the format {prefix}://{path}
@@ -113,40 +93,6 @@ class MountManager extends \League\Flysystem\MountManager
     {
         return $this->syncPlugin->sync($this, $from, $to, $config);
     }
-
-    // /**
-    //  * @param       $from
-    //  * @param       $to
-    //  * @param array $config
-    //  *
-    //  * @return bool
-    //  */
-    // public function putFile(string $from, string $to, array $config = []): bool
-    // {
-    //     $this->logger->debug("Pushing file $from to $to");
-    //     $origFrom = $from;
-    //     list($prefixFrom, $from) = $this->getPrefixAndPath($from);
-    //     $buffer = $this->getFilesystem($prefixFrom)->readStream($from);
-
-    //     if ($buffer === false) {
-    //         $this->logger->error(sprintf(
-    //             'Failed to open stream "%s" for read.',
-    //             $origFrom
-    //         ));
-
-    //         return false;
-    //     }
-
-    //     list($prefixTo, $to) = $this->getPrefixAndPath($to);
-
-    //     $this->getFilesystem($prefixTo)->writeStream($to, $buffer, $config);
-
-    //     if (is_resource($buffer)) {
-    //         fclose($buffer);
-    //     }
-
-    //     return true;
-    // }
 
     /**
      * Updated to use local prefix if no prefix present in given path. Also, prepend working dir if present
