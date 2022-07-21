@@ -5,6 +5,7 @@ namespace ConductorCore\Console\Filesystem;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
+use League\Flysystem\FilesystemException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
@@ -24,26 +25,18 @@ class FilesystemLsCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var MountManager
-     */
-    private $mountManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private MountManager $mountManager;
+    private LoggerInterface $logger;
 
     /**
-     * DatabaseExportCommand constructor.
-     *
-     * @param MountManager         $mountManager
+     * @param MountManager $mountManager
      * @param LoggerInterface|null $logger
-     * @param string|null          $name
+     * @param string|null $name
      */
     public function __construct(
-        MountManager $mountManager,
+        MountManager    $mountManager,
         LoggerInterface $logger = null,
-        string $name = null
+        string          $name = null
     ) {
         $this->mountManager = $mountManager;
         if (is_null($logger)) {
@@ -56,7 +49,7 @@ class FilesystemLsCommand extends Command
     /**
      * @return void
      */
-    protected function configure()
+    protected function configure(): void
     {
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:ls')
@@ -74,12 +67,13 @@ class FilesystemLsCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
+     * @throws FilesystemException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->mountManager->setWorkingDirectory(getcwd());
@@ -92,16 +86,17 @@ class FilesystemLsCommand extends Command
         $path = $arguments[0];
 
         $filesystem = $this->mountManager->getFilesystem($prefix);
-
-        if (!$filesystem->has($path)) {
+        $isRoot = ltrim($path, '/.') === '';
+        if (!$isRoot && !$filesystem->has($path)) {
             throw new Exception\RuntimeException("Path \"$path\" does not exist.");
         }
-        $isDirectory = $filesystem->directoryExists($path);
+
+        $isDirectory = $isRoot || $filesystem->directoryExists($path);
         $metaData = [
             'path' => $path,
             'type' => $isDirectory ? 'dir' : 'file',
-            'size' => $isDirectory ? 0 : $filesystem->fileSize($path),
-            'lastModified' => $filesystem->lastModified($path),
+            'size' => $isRoot || $isDirectory ? 0 : $filesystem->fileSize($path),
+            'lastModified' => $isRoot || $isDirectory ? null : $filesystem->lastModified($path),
         ];
 
         $metaData = $this->normalizeMetadata($metaData, $path);
@@ -110,13 +105,14 @@ class FilesystemLsCommand extends Command
         if ($isDirectory) {
             $contents = $filesystem->listContents($path, $input->getOption('recursive'));
             if ($contents) {
+                // @todo Make these checks asynchronous
                 foreach ($contents as $file) {
                     $isDirectory = $file->isDir();
                     $metaData = [
                         'path' => $file->path(),
                         'type' => $isDirectory ? 'dir' : 'file',
                         'size' => $isDirectory ? 0 : $filesystem->fileSize($file->path()),
-                        'lastModified' => $filesystem->lastModified($file->path()),
+                        'lastModified' => $isDirectory ? null : $filesystem->lastModified($file->path()),
                     ];
                     $metaData = $this->normalizeMetadata($metaData, $path);
                     $this->appendOutputRow($tableOutput, $metaData);
@@ -129,44 +125,7 @@ class FilesystemLsCommand extends Command
     }
 
     /**
-     * @param Table $tableOutput
      * @param array $metaData
-     */
-    private function appendOutputRow(Table $tableOutput, array $metaData): void
-    {
-        $tableOutput->addRow(
-            [
-                $metaData['path'],
-                isset($metaData['type']) ? $metaData['type'] : 'dir',
-                $metaData['size'],
-                isset($metaData['lastModified']) ? date('Y-m-d H:i:s T', $metaData['lastModified']) : '',
-            ]
-        );
-    }
-
-    /**
-     * @param int $size
-     *
-     * @return string
-     */
-    private function humanFileSize(int $size): string
-    {
-        if ($size >= 1 << 30) {
-            return number_format($size / (1 << 30), 1) . "G";
-        }
-
-        if ($size >= 1 << 20) {
-            return number_format($size / (1 << 20), 1) . "M";
-        }
-        if ($size >= 1 << 10) {
-            return number_format($size / (1 << 10), 1) . "K";
-        }
-
-        return $size;
-    }
-
-    /**
-     * @param array  $metaData
      * @param string $basePath
      *
      * @return array
@@ -205,6 +164,43 @@ class FilesystemLsCommand extends Command
         }
 
         return $metaData;
+    }
+
+    /**
+     * @param int $size
+     *
+     * @return string
+     */
+    private function humanFileSize(int $size): string
+    {
+        if ($size >= 1 << 30) {
+            return number_format($size / (1 << 30), 1) . "G";
+        }
+
+        if ($size >= 1 << 20) {
+            return number_format($size / (1 << 20), 1) . "M";
+        }
+        if ($size >= 1 << 10) {
+            return number_format($size / (1 << 10), 1) . "K";
+        }
+
+        return $size;
+    }
+
+    /**
+     * @param Table $tableOutput
+     * @param array $metaData
+     */
+    private function appendOutputRow(Table $tableOutput, array $metaData): void
+    {
+        $tableOutput->addRow(
+            [
+                $metaData['path'],
+                isset($metaData['type']) ? $metaData['type'] : 'dir',
+                $metaData['size'],
+                isset($metaData['lastModified']) ? date('Y-m-d H:i:s T', $metaData['lastModified']) : '',
+            ]
+        );
     }
 
 }
