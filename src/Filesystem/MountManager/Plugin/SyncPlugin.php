@@ -2,22 +2,22 @@
 
 namespace ConductorCore\Filesystem\MountManager\Plugin;
 
-use ArrayObject;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
-use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use ConductorCore\ForkManager;
 use League\Flysystem\DirectoryListing;
 use League\Flysystem\FileAttributes;
+use League\Flysystem\FilesystemException;
 use League\Flysystem\StorageAttributes;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class SyncPlugin implements SyncPluginInterface
 {
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    private LoggerInterface $logger;
 
     /**
      * SyncPlugin constructor.
@@ -33,14 +33,20 @@ class SyncPlugin implements SyncPluginInterface
     }
 
     /**
+     * @param MountManager $mountManager
      * @param string $from in the format {prefix}://{path}
-     * @param string $to   in the format {prefix}://{path}
-     * @param array  $config
+     * @param string $to in the format {prefix}://{path}
+     * @param array $config
      *
      * @return bool True if all operations succeeded; False if any operations failed
+     * @throws FilesystemException
      */
-    public function sync(MountManager $mountManager, string $from, string $to, array $config = []): bool
-    {
+    public function sync(
+        MountManager $mountManager,
+        string       $from,
+        string       $to,
+        array        $config = []
+    ): bool {
         if (!$mountManager->has($from)) {
             throw new Exception\RuntimeException("Path \"$from\" does not exist.");
         }
@@ -70,23 +76,14 @@ class SyncPlugin implements SyncPluginInterface
         return !$hasErrors;
     }
 
-
-    /**
-     * @param LoggerInterface $logger
-     */
-    public function setLogger(LoggerInterface $logger): void
-    {
-        $this->logger = $logger;
-    }
-
     /**
      * This method is the same as copy, except that it does a putStream rather than writeStream, allowing it to write
      * even if the file exists.
      *
      * @param MountManager $mountManager
-     * @param string       $from
-     * @param string       $to
-     * @param array        $config
+     * @param string $from
+     * @param string $to
+     * @param array $config
      *
      * @return bool
      */
@@ -108,20 +105,20 @@ class SyncPlugin implements SyncPluginInterface
 
         [$prefixTo, $to] = $mountManager->getPrefixAndPath($to);
 
-        $result = $mountManager->getFilesystem($prefixTo)->writeStream($to, $buffer, $config);
+        $mountManager->getFilesystem($prefixTo)->writeStream($to, $buffer, $config);
 
         if (is_resource($buffer)) {
             fclose($buffer);
         }
 
-        return $result;
+        return true;
     }
 
     /**
      * @param MountManager $mountManager
-     * @param string       $from
-     * @param string       $to
-     * @param array        $config
+     * @param string $from
+     * @param string $to
+     * @param array $config
      * @return bool True if all operations succeeded; False if any operations failed
      */
     private function syncDirectory(MountManager $mountManager, string $from, string $to, array $config): bool
@@ -154,133 +151,19 @@ class SyncPlugin implements SyncPluginInterface
         return !$hasErrors;
     }
 
-
-    /**
-     * @param DirectoryListing $filesToPush
-     *
-     * @return DirectoryListing
-     */
-    private function removeImplicitDirectoriesForPush(DirectoryListing $filesToPush): DirectoryListing
-    {
-        $tempFilesToPush = $filesToPush->toArray();
-        $implicitDirectories = [];
-        foreach ($tempFilesToPush as $file) {
-            $directories = explode('/', $file->path());
-            do {
-                array_pop($directories);
-                if ($directories) {
-                    $implicitDirectory = implode('/', $directories);
-                    if (isset($implicitDirectories[$implicitDirectory])) {
-                        break;
-                    }
-                    $implicitDirectories[$implicitDirectory] = true;
-                }
-            } while ($directories);
-        }
-        $filesToPush = new DirectoryListing($tempFilesToPush);
-
-        return $filesToPush->filter(fn (StorageAttributes $attributes) => 
-            !($attributes->isDir() && isset($implicitDirectories[$attributes->path()]))
-        );
-    }
-
-    /**
-     * @param DirectoryListing $filesToDelete
-     *
-     * @return DirectoryListing
-     */
-    private function removeImplicitFilesForDelete(DirectoryListing $filesToDelete): DirectoryListing
-    {
-        $tempFilesToDelete = $filesToDelete->toArray();
-        $filesToDelete = new DirectoryListing($tempFilesToDelete);
-        $directories = [];
-        foreach ($tempFilesToDelete as $file) {
-            if ($file->isDir()) {
-                $directories[$file->path()] = true;
-            }
-        }
-        if (!$directories) {
-            return $filesToDelete;
-        }
-        $directories = array_keys($directories);
-        return $filesToDelete->filter(function (StorageAttributes $attributes) use ($directories) {
-            foreach ($directories as $directory) {
-                if ($attributes->path() != $directory && 0 === strpos($attributes->path(), $directory)) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-    }
-
-    /**
-     * @param mixed $mountManager 
-     * @param string $basePath 
-     * @param DirectoryListing $files 
-     * @param array $excludes 
-     * @param array $includes 
-     * @return DirectoryListing 
-     */
-    private function applyExcludesAndIncludes($mountManager, string $basePath, DirectoryListing $files, array $excludes = [], array $includes = []): DirectoryListing
-    {
-        if (!$excludes) {
-            return $files;
-        }
-
-        return $files->filter(function ($file) use ($mountManager, $basePath, $includes, $excludes) {
-            [, $path] = $mountManager->getPrefixAndPath($file->path());
-            $relativePath = substr($path, strlen($basePath) + 1);
-            return !($this->isMatch($relativePath, $excludes)
-                && !$this->isMatch(
-                    $relativePath,
-                    $includes
-                ));
-        });
-    }
-
-    /**
-     * @param string $file
-     * @param array  $rsyncPatterns Array of match patterns in rsync exclude/include format
-     * @see https://linux.die.net/man/1/rsync at "Include/Exclude Pattern Rules"
-     *
-     * @return bool
-     */
-    private function isMatch(string $file, array $rsyncPatterns): bool
-    {
-        $regexPatterns = [];
-        foreach ($rsyncPatterns as $rsyncPattern) {
-            $pattern = str_replace('\*', '*', preg_quote($rsyncPattern, '%'));
-            $pattern = preg_replace('%([^*])$%', '$1(/|$)', $pattern);
-            $pattern = preg_replace('%^([^*/])%', '(^|/)$1', $pattern);
-            $pattern = preg_replace('%^/%', '^', $pattern);
-            $pattern = str_replace('*', '.*', $pattern);
-            $pattern = "%$pattern%";
-            $regexPatterns[] = $pattern;
-        }
-
-        foreach ($regexPatterns as $pattern) {
-            if (preg_match($pattern, $file)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * @param MountManager $mountManager
-     * @param string       $from
-     * @param string       $to
-     * @param array        $config
+     * @param string $from
+     * @param string $to
+     * @param array $config
      *
      * @return array|DirectoryListing[]
      */
     private function determineFilesToPushAndDelete(
         MountManager $mountManager,
-        string $from,
-        string $to,
-        array $config
+        string       $from,
+        string       $to,
+        array        $config
     ): array {
         $this->logger->info('Calculating file sync list');
 
@@ -294,8 +177,8 @@ class SyncPlugin implements SyncPluginInterface
         $sourceFiles = $this->applyExcludesAndIncludes(
             $mountManager,
             $pathFrom,
-            $mountManager->listContents($from, true), 
-            $excludes, 
+            $mountManager->listContents($from, true),
+            $excludes,
             $includes
         );
         $filesToPush = $filesToDelete = null;
@@ -303,7 +186,7 @@ class SyncPlugin implements SyncPluginInterface
         if (!$mountManager->has($to)) {
             $filesToPush = $sourceFiles;
         } else {
-            
+
             $this->logger->debug('Comparing source and destination to determine file operationes needed...');
             $destinationFiles = $this->applyExcludesAndIncludes(
                 $mountManager,
@@ -379,18 +262,130 @@ class SyncPlugin implements SyncPluginInterface
     }
 
     /**
+     * @param mixed $mountManager
+     * @param string $basePath
+     * @param DirectoryListing $files
+     * @param array $excludes
+     * @param array $includes
+     * @return DirectoryListing
+     */
+    private function applyExcludesAndIncludes($mountManager, string $basePath, DirectoryListing $files, array $excludes = [], array $includes = []): DirectoryListing
+    {
+        if (!$excludes) {
+            return $files;
+        }
+
+        return $files->filter(function ($file) use ($mountManager, $basePath, $includes, $excludes) {
+            [, $path] = $mountManager->getPrefixAndPath($file->path());
+            $relativePath = substr($path, strlen($basePath) + 1);
+            return !($this->isMatch($relativePath, $excludes)
+                && !$this->isMatch(
+                    $relativePath,
+                    $includes
+                ));
+        });
+    }
+
+    /**
+     * @param string $file
+     * @param array $rsyncPatterns Array of match patterns in rsync exclude/include format
+     * @return bool
+     * @see https://linux.die.net/man/1/rsync at "Include/Exclude Pattern Rules"
+     *
+     */
+    private function isMatch(string $file, array $rsyncPatterns): bool
+    {
+        $regexPatterns = [];
+        foreach ($rsyncPatterns as $rsyncPattern) {
+            $pattern = str_replace('\*', '*', preg_quote($rsyncPattern, '%'));
+            $pattern = preg_replace('%([^*])$%', '$1(/|$)', $pattern);
+            $pattern = preg_replace('%^([^*/])%', '(^|/)$1', $pattern);
+            $pattern = preg_replace('%^/%', '^', $pattern);
+            $pattern = str_replace('*', '.*', $pattern);
+            $pattern = "%$pattern%";
+            $regexPatterns[] = $pattern;
+        }
+
+        foreach ($regexPatterns as $pattern) {
+            if (preg_match($pattern, $file)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param DirectoryListing $filesToPush
+     *
+     * @return DirectoryListing
+     */
+    private function removeImplicitDirectoriesForPush(DirectoryListing $filesToPush): DirectoryListing
+    {
+        $tempFilesToPush = $filesToPush->toArray();
+        $implicitDirectories = [];
+        foreach ($tempFilesToPush as $file) {
+            $directories = explode('/', $file->path());
+            do {
+                array_pop($directories);
+                if ($directories) {
+                    $implicitDirectory = implode('/', $directories);
+                    if (isset($implicitDirectories[$implicitDirectory])) {
+                        break;
+                    }
+                    $implicitDirectories[$implicitDirectory] = true;
+                }
+            } while ($directories);
+        }
+        $filesToPush = new DirectoryListing($tempFilesToPush);
+
+        return $filesToPush->filter(fn(StorageAttributes $attributes) => !($attributes->isDir() && isset($implicitDirectories[$attributes->path()]))
+        );
+    }
+
+    /**
+     * @param DirectoryListing $filesToDelete
+     *
+     * @return DirectoryListing
+     */
+    private function removeImplicitFilesForDelete(DirectoryListing $filesToDelete): DirectoryListing
+    {
+        $tempFilesToDelete = $filesToDelete->toArray();
+        $filesToDelete = new DirectoryListing($tempFilesToDelete);
+        $directories = [];
+        foreach ($tempFilesToDelete as $file) {
+            if ($file->isDir()) {
+                $directories[$file->path()] = true;
+            }
+        }
+        if (!$directories) {
+            return $filesToDelete;
+        }
+        $directories = array_keys($directories);
+        return $filesToDelete->filter(function (StorageAttributes $attributes) use ($directories) {
+            foreach ($directories as $directory) {
+                if ($attributes->path() != $directory && 0 === strpos($attributes->path(), $directory)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }
+
+    /**
      * @param MountManager $mountManager
-     * @param string       $from
-     * @param string       $to
-     * @param array        $config
-     * @param DirectoryListing        $filesToPush
+     * @param string $from
+     * @param string $to
+     * @param array $config
+     * @param DirectoryListing $filesToPush
      * @return bool True if all operations succeeded; False if any operations failed
      */
     private function putFiles(
-        MountManager $mountManager,
-        string $from,
-        string $to,
-        array $config,
+        MountManager     $mountManager,
+        string           $from,
+        string           $to,
+        array            $config,
         DirectoryListing $filesToPush
     ): bool {
         $hasErrors = false;
@@ -473,9 +468,9 @@ class SyncPlugin implements SyncPluginInterface
 
     /**
      * @param MountManager $mountManager
-     * @param string       $to
-     * @param DirectoryListing        $filesToDelete
-     * @param array        $config
+     * @param string $to
+     * @param DirectoryListing $filesToDelete
+     * @param array $config
      * @return bool True if all operations succeeded; False if any operations failed
      */
     private function deleteFiles(MountManager $mountManager, string $to, DirectoryListing $filesToDelete, array $config): bool
@@ -547,5 +542,13 @@ class SyncPlugin implements SyncPluginInterface
         }
 
         return !$hasErrors;
+    }
+
+    /**
+     * @param LoggerInterface $logger
+     */
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
     }
 }
