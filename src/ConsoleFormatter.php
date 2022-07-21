@@ -117,7 +117,7 @@ class ConsoleFormatter implements FormatterInterface
             $replacements['{' . $k . '}'] = sprintf('<comment>%s</comment>', $v);
         }
 
-        $record['message'] = strtr($message, $replacements);
+        $record['formatted'] = strtr($message, $replacements);
         return $record;
     }
 
