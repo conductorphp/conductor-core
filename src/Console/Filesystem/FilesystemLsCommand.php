@@ -87,10 +87,10 @@ class FilesystemLsCommand extends Command
 
         $filesystem = $this->mountManager->getFilesystem($prefix);
         $isRoot = ltrim($path, '/.') === '';
+
         if (!$isRoot && !$filesystem->has($path)) {
             throw new Exception\RuntimeException("Path \"$path\" does not exist.");
         }
-
         $isDirectory = $isRoot || $filesystem->directoryExists($path);
         $metaData = [
             'path' => $path,
@@ -135,7 +135,7 @@ class FilesystemLsCommand extends Command
         if (empty($basePath)) {
             $basePath = '.';
         } else {
-            $basePath = rtrim($basePath, '/');
+            $basePath = rtrim($basePath, '/.');
         }
 
         if (empty($metaData['path'])) {
@@ -146,14 +146,14 @@ class FilesystemLsCommand extends Command
             $metaData['type'] = 'dir';
         }
 
-        if ($metaData['path'] == $basePath) {
-            if ('file' == $metaData['type']) {
+        if ($metaData['path'] === $basePath) {
+            if ('file' === $metaData['type']) {
                 $parts = explode('/', $metaData['path']);
                 $metaData['path'] = array_pop($parts);
             } else {
                 $metaData['path'] = '.';
             }
-        } elseif ('.' != $basePath) {
+        } elseif ('.' !== $basePath) {
             $metaData['path'] = substr($metaData['path'], strlen($basePath) + 1);
         }
 

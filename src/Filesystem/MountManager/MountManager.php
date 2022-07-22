@@ -8,17 +8,19 @@ use League\Flysystem\DirectoryListing;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\FilesystemOperator;
+use League\Flysystem\PathNormalizer;
 use League\Flysystem\UnableToResolveFilesystemMount;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 class MountManager extends \League\Flysystem\MountManager
 {
-    private $filesystems;
+    private array $filesystems;
+    private PathNormalizer $pathNormalizer;
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    private LoggerInterface $logger;
     /**
      * @var Plugin\SyncPlugin
      */
@@ -33,12 +35,15 @@ class MountManager extends \League\Flysystem\MountManager
     private $workingDirectory;
 
     /**
-     * MountManager constructor.
-     *
-     * @param array                $filesystems
+     * @param array $filesystems
+     * @param PathNormalizer $pathNormalizer
      * @param LoggerInterface|null $logger
      */
-    public function __construct(array $filesystems = [], LoggerInterface $logger = null)
+    public function __construct(
+        array $filesystems,
+        PathNormalizer $pathNormalizer,
+        LoggerInterface $logger = null,
+    )
     {
         $this->filesystems = $filesystems;
         parent::__construct($filesystems);
@@ -47,6 +52,7 @@ class MountManager extends \League\Flysystem\MountManager
         }
         $this->logger = $logger;
         $this->syncPlugin = new Plugin\SyncPlugin();
+        $this->pathNormalizer = $pathNormalizer;
     }
 
     /**
@@ -114,7 +120,11 @@ class MountManager extends \League\Flysystem\MountManager
             $path = 'local://' . $path;
         }
 
-        return explode('://', $path, 2);
+        [$prefix,$path] = explode('://', $path, 2);
+        return [
+            $prefix,
+            $this->pathNormalizer->normalizePath($path),
+        ];
     }
 
     /**

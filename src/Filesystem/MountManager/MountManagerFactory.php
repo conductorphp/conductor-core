@@ -3,33 +3,20 @@
 namespace ConductorCore\Filesystem\MountManager;
 
 use ConductorCore\Exception;
-use Interop\Container\ContainerInterface;
-use Interop\Container\Exception\ContainerException;
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
-use Laminas\ServiceManager\Exception\ServiceNotFoundException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Laminas\ServiceManager\ServiceManager;
 use League\Flysystem\Filesystem;
+use League\Flysystem\PathNormalizer;
+use League\Flysystem\WhitespacePathNormalizer;
+use Psr\Container\ContainerInterface;
 
 class MountManagerFactory implements FactoryInterface
 {
-    /**
-     * Create an object
-     *
-     * @param  ContainerInterface $container
-     * @param  string             $requestedName
-     * @param  null|array         $options
-     *
-     * @return object
-     * @throws ServiceNotFoundException if unable to resolve the service.
-     * @throws ServiceNotCreatedException if an exception is raised when
-     *     creating a service.
-     * @throws ContainerException if any other error occurs
-     */
-    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
     {
         $filesystems = [];
-        $config = $container->get('config');
+        $config = $container->has('config') ? $container->get('config') : null;
         if (isset($config['filesystem']['adapters'])) {
             foreach ($config['filesystem']['adapters'] as $name => $adapter) {
                 if (isset($adapter['alias'])) {
@@ -70,7 +57,10 @@ class MountManagerFactory implements FactoryInterface
             }
         }
 
-        return new MountManager($filesystems);
+        return new MountManager(
+            $filesystems,
+            $container->get(WhitespacePathNormalizer::class),
+        );
     }
 }
 
