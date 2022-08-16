@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed support for PHP 8.0 and below
 
+## [1.2.0] - Unreleased
+
+### Changed
+
+- Added type hint to MountManager::getPrefixAndPath() $path variable
+
 ## [1.1.3] - 2022-06-20
 
 ### Fixed
