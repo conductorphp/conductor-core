@@ -5,47 +5,31 @@ namespace ConductorCore\Console\Filesystem;
 use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
-use League\Flysystem\FilesystemOperator;
 use League\Flysystem\FileNotFoundException;
+use League\Flysystem\FilesystemException;
+use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Class FilesystemRmCommand
- *
  * @todo    Add support for glob patterns?
- * @package ConductorCore\Console\Filesystem
  */
 class FilesystemRmCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var MountManager
-     */
-    private $mountManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private MountManager $mountManager;
+    private LoggerInterface $logger;
 
-    /**
-     * DatabaseExportCommand constructor.
-     *
-     * @param MountManager         $mountManager
-     * @param LoggerInterface|null $logger
-     * @param string|null          $name
-     */
     public function __construct(
-        MountManager $mountManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        MountManager     $mountManager,
+        ?LoggerInterface $logger = null,
+        ?string          $name = null
     ) {
         $this->mountManager = $mountManager;
         if (is_null($logger)) {
@@ -55,10 +39,7 @@ class FilesystemRmCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:rm')
@@ -76,13 +57,7 @@ class FilesystemRmCommand extends Command
             ->setHelp("This command deletes files from a filesystem.");
     }
 
-    /**
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->mountManager->setWorkingDirectory(getcwd());
@@ -103,8 +78,9 @@ class FilesystemRmCommand extends Command
                 throw new Exception\RuntimeException("Path \"$path\" does not exist.");
             }
 
-            $result = $this->deletePath($input, $filesystem, $path, $force);
-            if (false === $result) {
+            try {
+                $this->deletePath($input, $filesystem, $path, $force);
+            } catch (FilesystemException $e) {
                 $hasErrors = true;
             }
         }
@@ -116,17 +92,13 @@ class FilesystemRmCommand extends Command
             ));
         }
 
-        return 0;
+        return self::SUCCESS;
     }
 
     /**
-     * @param InputInterface $input
-     * @param FilesystemOperator $filesystem
-     * @param string $path
-     * @param $force
-     * @throws FileNotFoundException
+     * @throws FilesystemException
      */
-    private function deletePath(InputInterface $input, FilesystemOperator $filesystem, string $path, $force): void
+    private function deletePath(InputInterface $input, FilesystemOperator $filesystem, string $path): void
     {
         $isDir = $filesystem->directoryExists($path);
         if ($isDir) {

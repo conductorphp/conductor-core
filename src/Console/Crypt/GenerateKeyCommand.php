@@ -14,26 +14,13 @@ class GenerateKeyCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var Crypt
-     */
-    private $crypt;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private Crypt $crypt;
+    private LoggerInterface $logger;
 
-    /**
-     * GenerateKeyCommand constructor.
-     *
-     * @param Crypt $crypt
-     * @param LoggerInterface|null $logger
-     * @param string|null $name
-     */
     public function __construct(
-        Crypt           $crypt,
-        LoggerInterface $logger = null,
-        string          $name = null
+        Crypt            $crypt,
+        ?LoggerInterface $logger = null,
+        ?string          $name = null
     ) {
         $this->crypt = $crypt;
         if (is_null($logger)) {
@@ -43,26 +30,17 @@ class GenerateKeyCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $this->setName('crypt:generate-key')
             ->setDescription('Generate a key to be used for encrypting configuration values.')
             ->setHelp("This command generates a key to be used for encrypting configuration values.");
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $output->writeln($this->crypt->generateKey());
-        return 0;
+        return self::SUCCESS;
     }
 }

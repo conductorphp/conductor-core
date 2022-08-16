@@ -18,26 +18,13 @@ class ExecCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var ShellAdapterManager
-     */
-    private $shellAdapterManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private ShellAdapterManager $shellAdapterManager;
+    private LoggerInterface $logger;
 
-    /**
-     * ExecCommand constructor.
-     *
-     * @param ShellAdapterManager $shellAdapterManager
-     * @param LoggerInterface|null $logger
-     * @param null $name
-     */
     public function __construct(
         ShellAdapterManager $shellAdapterManager,
-        LoggerInterface     $logger = null,
-        string              $name = null
+        ?LoggerInterface    $logger = null,
+        ?string             $name = null
     ) {
         $this->shellAdapterManager = $shellAdapterManager;
         if (is_null($logger)) {
@@ -47,10 +34,7 @@ class ExecCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $adapterNames = $this->shellAdapterManager->getAdapterNames();
         $this->setName('shell:exec')
@@ -88,13 +72,7 @@ class ExecCommand extends Command
             ->setHelp("This command executes a shell command on a given adapter.");
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $adapter = $this->shellAdapterManager->getAdapter($input->getOption('adapter'));
@@ -105,7 +83,7 @@ class ExecCommand extends Command
         $environmentVariables = [];
         if ($input->getOption('env')) {
             foreach ($input->getOption('env') as $value) {
-                if (false === strpos($value, '=')) {
+                if (!str_contains($value, '=')) {
                     throw new Exception\InvalidArgumentException(
                         'Environment variables must be specified in the format --env myvar1=myval1 --env myvar2=myval2.'
                     );
@@ -123,7 +101,7 @@ class ExecCommand extends Command
                 $input->getOption('priority')
             )
         );
-        return 0;
+        return self::SUCCESS;
     }
 
 }

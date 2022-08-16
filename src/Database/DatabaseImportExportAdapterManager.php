@@ -9,18 +9,10 @@ use Psr\Log\NullLogger;
 
 class DatabaseImportExportAdapterManager
 {
-    /**
-     * @var array
-     */
-    private $adapters;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    /** @var DatabaseImportExportAdapterInterface[] */
+    private array $adapters;
 
     /**
-     * DatabaseImportExportAdapterManager constructor.
-     *
      * @param DatabaseImportExportAdapterInterface[] $adapters
      */
     public function __construct(array $adapters, LoggerInterface $logger = null)
@@ -29,12 +21,9 @@ class DatabaseImportExportAdapterManager
             $logger = new NullLogger();
         }
         $this->adapters = $adapters;
-        $this->logger = $logger;
     }
 
     /**
-     * @param string|null $name
-     *
      * @return DatabaseImportExportAdapterInterface
      * @throws Exception\DomainException If requested import adapter not found in those provided during construction
      */
@@ -47,17 +36,11 @@ class DatabaseImportExportAdapterManager
         return $this->adapters[$name];
     }
 
-    /**
-     * @return array
-     */
     public function getAdapterNames(): array
     {
         return array_keys($this->adapters);
     }
 
-    /**
-     * @param LoggerInterface $logger
-     */
     public function setLogger(LoggerInterface $logger): void
     {
         foreach ($this->adapters as $adapter) {
@@ -65,7 +48,6 @@ class DatabaseImportExportAdapterManager
                 $adapter->setLogger($logger);
             }
         }
-        $this->logger = $logger;
     }
 }
 

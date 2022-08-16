@@ -8,12 +8,13 @@
 
 namespace ConductorCore;
 
+use Monolog\LogRecord;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class MonologConsoleHandler extends ConsoleHandler
 {
-    protected $output;
+    protected ?OutputInterface $output;
 
     /**
      * Constructor.
@@ -24,18 +25,15 @@ class MonologConsoleHandler extends ConsoleHandler
      * @param array $verbosityLevelMap Array that maps the OutputInterface verbosity to a minimum logging
      *                                                level (leave empty to use the default mapping)
      */
-    public function __construct(OutputInterface $output = null, $bubble = true, array $verbosityLevelMap = [])
+    public function __construct(?OutputInterface $output = null, bool $bubble = true, array $verbosityLevelMap = [])
     {
         parent::__construct($output, $bubble, $verbosityLevelMap);
         $this->output = $output;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function write(array $record): void
+    protected function write(array|LogRecord $record): void
     {
         // at this point we've determined for sure that we want to output the record, so use the output's own verbosity
-        $this->output->write((string)$record['formatted'], false);
+        $this->output->write((string)$record['formatted']);
     }
 }

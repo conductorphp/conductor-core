@@ -8,14 +8,10 @@ use Psr\Log\LoggerInterface;
 
 class DatabaseAdapterManager implements LoggerAwareInterface
 {
-    /**
-     * @var array
-     */
-    private $adapters;
+    /** @var DatabaseAdapterInterface[] */
+    private array $adapters;
 
     /**
-     * DatabaseExportAdapterFactory constructor.
-     *
      * @param DatabaseAdapterInterface[] $databaseAdapters
      */
     public function __construct(array $databaseAdapters)
@@ -24,10 +20,7 @@ class DatabaseAdapterManager implements LoggerAwareInterface
     }
 
     /**
-     * @param string|null $name
-     *
      * @throws Exception\DomainException If requested database adapter not found in those provided during construction
-     * @return DatabaseAdapterInterface
      */
     public function getAdapter(string $name): DatabaseAdapterInterface
     {
@@ -38,21 +31,11 @@ class DatabaseAdapterManager implements LoggerAwareInterface
         return clone $this->adapters[$name];
     }
 
-    /**
-     * @return array
-     */
     public function getAdapterNames(): array
     {
         return array_keys($this->adapters);
     }
 
-    /**
-     * Sets a logger instance on the object.
-     *
-     * @param LoggerInterface $logger
-     *
-     * @return void
-     */
     public function setLogger(LoggerInterface $logger): void
     {
         foreach ($this->adapters as $adapter) {
@@ -60,7 +43,6 @@ class DatabaseAdapterManager implements LoggerAwareInterface
                 $adapter->setLogger($logger);
             }
         }
-        $this->logger = $logger;
     }
 }
 

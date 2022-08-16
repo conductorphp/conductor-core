@@ -17,27 +17,10 @@ class DecryptCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var Crypt
-     */
-    private $crypt;
-    /**
-     * @var string
-     */
-    private $key;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private Crypt $crypt;
+    private string $key;
+    private LoggerInterface $logger;
 
-    /**
-     * GenerateKeyCommand constructor.
-     *
-     * @param Crypt $crypt
-     * @param string|null $key
-     * @param LoggerInterface|null $logger
-     * @param string|null $name
-     */
     public function __construct(
         Crypt           $crypt,
         string          $key = null,
@@ -53,10 +36,7 @@ class DecryptCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $this->setName('crypt:decrypt')
             ->addArgument('ciphertext', InputArgument::OPTIONAL, 'Ciphertext to decrypt.')
@@ -70,13 +50,7 @@ class DecryptCommand extends Command
             );
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (empty($this->key)) {
             // Makes an assumption that this command is being built within Zend Expressive. Considering this ok
@@ -111,6 +85,6 @@ class DecryptCommand extends Command
 
         $this->injectOutputIntoLogger($output, $this->logger);
         $output->writeln($this->crypt->decrypt($ciphertext, $this->key));
-        return 0;
+        return self::SUCCESS;
     }
 }

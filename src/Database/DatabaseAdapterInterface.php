@@ -16,49 +16,19 @@ interface DatabaseAdapterInterface
      */
     public function getTableMetadata(string $database): array;
 
-    /**
-     * @param string $database
-     *
-     * @return bool
-     */
     public function databaseExists(string $database): bool;
 
-    /**
-     * @param string $database
-     *
-     * @return bool
-     */
     public function databaseIsEmpty(string $database): bool;
 
-    /**
-     * @param string $database
-     *
-     * @return void
-     */
     public function dropDatabase(string $database): void;
 
-    /**
-     * @param string $database
-     *
-     * @return void
-     */
     public function createDatabase(string $database): void;
 
-    /**
-     * @param string $database
-     *
-     * @return void
-     */
     public function dropDatabaseIfExists(string $database): void;
 
-    /**
-     * @param string $query
-     * @param string $database
-     */
     public function run(string $query, string $database): void;
 
     /**
-     *
      * @return string[]
      */
     public function getDatabases(): array;

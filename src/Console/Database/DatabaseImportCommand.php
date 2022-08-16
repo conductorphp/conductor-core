@@ -16,22 +16,9 @@ class DatabaseImportCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var DatabaseImportExportAdapterManager
-     */
-    private $databaseImportExportAdapterManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private DatabaseImportExportAdapterManager $databaseImportExportAdapterManager;
+    private LoggerInterface $logger;
 
-    /**
-     * DatabaseImportCommand constructor.
-     *
-     * @param DatabaseImportExportAdapterManager $databaseImportAdapterFactory
-     * @param LoggerInterface|null $logger
-     * @param string|null $name
-     */
     public function __construct(
         DatabaseImportExportAdapterManager $databaseImportImportExportAdapterManager,
         LoggerInterface                    $logger = null,
@@ -45,10 +32,7 @@ class DatabaseImportCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $adapterNames = $this->databaseImportExportAdapterManager->getAdapterNames();
         $this->setName('database:import')
@@ -74,13 +58,7 @@ class DatabaseImportCommand extends Command
             );
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $adapter = $this->databaseImportExportAdapterManager->getAdapter($input->getOption('adapter'));
@@ -96,7 +74,7 @@ class DatabaseImportCommand extends Command
             [] // This command does not yet support any options
         );
         $this->logger->info("\"$filename\" imported into database \"$database\".");
-        return 0;
+        return self::SUCCESS;
     }
 
 }

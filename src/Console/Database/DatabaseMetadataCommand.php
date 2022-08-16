@@ -17,22 +17,9 @@ class DatabaseMetadataCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var DatabaseAdapterManager
-     */
-    private $databaseAdapterManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private DatabaseAdapterManager $databaseAdapterManager;
+    private LoggerInterface $logger;
 
-    /**
-     * DatabaseMetadataCommand constructor.
-     *
-     * @param DatabaseAdapterManager $databaseImportAdapterManager
-     * @param LoggerInterface|null $logger
-     * @param null $name
-     */
     public function __construct(
         DatabaseAdapterManager $databaseImportAdapterManager,
         LoggerInterface        $logger = null,
@@ -46,10 +33,7 @@ class DatabaseMetadataCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $adapterNames = $this->databaseAdapterManager->getAdapterNames();
         $this->setName('database:metadata')
@@ -69,13 +53,7 @@ class DatabaseMetadataCommand extends Command
             ->setHelp("This command gets database metadata.");
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->logger->info('Getting database metadata.');
@@ -95,17 +73,10 @@ class DatabaseMetadataCommand extends Command
             $outputTable->addRow([$name, $database['size']]);
         }
         $outputTable->render();
-        return 0;
+        return self::SUCCESS;
     }
 
-    /**
-     * @param array $databases
-     * @param string $sort
-     * @param bool $reverseSort
-     *
-     * @return array
-     */
-    private function sort(array $databases, $sort, $reverseSort)
+    private function sort(array $databases, string $sort, bool $reverseSort): array
     {
         switch ($sort) {
             case 'name':
@@ -115,7 +86,7 @@ class DatabaseMetadataCommand extends Command
             case 'size':
                 uasort(
                     $databases,
-                    function ($a, $b) {
+                    static function ($a, $b) {
                         return $a['size'] > $b['size'];
                     }
                 );
@@ -132,35 +103,15 @@ class DatabaseMetadataCommand extends Command
         return $databases;
     }
 
-    /**
-     * @param array $databases
-     * @param string $unit
-     * @param int $precision
-     *
-     * @return array
-     */
-    private function format($databases, $unit, $precision)
+    private function format(array $databases, string $unit, int $precision): array
     {
-        switch ($unit) {
-            case 'B':
-                $bytesToUnit = 1;
-                break;
-
-            case 'KB':
-                $bytesToUnit = pow(1024, 1);
-                break;
-
-            case 'MB':
-                $bytesToUnit = pow(1024, 2);
-                break;
-
-            case 'GB':
-                $bytesToUnit = pow(1024, 3);
-                break;
-
-            default:
-                throw new Exception\DomainException("Invalid \$unit \"$unit\".");
-        }
+        $bytesToUnit = match ($unit) {
+            'B' => 1,
+            'KB' => 1024 ** 1,
+            'MB' => 1024 ** 2,
+            'GB' => 1024 ** 3,
+            default => throw new Exception\DomainException("Invalid \$unit \"$unit\"."),
+        };
 
         foreach ($databases as &$database) {
             $database['size'] = round($database['size'] / $bytesToUnit, $precision);

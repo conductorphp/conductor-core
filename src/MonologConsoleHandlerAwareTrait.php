@@ -9,9 +9,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 trait MonologConsoleHandlerAwareTrait
 {
-    /**
-     * @param OutputInterface $output
-     */
     private function injectOutputIntoLogger(OutputInterface $output, LoggerInterface $logger): void
     {
         if ($logger instanceof Logger) {

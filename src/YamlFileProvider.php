@@ -13,21 +13,17 @@ class YamlFileProvider
 {
     use GlobTrait;
 
-    /** @var string */
-    private $pattern;
+    private string $pattern;
 
     /**
      * @param string $pattern A glob pattern by which to look up config files.
      */
-    public function __construct($pattern)
+    public function __construct(string $pattern)
     {
         $this->pattern = $pattern;
     }
 
-    /**
-     * @return Generator
-     */
-    public function __invoke()
+    public function __invoke(): Generator
     {
         foreach ($this->glob($this->pattern) as $file) {
             yield Yaml::parse(file_get_contents($file)) ?? [];

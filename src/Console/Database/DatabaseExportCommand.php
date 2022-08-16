@@ -16,22 +16,9 @@ class DatabaseExportCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var DatabaseImportExportAdapterManager
-     */
-    private $databaseImportExportAdapterManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private DatabaseImportExportAdapterManager $databaseImportExportAdapterManager;
+    private LoggerInterface $logger;
 
-    /**
-     * DatabaseExportCommand constructor.
-     *
-     * @param DatabaseImportExportAdapterManager $databaseImportExportAdapterManager
-     * @param LoggerInterface|null $logger
-     * @param string|null $name
-     */
     public function __construct(
         DatabaseImportExportAdapterManager $databaseImportExportAdapterManager,
         LoggerInterface                    $logger = null,
@@ -45,10 +32,7 @@ class DatabaseExportCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $adapterNames = $this->databaseImportExportAdapterManager->getAdapterNames();
         $this->setName('database:export')
@@ -85,13 +69,7 @@ class DatabaseExportCommand extends Command
             ->setHelp("This command exports a database.");
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $adapter = $this->databaseImportExportAdapterManager->getAdapter($input->getOption('adapter'));
@@ -111,7 +89,7 @@ class DatabaseExportCommand extends Command
             ]
         );
         $this->logger->info("Database \"$database\" exported to \"$filename\"!");
-        return 0;
+        return self::SUCCESS;
     }
 
 }

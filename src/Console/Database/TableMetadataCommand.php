@@ -18,26 +18,13 @@ class TableMetadataCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var DatabaseAdapterManager
-     */
-    private $databaseAdapterManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private DatabaseAdapterManager $databaseAdapterManager;
+    private LoggerInterface $logger;
 
-    /**
-     * TableMetadataCommand constructor.
-     *
-     * @param DatabaseAdapterManager $databaseImportAdapterManager
-     * @param LoggerInterface|null $logger
-     * @param null $name
-     */
     public function __construct(
         DatabaseAdapterManager $databaseImportAdapterManager,
-        LoggerInterface        $logger = null,
-        string                 $name = null
+        ?LoggerInterface       $logger = null,
+        ?string                $name = null
     ) {
         $this->databaseAdapterManager = $databaseImportAdapterManager;
         if (is_null($logger)) {
@@ -47,10 +34,7 @@ class TableMetadataCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $adapterNames = $this->databaseAdapterManager->getAdapterNames();
         $this->setName('database:table:metadata')
@@ -71,13 +55,7 @@ class TableMetadataCommand extends Command
             ->setHelp("This command gets database table metadata.");
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->logger->info('Getting table metadata for database "' . $input->getArgument('database') . '".');
@@ -89,35 +67,22 @@ class TableMetadataCommand extends Command
             $outputTable->addRow([$name, $table['rows'], $table['size']]);
         }
         $outputTable->render();
-        return 0;
+        return self::SUCCESS;
     }
 
-    /**
-     * @param InputInterface $input
-     *
-     * @return array
-     */
-    private function getTables(InputInterface $input)
+    private function getTables(InputInterface $input): array
     {
         $databaseAdapter = $this->databaseAdapterManager->getAdapter($input->getOption('adapter'));
         $tables = $databaseAdapter->getTableMetadata($input->getArgument('database'));
         $tables = $this->sort($tables, $input->getOption('sort'), $input->getOption('reverse-sort'));
-        $tables = $this->format(
+        return $this->format(
             $tables,
             $input->getOption('unit'),
             $input->getOption('precision')
         );
-        return $tables;
     }
 
-    /**
-     * @param array $databases
-     * @param string $sort
-     * @param bool $reverseSort
-     *
-     * @return array
-     */
-    private function sort(array $tables, $sort, $reverseSort)
+    private function sort(array $tables, string $sort, bool $reverseSort): array
     {
         switch ($sort) {
             case 'name':
@@ -144,35 +109,15 @@ class TableMetadataCommand extends Command
         return $tables;
     }
 
-    /**
-     * @param array $databases
-     * @param string $unit
-     * @param int $precision
-     *
-     * @return array
-     */
-    private function format($tables, $unit, $precision)
+    private function format($tables, string $unit, int $precision): array
     {
-        switch ($unit) {
-            case 'B':
-                $bytesToUnit = 1;
-                break;
-
-            case 'KB':
-                $bytesToUnit = pow(1024, 1);
-                break;
-
-            case 'MB':
-                $bytesToUnit = pow(1024, 2);
-                break;
-
-            case 'GB':
-                $bytesToUnit = pow(1024, 3);
-                break;
-
-            default:
-                throw new Exception\DomainException("Invalid \$unit \"$unit\".");
-        }
+        $bytesToUnit = match ($unit) {
+            'B' => 1,
+            'KB' => 1024 ** 1,
+            'MB' => 1024 ** 2,
+            'GB' => 1024 ** 3,
+            default => throw new Exception\DomainException("Invalid \$unit \"$unit\"."),
+        };
 
         foreach ($tables as &$table) {
             $table['rows'] = number_format($table['rows']);

@@ -2,9 +2,9 @@
 
 namespace ConductorCore\Console\Filesystem;
 
-use ConductorCore\Exception;
 use ConductorCore\Filesystem\MountManager\MountManager;
 use ConductorCore\MonologConsoleHandlerAwareTrait;
+use League\Flysystem\FilesystemException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
@@ -16,26 +16,13 @@ class FilesystemMvCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var MountManager
-     */
-    private $mountManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private MountManager $mountManager;
+    private LoggerInterface $logger;
 
-    /**
-     * DatabaseExportCommand constructor.
-     *
-     * @param MountManager         $mountManager
-     * @param LoggerInterface|null $logger
-     * @param string|null          $name
-     */
     public function __construct(
-        MountManager $mountManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        MountManager     $mountManager,
+        ?LoggerInterface $logger = null,
+        ?string          $name = null
     ) {
         $this->mountManager = $mountManager;
         if (is_null($logger)) {
@@ -45,10 +32,7 @@ class FilesystemMvCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
-    protected function configure()
+    protected function configure(): void
     {
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:mv')
@@ -79,12 +63,9 @@ class FilesystemMvCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int
+     * @throws FilesystemException
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->mountManager->setWorkingDirectory(getcwd());
@@ -98,7 +79,7 @@ class FilesystemMvCommand extends Command
         $destination = "$prefix://{$arguments[0]}";
 
         $this->mountManager->move($source, $destination);
-        return 0;
+        return self::SUCCESS;
     }
 
 }

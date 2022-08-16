@@ -7,13 +7,12 @@ use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Laminas\ServiceManager\ServiceManager;
 use League\Flysystem\Filesystem;
-use League\Flysystem\PathNormalizer;
 use League\Flysystem\WhitespacePathNormalizer;
 use Psr\Container\ContainerInterface;
 
 class MountManagerFactory implements FactoryInterface
 {
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): MountManager
     {
         $filesystems = [];
         $config = $container->has('config') ? $container->get('config') : null;

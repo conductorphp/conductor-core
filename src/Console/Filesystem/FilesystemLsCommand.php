@@ -16,10 +16,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Class FilesystemLsCommand
- *
  * @todo    Add support for glob patterns?
- * @package ConductorCore\Console\Filesystem
  */
 class FilesystemLsCommand extends Command
 {
@@ -28,15 +25,10 @@ class FilesystemLsCommand extends Command
     private MountManager $mountManager;
     private LoggerInterface $logger;
 
-    /**
-     * @param MountManager $mountManager
-     * @param LoggerInterface|null $logger
-     * @param string|null $name
-     */
     public function __construct(
-        MountManager    $mountManager,
-        LoggerInterface $logger = null,
-        string          $name = null
+        MountManager     $mountManager,
+        ?LoggerInterface $logger = null,
+        ?string          $name = null
     ) {
         $this->mountManager = $mountManager;
         if (is_null($logger)) {
@@ -46,9 +38,6 @@ class FilesystemLsCommand extends Command
         parent::__construct($name);
     }
 
-    /**
-     * @return void
-     */
     protected function configure(): void
     {
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
@@ -67,10 +56,6 @@ class FilesystemLsCommand extends Command
     }
 
     /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
      * @throws FilesystemException
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -104,32 +89,24 @@ class FilesystemLsCommand extends Command
 
         if ($isDirectory) {
             $contents = $filesystem->listContents($path, $input->getOption('recursive'));
-            if ($contents) {
-                // @todo Make these checks asynchronous
-                foreach ($contents as $file) {
-                    $isDirectory = $file->isDir();
-                    $metaData = [
-                        'path' => $file->path(),
-                        'type' => $isDirectory ? 'dir' : 'file',
-                        'size' => $isDirectory ? 0 : $filesystem->fileSize($file->path()),
-                        'lastModified' => $isDirectory ? null : $filesystem->lastModified($file->path()),
-                    ];
-                    $metaData = $this->normalizeMetadata($metaData, $path);
-                    $this->appendOutputRow($tableOutput, $metaData);
-                }
+            // @todo Make these checks asynchronous
+            foreach ($contents as $file) {
+                $isDirectory = $file->isDir();
+                $metaData = [
+                    'path' => $file->path(),
+                    'type' => $isDirectory ? 'dir' : 'file',
+                    'size' => $isDirectory ? 0 : $filesystem->fileSize($file->path()),
+                    'lastModified' => $isDirectory ? null : $filesystem->lastModified($file->path()),
+                ];
+                $metaData = $this->normalizeMetadata($metaData, $path);
+                $this->appendOutputRow($tableOutput, $metaData);
             }
         }
 
         $tableOutput->render();
-        return 0;
+        return self::SUCCESS;
     }
 
-    /**
-     * @param array $metaData
-     * @param string $basePath
-     *
-     * @return array
-     */
     private function normalizeMetadata(array $metaData, string $basePath): array
     {
         if (empty($basePath)) {
@@ -166,11 +143,6 @@ class FilesystemLsCommand extends Command
         return $metaData;
     }
 
-    /**
-     * @param int $size
-     *
-     * @return string
-     */
     private function humanFileSize(int $size): string
     {
         if ($size >= 1 << 30) {
@@ -187,16 +159,12 @@ class FilesystemLsCommand extends Command
         return $size;
     }
 
-    /**
-     * @param Table $tableOutput
-     * @param array $metaData
-     */
     private function appendOutputRow(Table $tableOutput, array $metaData): void
     {
         $tableOutput->addRow(
             [
                 $metaData['path'],
-                isset($metaData['type']) ? $metaData['type'] : 'dir',
+                    $metaData['type'] ?? 'dir',
                 $metaData['size'],
                 isset($metaData['lastModified']) ? date('Y-m-d H:i:s T', $metaData['lastModified']) : '',
             ]

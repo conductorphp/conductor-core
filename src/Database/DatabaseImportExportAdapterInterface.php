@@ -8,7 +8,7 @@ use RuntimeException;
 
 interface DatabaseImportExportAdapterInterface
 {
-    const DEFAULT_WORKING_DIR = '.conductor-database-export';
+    public const DEFAULT_WORKING_DIR = '.conductor-database-export';
 
     /**
      * @param string $database Database to export.
@@ -40,16 +40,8 @@ interface DatabaseImportExportAdapterInterface
      */
     public function importFromFile(string $filename, string $database, array $options = []): void;
 
-    /**
-     * @return string
-     */
     public static function getFileExtension(): string;
 
-    /**
-     * @param LoggerInterface $logger
-     *
-     * @return void
-     */
     public function setLogger(LoggerInterface $logger): void;
 
     /**

@@ -6,44 +6,15 @@ use Psr\Log\{LoggerInterface, NullLogger};
 
 declare(ticks=1);
 
-/**
- * Class ForkManager.
- * Forking and Managing child processes.
- *
- * @package ConductorCore
- */
 class ForkManager
 {
-    /**
-     * @var int
-     */
     public static int $dispatchInterval = 0;
-    /**
-     * @var int
-     */
     private int $maxConcurrency = 10;
-    /**
-     * @var array
-     */
     private array $pids = [];
-    /**
-     * @var array
-     */
     private array $workers = [];
-    /**
-     * @var LoggerInterface
-     */
     private LoggerInterface $logger;
-    /**
-     * @var array
-     */
     private array $signalQueue = [];
 
-    /**
-     * ForkManager constructor.
-     *
-     * @param LoggerInterface|null $logger
-     */
     public function __construct(
         ?LoggerInterface $logger = null
     ) {
@@ -53,9 +24,6 @@ class ForkManager
         $this->logger = $logger;
     }
 
-    /**
-     * @return void
-     */
     public function execute(): void
     {
         if (count($this->workers) === 0) {
@@ -70,11 +38,6 @@ class ForkManager
         }
     }
 
-    /**
-     * Check if pcntl module enabled.
-     *
-     * @return bool
-     */
     public static function isPcntlEnabled(): bool
     {
         return extension_loaded('pcntl');
@@ -91,7 +54,7 @@ class ForkManager
 
         $status = 0;
         $this->logger->info(sprintf("Running %s workers with concurrency %s...", count($this->workers), $this->maxConcurrency));
-//        $this->parentPid = getmypid();
+        // $this->parentPid = getmypid();
         pcntl_signal(SIGCHLD, [$this, "childSignalHandler"]);
 
         // @todo Handle gathering exit status of child processes better. If one child fails, we want to be able to
@@ -128,7 +91,6 @@ class ForkManager
 
     /**
      * Launch a worker from the worker queue
-     * @param callable $worker
      */
     private function launchWorker(callable $worker): void
     {
@@ -205,18 +167,11 @@ class ForkManager
         }
     }
 
-    /**
-     * @param int $maxConcurrency
-     */
     public function setMaxConcurrency(int $maxConcurrency): void
     {
         $this->maxConcurrency = $maxConcurrency;
     }
 
-    /**
-     * @param callable $worker
-     * @return void
-     */
     public function addWorker(callable $worker): void
     {
         $this->workers[] = $worker;

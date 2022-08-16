@@ -17,26 +17,13 @@ class FilesystemSyncCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
 
-    /**
-     * @var MountManager
-     */
-    private $mountManager;
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
+    private MountManager $mountManager;
+    private LoggerInterface $logger;
 
-    /**
-     * DatabaseExportCommand constructor.
-     *
-     * @param MountManager         $mountManager
-     * @param LoggerInterface|null $logger
-     * @param string|null          $name
-     */
     public function __construct(
-        MountManager $mountManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        MountManager     $mountManager,
+        ?LoggerInterface $logger = null,
+        ?string          $name = null
     ) {
         $this->mountManager = $mountManager;
         if (is_null($logger)) {
@@ -47,13 +34,11 @@ class FilesystemSyncCommand extends Command
     }
 
     /**
-     * @return void
-     *
      * @todo Add option for excludes and option for includes
      * @todo Add option for whether to copy over permissions. Only "visibility" is possible with Flysystem since not
      *       all filesystems have the same concept of permissions
      */
-    protected function configure()
+    protected function configure(): void
     {
         $filesystemAdapterNames = $this->mountManager->getFilesystemPrefixes();
         $this->setName('filesystem:sync')
@@ -121,13 +106,7 @@ class FilesystemSyncCommand extends Command
             );
     }
 
-    /**
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->injectOutputIntoLogger($output, $this->logger);
         $this->mountManager->setWorkingDirectory(getcwd());
@@ -140,14 +119,14 @@ class FilesystemSyncCommand extends Command
 
         [$prefix, $arguments] = $this->mountManager->filterPrefix([$destination]);
         $destination = "$prefix://{$arguments[0]}";
-        
+
         $options = [
-            'delete'            => $input->getOption('delete'),
+            'delete' => $input->getOption('delete'),
             'ignore_timestamps' => $input->getOption('ignore-timestamps'),
-            'excludes'          => $input->getOption('exclude'),
-            'includes'          => $input->getOption('include'),
-            'batch_size'        => $input->getOption('batch-size'),
-            'max_concurrency'   => $input->getOption('max-concurrency'),
+            'excludes' => $input->getOption('exclude'),
+            'includes' => $input->getOption('include'),
+            'batch_size' => $input->getOption('batch-size'),
+            'max_concurrency' => $input->getOption('max-concurrency'),
         ];
         $result = $this->mountManager->sync($source, $destination, $options);
         if (false === $result) {
@@ -157,7 +136,7 @@ class FilesystemSyncCommand extends Command
                 $destination
             ));
         }
-        return 0;
+        return self::SUCCESS;
     }
 
 }
