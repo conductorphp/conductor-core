@@ -153,7 +153,7 @@ class MountManager extends \League\Flysystem\MountManager
      *
      * @inheritDoc
      */
-    public function getPrefixAndPath($path): array
+    public function getPrefixAndPath(string $path): array
     {
         // If no prefix present, set local prefix
         if (strpos($path, '://') < 1) {
