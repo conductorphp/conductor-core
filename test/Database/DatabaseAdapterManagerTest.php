@@ -30,7 +30,7 @@ class DatabaseAdapterManagerTest extends TestCase
         $this->writeDatabaseAdapter->run('test', 'test');
         $this->databaseAdapterManager = new DatabaseAdapterManager(
             [
-                'read'  => $this->readDatabaseAdapter->reveal(),
+                'read' => $this->readDatabaseAdapter->reveal(),
                 'write' => $this->writeDatabaseAdapter->reveal(),
             ]
         );

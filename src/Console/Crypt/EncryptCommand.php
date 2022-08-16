@@ -16,6 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class EncryptCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
+
     /**
      * @var Crypt
      */
@@ -32,16 +33,16 @@ class EncryptCommand extends Command
     /**
      * GenerateKeyCommand constructor.
      *
-     * @param Crypt                $crypt
-     * @param string|null          $key
+     * @param Crypt $crypt
+     * @param string|null $key
      * @param LoggerInterface|null $logger
-     * @param string|null          $name
+     * @param string|null $name
      */
     public function __construct(
-        Crypt $crypt,
-        string $key = null,
+        Crypt           $crypt,
+        string          $key = null,
         LoggerInterface $logger = null,
-        string $name = null
+        string          $name = null
     ) {
         $this->crypt = $crypt;
         $this->key = $key;
@@ -70,7 +71,7 @@ class EncryptCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int

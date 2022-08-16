@@ -32,7 +32,7 @@ class DatabaseImportExportAdapterManagerTest extends TestCase
         $this->databaseImportExportAdapterManager = new DatabaseImportExportAdapterManager(
             [
                 'mysqldump' => $this->mysqldumpImportExportDatabaseAdapter->reveal(),
-                'mydumper'  => $this->mydumperImportExportDatabaseAdapter->reveal(),
+                'mydumper' => $this->mydumperImportExportDatabaseAdapter->reveal(),
             ]
         );
     }

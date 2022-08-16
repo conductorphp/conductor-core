@@ -13,6 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class GenerateKeyCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
+
     /**
      * @var Crypt
      */
@@ -25,14 +26,14 @@ class GenerateKeyCommand extends Command
     /**
      * GenerateKeyCommand constructor.
      *
-     * @param Crypt                $crypt
+     * @param Crypt $crypt
      * @param LoggerInterface|null $logger
-     * @param string|null          $name
+     * @param string|null $name
      */
     public function __construct(
-        Crypt $crypt,
+        Crypt           $crypt,
         LoggerInterface $logger = null,
-        string $name = null
+        string          $name = null
     ) {
         $this->crypt = $crypt;
         if (is_null($logger)) {
@@ -53,7 +54,7 @@ class GenerateKeyCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int

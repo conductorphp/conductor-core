@@ -4,6 +4,7 @@ Conductor Core Documentation
 This module offers common core functionality for [Conductor](https://github.com/conductorphp).
 
 ## Installation
+
 ```bash
 composer require conductor/core
 ```
@@ -16,11 +17,12 @@ You should create a project with this command:
 composer create-project laminas/laminas-expressive-skeleton myconductortool
 ```
 
-Run `./myconductortool/vendor/bin/conductor` with no arguments to see all available commands. We recommend that you add `myconductortool/vendor/bin` to your path.
+Run `./myconductortool/vendor/bin/conductor` with no arguments to see all available commands. We recommend that you
+add `myconductortool/vendor/bin` to your path.
 
 Below are a few of the most common Conductor modules we suggest:
 
-1. [Application Orchestration](https://github.com/conductorphp/conductor-application-orchestration) - Application 
+1. [Application Orchestration](https://github.com/conductorphp/conductor-application-orchestration) - Application
    installation, configuration, backups, builds, code deployments, maintenance mode, syncing of environments.
 
 The Conductor supports many platforms. Here are a few common platforms:
@@ -44,6 +46,7 @@ The Conductor currently only supports MySQL, but may support others in the futur
 The Conductor supports encryption of all configuration values.
 
 Update your `config/config.php` with the following:
+
 ```php
 <?php
  
@@ -97,6 +100,7 @@ return $aggregator->getMergedConfig();
 ```
 
 Create a file `config/env.php` with the following contents:
+
 ```php
 <?php
 
@@ -107,21 +111,25 @@ return [
 ```
 
 The `config/env.php` file should be excluded from version control. In git, you can do so by running:
+
 ```bash
 echo 'config/env.php' >> .gitignore;
 ```
 
 Generate an encryption key and save it by running:
+
 ```bash
 ./vendor/bin/conductor crypt:generate-key
 ```
 
 Get the encrypted value for a string by writing it to a file, then running:
+
 ```bash
 ./vendor/bin/conductor crypt:encrypt --file yourplaintextfile.txt
 ```
 
 Or, get the encrypted value for a string by running this directly:
+
 ```bash
 ./vendor/bin/conductor crypt:encrypt yourplaintextstring
 ```
@@ -132,7 +140,7 @@ Replace the plain text string in your configuration with the returned ciphertext
 
 ### Forking SSL Issue
 
-If you encounter this error or similar while running `conductor app:deploy --snapshot mysnapshot --assets` 
+If you encounter this error or similar while running `conductor app:deploy --snapshot mysnapshot --assets`
 or `conductor app:snapshot mysnapshot --assets`, read below:
 
 ```
@@ -140,9 +148,9 @@ cURL error 35: A PKCS #11 module returned CKR_DEVICE_ERROR, indicating that a pr
 token or slot. (see http://curl.haxx.se/libcurl/c/libcurl-errors.html)
 ```
 
-NSS has a bug in older versions which causes this issue when forking a PHP process. A patch was added to 
-force NSS to reinitialize on PHP process fork. If you see this error, you are running an older version of 
-NSS or curl compiled with older NSS. 
+NSS has a bug in older versions which causes this issue when forking a PHP process. A patch was added to
+force NSS to reinitialize on PHP process fork. If you see this error, you are running an older version of
+NSS or curl compiled with older NSS.
 
 You can work around this issue by adding this line to your `config/config.php` after the namespace definitions.
 

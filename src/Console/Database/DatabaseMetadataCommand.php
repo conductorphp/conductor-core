@@ -30,13 +30,13 @@ class DatabaseMetadataCommand extends Command
      * DatabaseMetadataCommand constructor.
      *
      * @param DatabaseAdapterManager $databaseImportAdapterManager
-     * @param LoggerInterface|null   $logger
-     * @param null                   $name
+     * @param LoggerInterface|null $logger
+     * @param null $name
      */
     public function __construct(
         DatabaseAdapterManager $databaseImportAdapterManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        LoggerInterface        $logger = null,
+        string                 $name = null
     ) {
         $this->databaseAdapterManager = $databaseImportAdapterManager;
         if (is_null($logger)) {
@@ -70,7 +70,7 @@ class DatabaseMetadataCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
@@ -90,7 +90,7 @@ class DatabaseMetadataCommand extends Command
 
         $outputTable = new Table($output);
         $outputTable
-            ->setHeaders(array('Database', 'Size in ' . $input->getOption('unit')));
+            ->setHeaders(['Database', 'Size in ' . $input->getOption('unit')]);
         foreach ($databases as $name => $database) {
             $outputTable->addRow([$name, $database['size']]);
         }
@@ -99,9 +99,9 @@ class DatabaseMetadataCommand extends Command
     }
 
     /**
-     * @param array  $databases
+     * @param array $databases
      * @param string $sort
-     * @param bool   $reverseSort
+     * @param bool $reverseSort
      *
      * @return array
      */
@@ -133,9 +133,9 @@ class DatabaseMetadataCommand extends Command
     }
 
     /**
-     * @param array  $databases
+     * @param array $databases
      * @param string $unit
-     * @param int    $precision
+     * @param int $precision
      *
      * @return array
      */

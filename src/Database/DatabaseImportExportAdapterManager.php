@@ -35,8 +35,8 @@ class DatabaseImportExportAdapterManager
     /**
      * @param string|null $name
      *
-     * @throws Exception\DomainException If requested import adapter not found in those provided during construction
      * @return DatabaseImportExportAdapterInterface
+     * @throws Exception\DomainException If requested import adapter not found in those provided during construction
      */
     public function getAdapter(string $name): DatabaseImportExportAdapterInterface
     {

@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class TableMetadataCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
+
     /**
      * @var DatabaseAdapterManager
      */
@@ -30,13 +31,13 @@ class TableMetadataCommand extends Command
      * TableMetadataCommand constructor.
      *
      * @param DatabaseAdapterManager $databaseImportAdapterManager
-     * @param LoggerInterface|null   $logger
-     * @param null                   $name
+     * @param LoggerInterface|null $logger
+     * @param null $name
      */
     public function __construct(
         DatabaseAdapterManager $databaseImportAdapterManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        LoggerInterface        $logger = null,
+        string                 $name = null
     ) {
         $this->databaseAdapterManager = $databaseImportAdapterManager;
         if (is_null($logger)) {
@@ -71,7 +72,7 @@ class TableMetadataCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
@@ -83,7 +84,7 @@ class TableMetadataCommand extends Command
         $tables = $this->getTables($input);
         $outputTable = new Table($output);
         $outputTable
-            ->setHeaders(array('Database', 'Rows', 'Size in ' . $input->getOption('unit')));
+            ->setHeaders(['Database', 'Rows', 'Size in ' . $input->getOption('unit')]);
         foreach ($tables as $name => $table) {
             $outputTable->addRow([$name, $table['rows'], $table['size']]);
         }
@@ -110,9 +111,9 @@ class TableMetadataCommand extends Command
     }
 
     /**
-     * @param array  $databases
+     * @param array $databases
      * @param string $sort
-     * @param bool   $reverseSort
+     * @param bool $reverseSort
      *
      * @return array
      */
@@ -144,9 +145,9 @@ class TableMetadataCommand extends Command
     }
 
     /**
-     * @param array  $databases
+     * @param array $databases
      * @param string $unit
-     * @param int    $precision
+     * @param int $precision
      *
      * @return array
      */

@@ -80,7 +80,7 @@ class CryptTest extends TestCase
                 [
                     'plaintext' => self::TEST_MESSAGE,
                     'encrypted' => $ciphertext,
-                ]
+                ],
             ];
         };
 

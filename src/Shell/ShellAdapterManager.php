@@ -25,8 +25,8 @@ class ShellAdapterManager
     /**
      * @param string|null $name
      *
-     * @throws Exception\DomainException If requested shell adapter not found in those provided during construction
      * @return ShellAdapterInterface
+     * @throws Exception\DomainException If requested shell adapter not found in those provided during construction
      */
     public function getAdapter(string $name): ShellAdapterInterface
     {

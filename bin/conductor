@@ -1,10 +1,13 @@
 #!/usr/bin/env php
 <?php
 
+use Interop\Container\ContainerInterface;
+use Symfony\Component\Console\Application;
+
 try {
     $origWorkingDir = getcwd();
     if (!is_readable($origWorkingDir)) {
-        throw new \Exception('Conductor must be run from within a working directory that you have read access to.');
+        throw new Exception('Conductor must be run from within a working directory that you have read access to.');
     }
     chdir(__DIR__ . '/../../../..');
     require 'vendor/autoload.php';
@@ -13,10 +16,10 @@ try {
      * Self-called anonymous function that creates its own scope and keep the global namespace clean.
      */
     call_user_func(function () use ($origWorkingDir) {
-        /** @var \Interop\Container\ContainerInterface $container */
+        /** @var ContainerInterface $container */
         $container = require 'config/container.php';
 
-        $app = new \Symfony\Component\Console\Application('Application console');
+        $app = new Application('Application console');
 
         $config = $container->get('config');
         $commands = $config['console']['commands'];
@@ -33,7 +36,7 @@ try {
         chdir($origWorkingDir);
         $app->run();
     });
-} catch (\Exception $e) {
+} catch (Exception $e) {
     $message = "\n\e[1;31mAn Exception Occurred:\n"
         . $e->getMessage() . "\n"
         . $e->getTraceAsString() . "\n\n";
