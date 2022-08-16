@@ -51,9 +51,9 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
     public function runShellCommand(
         string $command,
         string $currentWorkingDirectory = null,
-        array $environmentVariables = null,
-        int $priority = ShellAdapterInterface::PRIORITY_NORMAL,
-        array $options = null
+        array  $environmentVariables = null,
+        int    $priority = ShellAdapterInterface::PRIORITY_NORMAL,
+        array  $options = null
     ): string {
 
         $this->logger->debug("Running shell command: $command");

@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class ExecCommand extends Command
 {
     use MonologConsoleHandlerAwareTrait;
+
     /**
      * @var ShellAdapterManager
      */
@@ -29,14 +30,14 @@ class ExecCommand extends Command
     /**
      * ExecCommand constructor.
      *
-     * @param ShellAdapterManager  $shellAdapterManager
+     * @param ShellAdapterManager $shellAdapterManager
      * @param LoggerInterface|null $logger
-     * @param null                 $name
+     * @param null $name
      */
     public function __construct(
         ShellAdapterManager $shellAdapterManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        LoggerInterface     $logger = null,
+        string              $name = null
     ) {
         $this->shellAdapterManager = $shellAdapterManager;
         if (is_null($logger)) {
@@ -88,7 +89,7 @@ class ExecCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int

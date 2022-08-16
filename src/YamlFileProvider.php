@@ -2,8 +2,9 @@
 
 namespace ConductorCore;
 
-use Symfony\Component\Yaml\Yaml;
+use Generator;
 use Laminas\ConfigAggregator\GlobTrait;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Provide a collection of Yaml files returning config arrays.
@@ -24,7 +25,7 @@ class YamlFileProvider
     }
 
     /**
-     * @return \Generator
+     * @return Generator
      */
     public function __invoke()
     {

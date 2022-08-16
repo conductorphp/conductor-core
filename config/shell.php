@@ -1,9 +1,11 @@
 <?php
 
+use ConductorCore\Shell\Adapter\LocalShellAdapter;
+
 return [
     'adapters' => [
         'local' => [
-            'class'     => \ConductorCore\Shell\Adapter\LocalShellAdapter::class,
+            'class' => LocalShellAdapter::class,
         ],
     ],
 ];

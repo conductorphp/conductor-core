@@ -29,13 +29,13 @@ class DatabaseExportCommand extends Command
      * DatabaseExportCommand constructor.
      *
      * @param DatabaseImportExportAdapterManager $databaseImportExportAdapterManager
-     * @param LoggerInterface|null               $logger
-     * @param string|null                        $name
+     * @param LoggerInterface|null $logger
+     * @param string|null $name
      */
     public function __construct(
         DatabaseImportExportAdapterManager $databaseImportExportAdapterManager,
-        LoggerInterface $logger = null,
-        string $name = null
+        LoggerInterface                    $logger = null,
+        string                             $name = null
     ) {
         $this->databaseImportExportAdapterManager = $databaseImportExportAdapterManager;
         if (is_null($logger)) {
@@ -86,7 +86,7 @@ class DatabaseExportCommand extends Command
     }
 
     /**
-     * @param InputInterface  $input
+     * @param InputInterface $input
      * @param OutputInterface $output
      *
      * @return int
@@ -106,7 +106,7 @@ class DatabaseExportCommand extends Command
             $database,
             $path,
             [
-                'ignore_tables'   => $ignoreTables,
+                'ignore_tables' => $ignoreTables,
                 'remove_definers' => !$input->getOption('no-remove-definers'),
             ]
         );

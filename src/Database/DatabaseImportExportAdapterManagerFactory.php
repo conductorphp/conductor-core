@@ -15,9 +15,9 @@ class DatabaseImportExportAdapterManagerFactory implements FactoryInterface
     /**
      * Create an object
      *
-     * @param  ContainerInterface $container
-     * @param  string             $requestedName
-     * @param  null|array         $options
+     * @param ContainerInterface $container
+     * @param string $requestedName
+     * @param null|array $options
      *
      * @return object
      * @throws ServiceNotFoundException if unable to resolve the service.

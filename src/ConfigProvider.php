@@ -15,10 +15,10 @@ class ConfigProvider
     public function __invoke()
     {
         return [
-            'console'      => $this->getConsoleConfig(),
+            'console' => $this->getConsoleConfig(),
             'dependencies' => $this->getDependencyConfig(),
-            'filesystem'   => $this->getFilesystemConfig(),
-            'shell'        => $this->getShellConfig(),
+            'filesystem' => $this->getFilesystemConfig(),
+            'shell' => $this->getShellConfig(),
         ];
     }
 
