@@ -20,19 +20,19 @@
     "require": {
         "php": "~8.1.0|~8.2.0",
         "amphp/amp": "^2.0",
-        "defuse/php-encryption": "^2.1",
-        "laminas/laminas-dependency-plugin": "^2.1",
-        "laminas/laminas-servicemanager": "^3.3",
-        "league/flysystem": "^3.1",
-        "league/flysystem-sftp": "^3.1",
-        "monolog/monolog": "^3.1",
-        "symfony/console": "^6.1",
-        "symfony/monolog-bridge": "^6.1",
-        "symfony/yaml": "^6.1"
+        "defuse/php-encryption": "^2.3.1",
+        "laminas/laminas-dependency-plugin": "^2.5.0",
+        "laminas/laminas-servicemanager": "^3.20.0",
+        "league/flysystem": "^3.12.3",
+        "league/flysystem-sftp": "^3.6.0",
+        "monolog/monolog": "^3.3.1",
+        "symfony/console": "^6.2.7",
+        "symfony/monolog-bridge": "^6.2.7",
+        "symfony/yaml": "^6.2.7"
     },
     "require-dev": {
-        "laminas/laminas-coding-standard": "^2.3",
-        "phpunit/phpunit": "^9.5"
+        "laminas/laminas-coding-standard": "^2.5.0",
+        "phpunit/phpunit": "^10.0.16"
     },
     "suggest": {
         "ext-posix": "Required to display colors in command line.",
