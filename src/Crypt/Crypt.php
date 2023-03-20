@@ -69,7 +69,11 @@ class Crypt
         // Return as a generator to deal with merging individual file configs correctly.
         return static function () use ($config, $cryptKey) {
             $crypt = new self();
-            $decryptConfig = function ($data, $dataKey = null) use (&$decryptConfig, $crypt, $cryptKey) {
+            $decryptConfig = function (array|string|null $data, $dataKey = null) use (&$decryptConfig, $crypt, $cryptKey) {
+                if (is_null($data)) {
+                    return null;
+                }
+
                 if (is_array($data)) {
                     foreach ($data as $key => &$value) {
                         if ($dataKey) {
