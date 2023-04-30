@@ -59,6 +59,14 @@ class MountManager extends \League\Flysystem\MountManager
     }
 
     /**
+     * Overrode because mountManager copy command was failing with bad credentials after PHP 8.2 upgrade
+     */
+    public function copy(string $source, string $destination, array $config = []): void
+    {
+        $this->syncPlugin->sync($this, $source, $destination, $config);
+    }
+
+    /**
      * Get the filesystem with the corresponding prefix.
      */
     public function getFilesystem(string $prefix): FilesystemOperator
