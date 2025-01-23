@@ -26,7 +26,7 @@ interface DatabaseAdapterInterface
 
     public function dropDatabaseIfExists(string $database): void;
 
-    public function run(string $query, string $database): void;
+    public function run(string $sql, string $database): void;
 
     /**
      * @return string[]
