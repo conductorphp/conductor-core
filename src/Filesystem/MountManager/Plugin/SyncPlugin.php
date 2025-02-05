@@ -162,7 +162,7 @@ class SyncPlugin implements SyncPluginInterface
             $filesToPush = $sourceFiles;
         } else {
 
-            $this->logger->debug('Comparing source and destination to determine file operationes needed...');
+            $this->logger->debug('Comparing source and destination to determine file operations needed...');
             $destinationFiles = $this->applyExcludesAndIncludes(
                 $mountManager,
                 $pathTo,
