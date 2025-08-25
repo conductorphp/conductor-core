@@ -376,10 +376,8 @@ class SyncPlugin implements SyncPluginInterface
             if ($adapter instanceof \League\Flysystem\AwsS3V3\AwsS3V3Adapter) {
                 $skipDirectorCreation = true;
             }
-        } catch (\Exception $e) {
-            // If we can't determine the adapter type, assume it's not S3
-            $this->logger->debug("Could not determine filesystem adapter type: " . $e->getMessage());
-            return false;
+        } catch (\Exception) {
+            // Unable to determine filesystem adapter; leave $skipDirectorCreation set to true
         }
 
         $batchNumber = 1;
