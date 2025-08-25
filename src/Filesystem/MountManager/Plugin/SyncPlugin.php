@@ -8,6 +8,7 @@ use ConductorCore\ForkManager;
 use League\Flysystem\DirectoryListing;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemException;
+use League\Flysystem\FilesystemOperator;
 use League\Flysystem\StorageAttributes;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -36,7 +37,8 @@ class SyncPlugin implements SyncPluginInterface
         string       $from,
         string       $to,
         array        $config = []
-    ): bool {
+    ): bool
+    {
         if (!$mountManager->has($from)) {
             throw new Exception\RuntimeException("Path \"$from\" does not exist.");
         }
@@ -139,7 +141,8 @@ class SyncPlugin implements SyncPluginInterface
         string       $from,
         string       $to,
         array        $config
-    ): array {
+    ): array
+    {
         $this->logger->info('Calculating file sync list');
 
         $delete = !empty($config['delete']);
@@ -147,7 +150,7 @@ class SyncPlugin implements SyncPluginInterface
         $includes = !empty($config['includes']) ? $config['includes'] : [];
 
         [, $pathFrom] = $mountManager->getPrefixAndPath($from);
-        [, $pathTo] = $mountManager->getPrefixAndPath($to);
+        [$prefixTo, $pathTo] = $mountManager->getPrefixAndPath($to);
 
         $sourceFiles = $this->applyExcludesAndIncludes(
             $mountManager,
@@ -228,7 +231,9 @@ class SyncPlugin implements SyncPluginInterface
 
 
         $this->logger->debug('Removing implicit files from sync list');
-        $filesToPush = $this->removeImplicitDirectoriesForPush($filesToPush);
+        $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
+
+        $filesToPush = $this->removeImplicitDirectoriesForPush($filesToPush, $destinationFilesystem);
         if ($delete && $filesToDelete) {
             $filesToDelete = $this->removeImplicitFilesForDelete($filesToDelete);
         }
@@ -242,7 +247,8 @@ class SyncPlugin implements SyncPluginInterface
         DirectoryListing $files,
         array            $excludes = [],
         array            $includes = []
-    ): DirectoryListing {
+    ): DirectoryListing
+    {
         if (!$excludes) {
             return $files;
         }
@@ -284,9 +290,18 @@ class SyncPlugin implements SyncPluginInterface
         return false;
     }
 
-    private function removeImplicitDirectoriesForPush(DirectoryListing $filesToPush): DirectoryListing
+    private function removeImplicitDirectoriesForPush(DirectoryListing $filesToPush, FilesystemOperator $destinationFilesystem): DirectoryListing
     {
+        // Convert to array first to avoid generator traversal issues
         $tempFilesToPush = $filesToPush->toArray();
+
+        // For object storage, remove ALL directories, not just implicit ones
+        if ($this->isObjectStorage($destinationFilesystem)) {
+            $filteredFiles = array_filter($tempFilesToPush, static fn(StorageAttributes $attributes) => !$attributes->isDir());
+            return new DirectoryListing($filteredFiles);
+        }
+
+        // Original logic for non-object storage filesystems
         $implicitDirectories = [];
         foreach ($tempFilesToPush as $file) {
             $directories = explode('/', $file->path());
@@ -301,10 +316,138 @@ class SyncPlugin implements SyncPluginInterface
                 }
             } while ($directories);
         }
-        $filesToPush = new DirectoryListing($tempFilesToPush);
 
-        return $filesToPush->filter(fn(StorageAttributes $attributes) => !($attributes->isDir() && isset($implicitDirectories[$attributes->path()]))
+        // Filter out implicit directories and recreate DirectoryListing
+        $filteredFiles = array_filter(
+            $tempFilesToPush,
+            static fn(StorageAttributes $attributes) => !($attributes->isDir() && isset($implicitDirectories[$attributes->path()]))
         );
+
+        return new DirectoryListing($filteredFiles);
+    }
+
+    /**
+     * @todo Ideally the filesystem abstraction would support this directly. Review.
+     */
+    private function isObjectStorage(FilesystemOperator $filesystem): bool
+    {
+        if (method_exists($filesystem, 'getAdapter')) {
+            $adapter = $filesystem->getAdapter();
+        } else {
+            try {
+                $reflection = new \ReflectionClass($filesystem);
+                $adapterProperty = $reflection->getProperty('adapter');
+                $adapterProperty->setAccessible(true);
+                $adapter = $adapterProperty->getValue($filesystem);
+
+            } catch (\Exception $e) {
+                $this->logger->debug("Could not determine filesystem adapter type: " . $e->getMessage());
+                return false;
+            }
+        }
+
+        if ($adapter instanceof \League\Flysystem\AwsS3V3\AwsS3V3Adapter) {
+            return true; // Amazon S3
+        }
+
+        // Google Cloud Storage
+        if (class_exists('\League\Flysystem\GoogleCloudStorage\GoogleCloudStorageAdapter') &&
+            $adapter instanceof \League\Flysystem\GoogleCloudStorage\GoogleCloudStorageAdapter) {
+            return true;
+        }
+
+        // Microsoft Azure Blob Storage
+        if (class_exists('\League\Flysystem\AzureBlobStorage\AzureBlobStorageAdapter') &&
+            $adapter instanceof \League\Flysystem\AzureBlobStorage\AzureBlobStorageAdapter) {
+            return true;
+        }
+
+        // DigitalOcean Spaces (uses S3-compatible API but may have separate adapter)
+        if (class_exists('\League\Flysystem\DigitalOceanSpaces\DigitalOceanSpacesAdapter') &&
+            $adapter instanceof \League\Flysystem\DigitalOceanSpaces\DigitalOceanSpacesAdapter) {
+            return true;
+        }
+
+        // Rackspace Cloud Files
+        if (class_exists('\League\Flysystem\Rackspace\RackspaceAdapter') &&
+            $adapter instanceof \League\Flysystem\Rackspace\RackspaceAdapter) {
+            return true;
+        }
+
+        // Alibaba Cloud Object Storage Service (OSS)
+        if (class_exists('\League\Flysystem\AliyunOss\AliyunOssAdapter') &&
+            $adapter instanceof \League\Flysystem\AliyunOss\AliyunOssAdapter) {
+            return true;
+        }
+
+        // MinIO (S3-compatible but may have separate adapter)
+        if (class_exists('\League\Flysystem\Minio\MinioAdapter') &&
+            $adapter instanceof \League\Flysystem\Minio\MinioAdapter) {
+            return true;
+        }
+
+        // Backblaze B2
+        if (class_exists('\League\Flysystem\B2\B2Adapter') &&
+            $adapter instanceof \League\Flysystem\B2\B2Adapter) {
+            return true;
+        }
+
+        // IBM Cloud Object Storage
+        if (class_exists('\League\Flysystem\IbmCos\IbmCosAdapter') &&
+            $adapter instanceof \League\Flysystem\IbmCos\IbmCosAdapter) {
+            return true;
+        }
+
+        // Oracle Cloud Infrastructure Object Storage
+        if (class_exists('\League\Flysystem\OciObjectStorage\OciObjectStorageAdapter') &&
+            $adapter instanceof \League\Flysystem\OciObjectStorage\OciObjectStorageAdapter) {
+            return true;
+        }
+
+        // Wasabi (S3-compatible)
+        if (class_exists('\League\Flysystem\Wasabi\WasabiAdapter') &&
+            $adapter instanceof \League\Flysystem\Wasabi\WasabiAdapter) {
+            return true;
+        }
+
+        // Scaleway Object Storage
+        if (class_exists('\League\Flysystem\Scaleway\ScalewayAdapter') &&
+            $adapter instanceof \League\Flysystem\Scaleway\ScalewayAdapter) {
+            return true;
+        }
+
+        // Linode Object Storage
+        if (class_exists('\League\Flysystem\Linode\LinodeAdapter') &&
+            $adapter instanceof \League\Flysystem\Linode\LinodeAdapter) {
+            return true;
+        }
+
+        // Generic S3-compatible adapters (many providers use S3-compatible APIs)
+        if (class_exists('\League\Flysystem\S3Compatible\S3CompatibleAdapter') &&
+            $adapter instanceof \League\Flysystem\S3Compatible\S3CompatibleAdapter) {
+            return true;
+        }
+
+        // Fallback: check adapter class name for common patterns
+        $adapterClass = get_class($adapter);
+        $objectStoragePatterns = [
+            'S3',
+            'Blob',
+            'Object',
+            'Cloud',
+            'Storage',
+            'Bucket'
+        ];
+
+        foreach ($objectStoragePatterns as $pattern) {
+            if (stripos($adapterClass, $pattern) !== false) {
+                $this->logger->notice("Detected potential object storage adapter by class name pattern: $adapterClass. "
+                    . "Add this to \ConductorCore\Filesystem\MountManager\Plugin\SyncPlugin::isObjectStorage if it should "
+                    . "considered object storage.");
+            }
+        }
+
+        return false;
     }
 
     private function removeImplicitFilesForDelete(DirectoryListing $filesToDelete): DirectoryListing
@@ -341,7 +484,8 @@ class SyncPlugin implements SyncPluginInterface
         string           $to,
         array            $config,
         DirectoryListing $filesToPush
-    ): bool {
+    ): bool
+    {
         $hasErrors = false;
         [$prefixFrom, $pathFrom] = $mountManager->getPrefixAndPath($from);
         $pathFrom = trim($pathFrom, '/');
@@ -352,91 +496,83 @@ class SyncPlugin implements SyncPluginInterface
         $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
         $maxConcurrency = !empty($config['max_concurrency']) ? $config['max_concurrency'] : 10;
 
-        $this->logger->info(
-            sprintf(
-                'Copying files in batches of %s',
-                number_format($batchSize)
-            )
-        );
+        // Returns true if there's at least one item
+        $hasFilesToPush = $filesToPush->getIterator()->valid();
 
-        /**
-         * Skip directory creation for AWS S3 because directories have no direct meaning and are just prefixes for other
-         * objects. The number of calls to create a dir can be large even when a dir has already been synced. S3 does
-         * not detect whether the dir needs to be created or not correctly.
-         *
-         * @todo Review this. A special case for an adapter is not a great way to handle this.
-         */
-        $skipDirectorCreation = false;
-        try {
-            $reflection = new \ReflectionClass($destinationFilesystem);
-            $adapterProperty = $reflection->getProperty('adapter');
-            $adapterProperty->setAccessible(true);
-            $adapter = $adapterProperty->getValue($destinationFilesystem);
+        if ($hasFilesToPush) {
+            $this->logger->info(
+                sprintf(
+                    'Copying files in batches of %s',
+                    number_format($batchSize)
+                )
+            );
 
-            if ($adapter instanceof \League\Flysystem\AwsS3V3\AwsS3V3Adapter) {
-                $skipDirectorCreation = true;
-            }
-        } catch (\Exception) {
-            // Unable to determine filesystem adapter; leave $skipDirectorCreation set to true
-        }
+            /**
+             * Skip directory creation for object storage type filesystems like AWS S3because directories have no direct
+             * meaning and are just prefixes for other objects.
+             */
+            $skipDirectorCreation = $this->isObjectStorage($destinationFilesystem);
 
-        $batchNumber = 1;
-        $fileNumber = 0;
-        /** @var FileAttributes $file */
-        foreach ($filesToPush as $file) {
-            if ($fileNumber % $batchSize == 0) {
-                $this->logger->info(sprintf(
-                    'Processing copy batch %s',
-                    number_format($batchNumber)
-                ));
+            $batchNumber = 1;
+            $fileNumber = 0;
+            /** @var FileAttributes $file */
+            foreach ($filesToPush as $file) {
+                if ($fileNumber % $batchSize == 0) {
+                    $this->logger->info(sprintf(
+                        'Processing copy batch %s',
+                        number_format($batchNumber)
+                    ));
 
-                $forkManager = new ForkManager($this->logger);
-                $forkManager->setMaxConcurrency($maxConcurrency);
-            }
-
-            $executor = function () use (
-                $mountManager,
-                $destinationFilesystem,
-                $prefixFrom,
-                $pathFrom,
-                $prefixTo,
-                $pathTo,
-                $config,
-                $file,
-                $skipDirectorCreation
-            ) {
-                $from = $file->path();
-                $to = "$prefixTo://$pathTo" . substr($file->path(), strlen("$prefixFrom://$pathFrom"));
-                if (!$file->isDir()) {
-                    $this->logger->debug("Copying file $from to $to");
-                    $mountManager->copy($from, $to, $config);
-                } elseif (!$skipDirectorCreation) {
-                    $this->logger->debug("Creating directory $to");
-                    $destinationFilesystem->createDirectory($pathTo);
+                    $forkManager = new ForkManager($this->logger);
+                    $forkManager->setMaxConcurrency($maxConcurrency);
                 }
-            };
 
-            $forkManager->addWorker($executor);
-            $fileNumber++;
+                $executor = function () use (
+                    $mountManager,
+                    $destinationFilesystem,
+                    $prefixFrom,
+                    $pathFrom,
+                    $prefixTo,
+                    $pathTo,
+                    $config,
+                    $file,
+                    $skipDirectorCreation
+                ) {
+                    $from = $file->path();
+                    $to = "$prefixTo://$pathTo" . substr($file->path(), strlen("$prefixFrom://$pathFrom"));
+                    if (!$file->isDir()) {
+                        $this->logger->debug("Copying file $from to $to");
+                        $mountManager->copy($from, $to, $config);
+                    } elseif (!$skipDirectorCreation) {
+                        $this->logger->debug("Creating directory $to");
+                        $destinationFilesystem->createDirectory($pathTo);
+                    }
+                };
 
-            if ($fileNumber % $batchSize === 0) {
+                $forkManager->addWorker($executor);
+                $fileNumber++;
+
+                if ($fileNumber % $batchSize === 0) {
+                    try {
+                        $forkManager->execute();
+                        unset($forkManager);
+                    } catch (\Exception $e) {
+                        $this->logger->error($e->getMessage());
+                        $hasErrors = true;
+                    }
+                }
+            }
+
+            if (isset($forkManager)) {
                 try {
                     $forkManager->execute();
-                    unset($forkManager);
                 } catch (\Exception $e) {
                     $this->logger->error($e->getMessage());
                     $hasErrors = true;
                 }
             }
-        }
-
-        if (isset($forkManager)) {
-            try {
-                $forkManager->execute();
-            } catch (\Exception $e) {
-                $this->logger->error($e->getMessage());
-                $hasErrors = true;
-            }
+        } else {
+            $this->logger->info('No files to sync');
         }
 
         return !$hasErrors;
