@@ -359,6 +359,29 @@ class SyncPlugin implements SyncPluginInterface
             )
         );
 
+        /**
+         * Skip directory creation for AWS S3 because directories have no direct meaning and are just prefixes for other
+         * objects. The number of calls to create a dir can be large even when a dir has already been synced. S3 does
+         * not detect whether the dir needs to be created or not correctly.
+         *
+         * @todo Review this. A special case for an adapter is not a great way to handle this.
+         */
+        $skipDirectorCreation = false;
+        try {
+            $reflection = new \ReflectionClass($destinationFilesystem);
+            $adapterProperty = $reflection->getProperty('adapter');
+            $adapterProperty->setAccessible(true);
+            $adapter = $adapterProperty->getValue($destinationFilesystem);
+
+            if ($adapter instanceof \League\Flysystem\AwsS3V3\AwsS3V3Adapter) {
+                $skipDirectorCreation = true;
+            }
+        } catch (\Exception $e) {
+            // If we can't determine the adapter type, assume it's not S3
+            $this->logger->debug("Could not determine filesystem adapter type: " . $e->getMessage());
+            return false;
+        }
+
         $batchNumber = 1;
         $fileNumber = 0;
         /** @var FileAttributes $file */
@@ -381,14 +404,15 @@ class SyncPlugin implements SyncPluginInterface
                 $prefixTo,
                 $pathTo,
                 $config,
-                $file
+                $file,
+                $skipDirectorCreation
             ) {
                 $from = $file->path();
                 $to = "$prefixTo://$pathTo" . substr($file->path(), strlen("$prefixFrom://$pathFrom"));
                 if (!$file->isDir()) {
                     $this->logger->debug("Copying file $from to $to");
                     $mountManager->copy($from, $to, $config);
-                } else {
+                } elseif (!$skipDirectorCreation) {
                     $this->logger->debug("Creating directory $to");
                     $destinationFilesystem->createDirectory($pathTo);
                 }
