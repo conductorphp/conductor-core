@@ -515,13 +515,18 @@ class SyncPlugin implements SyncPluginInterface
 
             $batchNumber = 1;
             $fileNumber = 0;
+            $filesToPushCopy = clone $filesToPush;
+            $numFilesToPush = iterator_count($filesToPushCopy);
+            $numBatches = ceil($numFilesToPush / $batchSize);
             /** @var FileAttributes $file */
             foreach ($filesToPush as $file) {
                 if ($fileNumber % $batchSize == 0) {
                     $this->logger->info(sprintf(
-                        'Processing copy batch %s',
-                        number_format($batchNumber)
+                        'Processing copy batch %d/%d',
+                        number_format($batchNumber),
+                        $numBatches,
                     ));
+                    $batchNumber++;
 
                     $forkManager = new ForkManager($this->logger);
                     $forkManager->setMaxConcurrency($maxConcurrency);
