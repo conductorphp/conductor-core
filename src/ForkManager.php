@@ -14,6 +14,8 @@ class ForkManager
     private array $workers = [];
     private LoggerInterface $logger;
     private array $signalQueue = [];
+    private $completionCallback = null;
+    private array $workerIndexByPid = [];
 
     public function __construct(
         ?LoggerInterface $logger = null
@@ -53,20 +55,19 @@ class ForkManager
         }
 
         $status = 0;
-        $this->logger->info(sprintf("Running %s workers with concurrency %s...", count($this->workers), $this->maxConcurrency));
         // $this->parentPid = getmypid();
         pcntl_signal(SIGCHLD, [$this, "childSignalHandler"]);
 
         // @todo Handle gathering exit status of child processes better. If one child fails, we want to be able to
         //       throw an exception at the end of this method. It is not handled in launchWorker as far as I can tell.
 
-        foreach ($this->workers as $worker) {
+        foreach ($this->workers as $workerIndex => $worker) {
             while (count($this->pids) >= $this->maxConcurrency) {
                 // $this->logger->debug("Maximum children allowed, waiting...");
                 // $this->logger->debug(sprintf( "Pids: %s, implode(';', $this->pids)));
                 sleep(1);
             }
-            $this->launchWorker($worker);
+            $this->launchWorker($worker, $workerIndex);
         }
 
         // Wait for child processes to finish before exiting here
@@ -78,7 +79,14 @@ class ForkManager
                 // child process is finished.
                 if ($res === -1 || $res > 0) {
                     $this->logger->debug("Process with pid - $pid - finished.");
+
+                    // Call completion callback if set
+                    if ($this->completionCallback && isset($this->workerIndexByPid[$pid])) {
+                        call_user_func($this->completionCallback, $this->workerIndexByPid[$pid]);
+                    }
+
                     unset($this->pids[$key]);
+                    unset($this->workerIndexByPid[$pid]);
                 }
             }
             sleep(1);
@@ -92,7 +100,7 @@ class ForkManager
     /**
      * Launch a worker from the worker queue
      */
-    private function launchWorker(callable $worker): void
+    private function launchWorker(callable $worker, int $workerIndex): void
     {
         if (!extension_loaded('pcntl')) {
             throw new Exception\RuntimeException('PHP extension pcntl not enabled.');
@@ -110,6 +118,7 @@ class ForkManager
             // the child script executes quickly enough!
 
             $this->pids[$pid] = $pid;
+            $this->workerIndexByPid[$pid] = $workerIndex;
 
             // In the event that a signal for this pid was caught before we get here, it will be in our signalQueue array
             // So let's go ahead and process it now as if we'd just received the signal
@@ -148,7 +157,14 @@ class ForkManager
                 if ($exitCode !== 0) {
                     $this->logger->error("$pid exited with status " . $exitCode);
                 }
+
+                // Call completion callback if set
+                if ($this->completionCallback && isset($this->workerIndexByPid[$pid])) {
+                    call_user_func($this->completionCallback, $this->workerIndexByPid[$pid]);
+                }
+
                 unset($this->pids[$pid]);
+                unset($this->workerIndexByPid[$pid]);
             } elseif ($pid) {
                 //Oh no, our worker has finished before this parent process could even note that it had been launched!
                 //Let's make note of it and handle it when the parent process is ready for it
@@ -175,6 +191,11 @@ class ForkManager
     public function addWorker(callable $worker): void
     {
         $this->workers[] = $worker;
+    }
+
+    public function setCompletionCallback(callable $callback): void
+    {
+        $this->completionCallback = $callback;
     }
 
 //    private function pause(): void
