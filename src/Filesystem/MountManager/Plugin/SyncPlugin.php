@@ -493,45 +493,64 @@ class SyncPlugin implements SyncPluginInterface
         $pathTo = trim($pathTo, '/');
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
-        $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
-        $maxConcurrency = !empty($config['max_concurrency']) ? $config['max_concurrency'] : 10;
+        $filesPerWorker = !empty($config['files_per_worker']) ? $config['files_per_worker'] : 10;
+        $workers = !empty($config['workers']) ? $config['workers'] : 4;
 
         // Returns true if there's at least one item
         $hasFilesToPush = $filesToPush->getIterator()->valid();
 
         if ($hasFilesToPush) {
-            $this->logger->info(
-                sprintf(
-                    'Copying files in batches of %s',
-                    number_format($batchSize)
-                )
-            );
-
             /**
              * Skip directory creation for object storage type filesystems like AWS S3because directories have no direct
              * meaning and are just prefixes for other objects.
              */
             $skipDirectorCreation = $this->isObjectStorage($destinationFilesystem);
 
-            $batchNumber = 1;
-            $fileNumber = 0;
-            $filesToPushCopy = clone $filesToPush;
-            $numFilesToPush = iterator_count($filesToPushCopy);
-            $numBatches = ceil($numFilesToPush / $batchSize);
-            /** @var FileAttributes $file */
-            foreach ($filesToPush as $file) {
-                if ($fileNumber % $batchSize == 0) {
-                    $this->logger->info(sprintf(
-                        'Processing copy batch %d/%d',
-                        number_format($batchNumber),
-                        $numBatches,
-                    ));
-                    $batchNumber++;
+            // Convert DirectoryListing to array for chunking
+            $filesToPushArray = $filesToPush->toArray();
+            $numFilesToPush = count($filesToPushArray);
 
-                    $forkManager = new ForkManager($this->logger);
-                    $forkManager->setMaxConcurrency($maxConcurrency);
+            // Create chunks of files for each worker (max filesPerWorker each)
+            $fileChunks = array_chunk($filesToPushArray, $filesPerWorker);
+            $totalWorkers = count($fileChunks);
+
+            $this->logger->info(
+                sprintf(
+                    'Copying %s files using %s workers (%s files per worker)',
+                    number_format($numFilesToPush),
+                    $workers,
+                    number_format($filesPerWorker)
+                )
+            );
+
+            $forkManager = new ForkManager($this->logger);
+            $forkManager->setMaxConcurrency($workers);
+
+            // Track completion progress in parent process
+            $completedWorkers = [];
+            $logger = $this->logger;
+            $forkManager->setCompletionCallback(function ($workerIndex) use (&$completedWorkers, $fileChunks, $numFilesToPush, $logger) {
+                $completedWorkers[] = $workerIndex;
+                sort($completedWorkers);
+
+                // Calculate total files processed by counting files in all completed worker chunks
+                $totalProcessed = 0;
+                foreach ($completedWorkers as $idx) {
+                    $totalProcessed += count($fileChunks[$idx]);
                 }
 
+                $percentComplete = round(($totalProcessed / $numFilesToPush) * 100, 1);
+
+                $logger->info(sprintf(
+                    'Processed %s/%s (%s%%)',
+                    number_format($totalProcessed),
+                    number_format($numFilesToPush),
+                    $percentComplete
+                ));
+            });
+
+            // Create a worker for each chunk
+            foreach ($fileChunks as $chunkIndex => $fileChunk) {
                 $executor = function () use (
                     $mountManager,
                     $destinationFilesystem,
@@ -540,41 +559,31 @@ class SyncPlugin implements SyncPluginInterface
                     $prefixTo,
                     $pathTo,
                     $config,
-                    $file,
+                    $fileChunk,
                     $skipDirectorCreation
                 ) {
-                    $from = $file->path();
-                    $to = "$prefixTo://$pathTo" . substr($file->path(), strlen("$prefixFrom://$pathFrom"));
-                    if (!$file->isDir()) {
-                        $this->logger->debug("Copying file $from to $to");
-                        $mountManager->copy($from, $to, $config);
-                    } elseif (!$skipDirectorCreation) {
-                        $this->logger->debug("Creating directory $to");
-                        $destinationFilesystem->createDirectory($pathTo);
+                    /** @var FileAttributes $file */
+                    foreach ($fileChunk as $file) {
+                        $from = $file->path();
+                        $to = "$prefixTo://$pathTo" . substr($file->path(), strlen("$prefixFrom://$pathFrom"));
+                        if (!$file->isDir()) {
+                            $this->logger->debug("Copying file $from to $to");
+                            $mountManager->copy($from, $to, $config);
+                        } elseif (!$skipDirectorCreation) {
+                            $this->logger->debug("Creating directory $to");
+                            $destinationFilesystem->createDirectory($pathTo);
+                        }
                     }
                 };
 
                 $forkManager->addWorker($executor);
-                $fileNumber++;
-
-                if ($fileNumber % $batchSize === 0) {
-                    try {
-                        $forkManager->execute();
-                        unset($forkManager);
-                    } catch (\Exception $e) {
-                        $this->logger->error($e->getMessage());
-                        $hasErrors = true;
-                    }
-                }
             }
 
-            if (isset($forkManager)) {
-                try {
-                    $forkManager->execute();
-                } catch (\Exception $e) {
-                    $this->logger->error($e->getMessage());
-                    $hasErrors = true;
-                }
+            try {
+                $forkManager->execute();
+            } catch (\Exception $e) {
+                $this->logger->error($e->getMessage());
+                $hasErrors = true;
             }
         } else {
             $this->logger->info('No files to sync');
@@ -592,66 +601,80 @@ class SyncPlugin implements SyncPluginInterface
         [$prefixTo,] = $mountManager->getPrefixAndPath($to);
         $destinationFilesystem = $mountManager->getFilesystem($prefixTo);
 
-        $batchSize = !empty($config['batch_size']) ? $config['batch_size'] : 100;
-        $maxConcurrency = !empty($config['max_concurrency']) ? $config['max_concurrency'] : 10;
+        $filesPerWorker = !empty($config['files_per_worker']) ? $config['files_per_worker'] : 10;
+        $workers = !empty($config['workers']) ? $config['workers'] : 4;
+
+        // Convert DirectoryListing to array for chunking
+        $filesToDeleteArray = $filesToDelete->toArray();
+        $numFilesToDelete = count($filesToDeleteArray);
+
+        // Create chunks of files for each worker (max filesPerWorker each)
+        $fileChunks = array_chunk($filesToDeleteArray, $filesPerWorker);
+        $totalWorkers = count($fileChunks);
 
         $this->logger->info(
             sprintf(
-                'Deleting files in batches of %s',
-                number_format($batchSize)
+                'Deleting %s files using %s workers (%s files per worker)',
+                number_format($numFilesToDelete),
+                $workers,
+                number_format($filesPerWorker)
             )
         );
 
-        $batchNumber = 1;
-        $fileNumber = 0;
-        /** @var FileAttributes $file */
-        foreach ($filesToDelete as $file) {
-            if ($fileNumber % $batchSize == 0) {
-                $this->logger->info(sprintf(
-                    'Processing copy batch %s',
-                    number_format($batchNumber)
-                ));
+        $forkManager = new ForkManager($this->logger);
+        $forkManager->setMaxConcurrency($workers);
 
-                $forkManager = new ForkManager($this->logger);
-                $forkManager->setMaxConcurrency($maxConcurrency);
+        // Track completion progress in parent process
+        $completedWorkers = [];
+        $logger = $this->logger;
+        $forkManager->setCompletionCallback(function ($workerIndex) use (&$completedWorkers, $fileChunks, $numFilesToDelete, $logger) {
+            $completedWorkers[] = $workerIndex;
+            sort($completedWorkers);
+
+            // Calculate total files processed by counting files in all completed worker chunks
+            $totalProcessed = 0;
+            foreach ($completedWorkers as $idx) {
+                $totalProcessed += count($fileChunks[$idx]);
             }
 
+            $percentComplete = round(($totalProcessed / $numFilesToDelete) * 100, 1);
+
+            $logger->info(sprintf(
+                'Processed %s/%s (%s%%)',
+                number_format($totalProcessed),
+                number_format($numFilesToDelete),
+                $percentComplete
+            ));
+        });
+
+        // Create a worker for each chunk
+        foreach ($fileChunks as $chunkIndex => $fileChunk) {
             $executor = function () use (
                 $mountManager,
                 $destinationFilesystem,
-                $file
+                $fileChunk
             ) {
-                [, $pathTo] = $mountManager->getPrefixAndPath($file->path());
-                if ($file->isDir()) {
-                    $this->logger->debug("Deleting directory {$file->path()}");
-                    $destinationFilesystem->deleteDirectory($pathTo);
-                } else {
-                    $this->logger->debug("Deleting file {$file->path()}");
-                    $destinationFilesystem->delete($pathTo);
+                /** @var FileAttributes $file */
+                foreach ($fileChunk as $file) {
+                    [, $pathTo] = $mountManager->getPrefixAndPath($file->path());
+                    if ($file->isDir()) {
+                        $this->logger->debug("Deleting directory {$file->path()}");
+                        $destinationFilesystem->deleteDirectory($pathTo);
+                    } else {
+                        $this->logger->debug("Deleting file {$file->path()}");
+                        $destinationFilesystem->delete($pathTo);
+                    }
                 }
             };
 
             $forkManager->addWorker($executor);
-            $fileNumber++;
-
-            if ($fileNumber % $batchSize === 0) {
-                try {
-                    $forkManager->execute();
-                    unset($forkManager);
-                } catch (\Exception $e) {
-                    $this->logger->error($e->getMessage());
-                    $hasErrors = true;
-                }
-            }
         }
 
-        if (isset($forkManager)) {
-            try {
-                $forkManager->execute();
-            } catch (\Exception $e) {
-                $this->logger->error($e->getMessage());
-                $hasErrors = true;
-            }
+        try {
+            $forkManager->execute();
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
+            $hasErrors = true;
         }
 
         return !$hasErrors;
