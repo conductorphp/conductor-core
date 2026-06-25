@@ -15,7 +15,7 @@ class DatabaseImportExportAdapterManager
     /**
      * @param DatabaseImportExportAdapterInterface[] $adapters
      */
-    public function __construct(array $adapters, LoggerInterface $logger = null)
+    public function __construct(array $adapters, ?LoggerInterface $logger = null)
     {
         if (is_null($logger)) {
             $logger = new NullLogger();

@@ -2,12 +2,15 @@
 
 namespace ConductorCoreTest\Database;
 
+use Prophecy\PhpUnit\ProphecyTrait;
 use ConductorCore\Database\DatabaseAdapterInterface;
 use ConductorCore\Database\DatabaseAdapterManager;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseAdapterManagerTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var DatabaseAdapterInterface
      */
@@ -22,7 +25,7 @@ class DatabaseAdapterManagerTest extends TestCase
      */
     private $databaseAdapterManager;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->readDatabaseAdapter = $this->prophesize(DatabaseAdapterInterface::class);
         $this->writeDatabaseAdapter = $this->prophesize(DatabaseAdapterInterface::class);

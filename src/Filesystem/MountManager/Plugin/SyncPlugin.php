@@ -17,7 +17,7 @@ class SyncPlugin implements SyncPluginInterface
 {
     private LoggerInterface $logger;
 
-    public function __construct(LoggerInterface $logger = null)
+    public function __construct(?LoggerInterface $logger = null)
     {
         if (is_null($logger)) {
             $logger = new NullLogger();

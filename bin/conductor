@@ -9,8 +9,15 @@ try {
     if (!is_readable($origWorkingDir)) {
         throw new Exception('Conductor must be run from within a working directory that you have read access to.');
     }
-    chdir(__DIR__ . '/../../../..');
-    require 'vendor/autoload.php';
+    // Resolve the autoloader robustly. Composer's bin proxy sets
+    // $GLOBALS['_composer_autoload_path'] (handles custom vendor-dir names and
+    // path-repo symlinks); fall back to the conventional nested-vendor location.
+    $autoloadPath = $GLOBALS['_composer_autoload_path'] ?? __DIR__ . '/../../../../vendor/autoload.php';
+    require $autoloadPath;
+    // Run from the project root (parent of the vendor dir) so conductor's config/
+    // resolves relative to the working dir. realpath() normalises any "/bin/.."
+    // segment the proxy path may contain.
+    chdir(dirname(realpath($autoloadPath), 2));
 
     /**
      * Self-called anonymous function that creates its own scope and keep the global namespace clean.

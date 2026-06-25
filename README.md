@@ -7,6 +7,11 @@ This module offers common core functionality for [Conductor](https://github.com/
 * [Contributing](#contributing)
 * [Report issues](https://github.com/conductorphp/conductor-core/issues)
 
+## Requirements
+
+* PHP 8.2 – 8.5
+* Composer 2
+
 ## Contributing
 
 * TBD

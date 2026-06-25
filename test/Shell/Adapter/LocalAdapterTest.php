@@ -13,7 +13,7 @@ class LocalAdapterTest extends TestCase
      */
     private $adapter;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->adapter = new LocalShellAdapter();
     }
@@ -30,7 +30,7 @@ class LocalAdapterTest extends TestCase
 
     public function testRunShellCommand()
     {
-        $this->assertInternalType('string', $this->adapter->runShellCommand('ls'));
+        $this->assertIsString($this->adapter->runShellCommand('ls'));
     }
 
     public function testRunShellCommandThrowsExceptionOnError()

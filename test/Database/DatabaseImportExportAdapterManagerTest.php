@@ -2,6 +2,7 @@
 
 namespace ConductorCoreTest\Database;
 
+use Prophecy\PhpUnit\ProphecyTrait;
 use ConductorCore\Database\DatabaseAdapterManager;
 use ConductorCore\Database\DatabaseImportExportAdapterInterface;
 use ConductorCore\Database\DatabaseImportExportAdapterManager;
@@ -9,6 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 class DatabaseImportExportAdapterManagerTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @var DatabaseImportExportAdapterInterface
      */
@@ -23,7 +26,7 @@ class DatabaseImportExportAdapterManagerTest extends TestCase
      */
     private $databaseImportExportAdapterManager;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->mysqldumpImportExportDatabaseAdapter = $this->prophesize(DatabaseImportExportAdapterInterface::class);
         $this->mydumperImportExportDatabaseAdapter = $this->prophesize(DatabaseImportExportAdapterInterface::class);

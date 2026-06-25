@@ -23,9 +23,9 @@ class DecryptCommand extends Command
 
     public function __construct(
         Crypt           $crypt,
-        string          $key = null,
-        LoggerInterface $logger = null,
-        string          $name = null
+        ?string          $key = null,
+        ?LoggerInterface $logger = null,
+        ?string          $name = null
     ) {
         $this->crypt = $crypt;
         $this->key = $key;

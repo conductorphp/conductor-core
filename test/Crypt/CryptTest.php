@@ -15,14 +15,14 @@ class CryptTest extends TestCase
      */
     private $crypt;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->crypt = new Crypt();
     }
 
     public function testGenerateKey()
     {
-        $this->assertInternalType('string', $this->crypt->generateKey());
+        $this->assertIsString($this->crypt->generateKey());
     }
 
     public function testEncrypt()

@@ -1,3 +1,24 @@
+[2.0.3](https://github.com/conductorphp/conductor-core/compare/2.0.2...2.0.3) (2026-06-25)
+
+### Bug Fixes
+* release after publish fix ([396dd42](https://github.com/conductorphp/conductor-core/commit/396dd42ee4925f1d227f9b088a26ef927d09574c))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
+[2.0.2](https://github.com/conductorphp/conductor-core/compare/2.0.1...2.0.2) (2026-06-25)
+
+### Bug Fixes
+* Composer 2 requirement ([3f46238](https://github.com/conductorphp/conductor-core/commit/3f46238eb7bcecc5a2fcb755ee0e4793441bd094))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
+[2.0.1](https://github.com/conductorphp/conductor-core/compare/2.0.0...2.0.1) (2026-06-25)
+
+### Bug Fixes
+* PHP 8.2-8.5 support ([d14d2ee](https://github.com/conductorphp/conductor-core/commit/d14d2ee66b66a86218546efae12eed36e20d923a))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

@@ -22,8 +22,8 @@ class DatabaseMetadataCommand extends Command
 
     public function __construct(
         DatabaseAdapterManager $databaseImportAdapterManager,
-        LoggerInterface        $logger = null,
-        string                 $name = null
+        ?LoggerInterface        $logger = null,
+        ?string                 $name = null
     ) {
         $this->databaseAdapterManager = $databaseImportAdapterManager;
         if (is_null($logger)) {

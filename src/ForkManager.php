@@ -134,7 +134,7 @@ class ForkManager
         }
     }
 
-    public function childSignalHandler(int $signo, array $pidArray = null): void
+    public function childSignalHandler(int $signo, ?array $pidArray = null): void
     {
         if (!extension_loaded('pcntl')) {
             throw new Exception\RuntimeException('PHP extension pcntl not enabled.');

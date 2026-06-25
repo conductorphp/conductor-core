@@ -21,8 +21,8 @@ class DatabaseExportCommand extends Command
 
     public function __construct(
         DatabaseImportExportAdapterManager $databaseImportExportAdapterManager,
-        LoggerInterface                    $logger = null,
-        string                             $name = null
+        ?LoggerInterface                    $logger = null,
+        ?string                             $name = null
     ) {
         $this->databaseImportExportAdapterManager = $databaseImportExportAdapterManager;
         if (is_null($logger)) {
