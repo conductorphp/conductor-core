@@ -1,3 +1,10 @@
+[2.0.4](https://github.com/conductorphp/conductor-core/compare/2.0.3...2.0.4) (2026-06-26)
+
+### Bug Fixes
+* abandoned flysystem-sftp with flysystem-sftp-v3 (CTAP-776) ([8d21b2b](https://github.com/conductorphp/conductor-core/commit/8d21b2ba6b3939f83b7618af2e78bea9497be67f))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [2.0.3](https://github.com/conductorphp/conductor-core/compare/2.0.2...2.0.3) (2026-06-25)
 
 ### Bug Fixes

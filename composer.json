@@ -1,6 +1,6 @@
 {
   "name": "conductor/core",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Conductor Core",
   "type": "library",
   "homepage": "https://github.com/conductorphp/conductor-core",
@@ -24,7 +24,7 @@
     "defuse/php-encryption": "^2.3.1",
     "laminas/laminas-servicemanager": "^3.20.0",
     "league/flysystem": "^3.12.3",
-    "league/flysystem-sftp": "^3.6.0",
+    "league/flysystem-sftp-v3": "^3.12.3",
     "monolog/monolog": "^3.3.1",
     "symfony/console": "^6.2.7",
     "symfony/monolog-bridge": "^6.2.7",
