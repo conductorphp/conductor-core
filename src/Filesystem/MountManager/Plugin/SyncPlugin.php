@@ -337,7 +337,6 @@ class SyncPlugin implements SyncPluginInterface
             try {
                 $reflection = new \ReflectionClass($filesystem);
                 $adapterProperty = $reflection->getProperty('adapter');
-                $adapterProperty->setAccessible(true);
                 $adapter = $adapterProperty->getValue($filesystem);
 
             } catch (\Exception $e) {

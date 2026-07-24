@@ -1,3 +1,10 @@
+[2.0.5](https://github.com/conductorphp/conductor-core/compare/2.0.4...2.0.5) (2026-07-24)
+
+### Bug Fixes
+* deprecated ReflectionProperty::setAccessible() call (CTAP-1021) ([0d02894](https://github.com/conductorphp/conductor-core/commit/0d02894d0311874f79571f0d6a1e7f8725e3d702))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [2.0.4](https://github.com/conductorphp/conductor-core/compare/2.0.3...2.0.4) (2026-06-26)
 
 ### Bug Fixes
