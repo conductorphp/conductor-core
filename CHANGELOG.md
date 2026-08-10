@@ -1,3 +1,13 @@
+[3.1.0](https://github.com/conductorphp/conductor-core/compare/3.0.0...3.1.0) (2026-08-10)
+
+### Features
+* PHP 8.4.1+, symfony 8 and servicemanager 4 (CTAP-1224) ([6b3c29c](https://github.com/conductorphp/conductor-core/commit/6b3c29ca329f88ffbfa4749ef4e41511c93ec84a))
+* amphp/amp with revolt/event-loop (CTAP-1223) ([efe2e32](https://github.com/conductorphp/conductor-core/commit/efe2e3236ce77c4709cdbdc5284f808fc682a197))
+* symfony 7 (CTAP-1222) ([3fee4b7](https://github.com/conductorphp/conductor-core/commit/3fee4b70056bb81e2c2711f3136ba426c181d1f9))
+* laminas-servicemanager v4 (CTAP-1221) ([bef05ef](https://github.com/conductorphp/conductor-core/commit/bef05ef6ef9787839ea0ba6e962e69d1fdfad303))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [2.0.5](https://github.com/conductorphp/conductor-core/compare/2.0.4...2.0.5) (2026-07-24)
 
 ### Bug Fixes

@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Application;
 
 try {
@@ -32,7 +32,7 @@ try {
         $commands = $config['console']['commands'];
         if ($commands) {
             foreach ($commands as $command) {
-                $app->add($container->get($command));
+                $app->addCommand($container->get($command));
             }
         }
 

@@ -2,11 +2,11 @@
 
 namespace ConductorCore\Shell\Adapter;
 
-use Amp\Loop;
 use ConductorCore\Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Revolt\EventLoop;
 
 class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
 {
@@ -67,32 +67,32 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         //fwrite($pipes[0], ' ');
 
         $logger = $this->logger;
-        Loop::onReadable(
+        EventLoop::onReadable(
             $pipes[2],
-            static function ($watcherId, $socket) use ($logger) {
+            static function (string $callbackId, $socket) use ($logger) {
                 $line = fgets($socket);
                 if ($line) {
                     $logger->debug($line);
                 } elseif (!is_resource($socket) || feof($socket)) {
-                    Loop::cancel($watcherId);
+                    EventLoop::cancel($callbackId);
                 }
             }
         );
 
         $output = '';
-        Loop::onReadable(
+        EventLoop::onReadable(
             $pipes[1],
-            static function ($watcherId, $socket) use (&$output) {
+            static function (string $callbackId, $socket) use (&$output) {
                 $line = fgets($socket);
                 if ($line) {
                     $output .= $line;
                 } elseif (!is_resource($socket) || feof($socket)) {
-                    Loop::cancel($watcherId);
+                    EventLoop::cancel($callbackId);
                 }
             }
         );
 
-        Loop::run();
+        EventLoop::run();
 
         $output .= stream_get_contents($pipes[1]);
         $remainingStderr = stream_get_contents($pipes[2]);

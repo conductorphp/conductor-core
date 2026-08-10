@@ -7,7 +7,7 @@ use Psr\Container\ContainerInterface;
 
 class EncryptCommandFactory implements FactoryInterface
 {
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null)
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): EncryptCommand
     {
         $config = $container->get('config');
         $crypt = $container->get('ConductorCore\Crypt\Crypt');
