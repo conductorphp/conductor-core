@@ -1,3 +1,11 @@
+[3.1.1](https://github.com/conductorphp/conductor-core/compare/3.1.0...3.1.1) (2026-08-11)
+
+### Bug Fixes
+* the advertised PHP range to 8.4.1-8.5 (CTAP-1224) ([e0b9123](https://github.com/conductorphp/conductor-core/commit/e0b9123cc47e97be86bbde6b90f5a2f6e7bd4831))
+* to phpunit 13 (CTAP-1226) ([1c060fb](https://github.com/conductorphp/conductor-core/commit/1c060fb6bd7407d03d94767a158fbc29361ab8d2))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [3.1.0](https://github.com/conductorphp/conductor-core/compare/3.0.0...3.1.0) (2026-08-10)
 
 ### Features

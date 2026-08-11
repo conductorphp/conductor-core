@@ -1,6 +1,6 @@
 {
   "name": "conductor/core",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Conductor Core",
   "type": "library",
   "homepage": "https://github.com/conductorphp/conductor-core",
@@ -32,8 +32,8 @@
   },
   "require-dev": {
     "laminas/laminas-coding-standard": "^2.5.0",
-    "phpunit/phpunit": "^10.0.16",
-    "phpspec/prophecy-phpunit": "^2.1"
+    "phpunit/phpunit": "^13.0",
+    "phpspec/prophecy-phpunit": "^2.5"
   },
   "suggest": {
     "ext-posix": "Required to display colors in command line.",

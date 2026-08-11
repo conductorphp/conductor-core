@@ -5,6 +5,7 @@ namespace ConductorCoreTest\Database;
 use Prophecy\PhpUnit\ProphecyTrait;
 use ConductorCore\Database\DatabaseAdapterInterface;
 use ConductorCore\Database\DatabaseAdapterManager;
+use ConductorCore\Exception;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseAdapterManagerTest extends TestCase
@@ -29,8 +30,10 @@ class DatabaseAdapterManagerTest extends TestCase
     {
         $this->readDatabaseAdapter = $this->prophesize(DatabaseAdapterInterface::class);
         $this->writeDatabaseAdapter = $this->prophesize(DatabaseAdapterInterface::class);
-        // Make the write adapter different from the read one
-        $this->writeDatabaseAdapter->run('test', 'test');
+        // Give each double distinguishable behavior so the assertions can tell which
+        // adapter came back. getAdapter() returns a clone, so identity cannot.
+        $this->readDatabaseAdapter->getDatabases()->willReturn(['read_db']);
+        $this->writeDatabaseAdapter->getDatabases()->willReturn(['write_db']);
         $this->databaseAdapterManager = new DatabaseAdapterManager(
             [
                 'read' => $this->readDatabaseAdapter->reveal(),
@@ -44,9 +47,31 @@ class DatabaseAdapterManagerTest extends TestCase
         $this->assertEquals(['read', 'write'], $this->databaseAdapterManager->getAdapterNames());
     }
 
-    public function testGetAdapter()
+    public function testGetAdapterReturnsTheRequestedAdapter()
     {
-        $this->assertEquals($this->readDatabaseAdapter->reveal(), $this->databaseAdapterManager->getAdapter('read'));
+        // Asserted by behavior rather than by comparing the objects: getAdapter()
+        // returns a clone, so identity does not hold, and deep-comparing two test
+        // doubles makes PHPUnit 13 warn because it cannot compare their closures.
+        $this->assertSame(['read_db'], $this->databaseAdapterManager->getAdapter('read')->getDatabases());
+        $this->assertSame(['write_db'], $this->databaseAdapterManager->getAdapter('write')->getDatabases());
+    }
+
+    /**
+     * Callers mutate the adapter they are handed, so each call must yield an
+     * isolated copy rather than the shared instance.
+     */
+    public function testGetAdapterReturnsACloneNotTheSharedInstance()
+    {
+        $adapter = $this->databaseAdapterManager->getAdapter('read');
+
+        $this->assertNotSame($this->readDatabaseAdapter->reveal(), $adapter);
+        $this->assertNotSame($adapter, $this->databaseAdapterManager->getAdapter('read'));
+    }
+
+    public function testGetAdapterThrowsOnUnknownName()
+    {
+        $this->expectException(Exception\DomainException::class);
+        $this->databaseAdapterManager->getAdapter('nope');
     }
 
 }

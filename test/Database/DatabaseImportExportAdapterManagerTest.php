@@ -30,8 +30,6 @@ class DatabaseImportExportAdapterManagerTest extends TestCase
     {
         $this->mysqldumpImportExportDatabaseAdapter = $this->prophesize(DatabaseImportExportAdapterInterface::class);
         $this->mydumperImportExportDatabaseAdapter = $this->prophesize(DatabaseImportExportAdapterInterface::class);
-        // Make the mydumper adapter different from the mysqldump one
-        $this->mydumperImportExportDatabaseAdapter->exportToFile('test', 'test');
         $this->databaseImportExportAdapterManager = new DatabaseImportExportAdapterManager(
             [
                 'mysqldump' => $this->mysqldumpImportExportDatabaseAdapter->reveal(),
@@ -47,9 +45,14 @@ class DatabaseImportExportAdapterManagerTest extends TestCase
 
     public function testGetAdapter()
     {
-        $this->assertEquals(
+        // assertSame, not assertEquals — see DatabaseAdapterManagerTest.
+        $this->assertSame(
             $this->mysqldumpImportExportDatabaseAdapter->reveal(),
             $this->databaseImportExportAdapterManager->getAdapter('mysqldump')
+        );
+        $this->assertSame(
+            $this->mydumperImportExportDatabaseAdapter->reveal(),
+            $this->databaseImportExportAdapterManager->getAdapter('mydumper')
         );
     }
 

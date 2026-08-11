@@ -9,7 +9,7 @@ This module offers common core functionality for [Conductor](https://github.com/
 
 ## Requirements
 
-* PHP 8.2 – 8.5
+* PHP 8.4.1 – 8.5
 * Composer 2
 
 ## Contributing
