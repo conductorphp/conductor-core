@@ -1,3 +1,10 @@
+[4.0.0](https://github.com/conductorphp/conductor-core/compare/3.1.1...4.0.0) (2026-09-08)
+
+### Features
+* a config schema layer for typed, validated package config (CTAP-1630) ([c7ea316](https://github.com/conductorphp/conductor-core/commit/c7ea3169c9207783c73fc5474e68f20668ea81a8))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [3.1.1](https://github.com/conductorphp/conductor-core/compare/3.1.0...3.1.1) (2026-08-11)
 
 ### Bug Fixes
