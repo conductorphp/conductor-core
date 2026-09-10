@@ -1,3 +1,10 @@
+[4.0.1](https://github.com/conductorphp/conductor-core/compare/4.0.0...4.0.1) (2026-09-10)
+
+### Bug Fixes
+* a file into a directory destination on filesystem:sync (CTAP-1685) ([1249147](https://github.com/conductorphp/conductor-core/commit/12491477d44b563623ec2b1fd3e2523afcb78b28))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [4.0.0](https://github.com/conductorphp/conductor-core/compare/3.1.1...4.0.0) (2026-09-08)
 
 ### Features

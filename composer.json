@@ -1,6 +1,6 @@
 {
   "name": "conductor/core",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Conductor Core",
   "type": "library",
   "homepage": "https://github.com/conductorphp/conductor-core",

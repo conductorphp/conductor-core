@@ -45,18 +45,22 @@ class SyncPlugin implements SyncPluginInterface
         $isDir = $mountManager->directoryExists($from);
 
         $hasErrors = false;
-        $fileExists = $mountManager->has($to);
         if (!$isDir) {
+            $to = $this->resolveFileDestination($mountManager, $from, $to);
+
             $sourceIsNewer = false;
-            if ($fileExists) {
+            $destinationExists = $mountManager->fileExists($to);
+            if ($destinationExists) {
                 $sourceIsNewer = $mountManager->lastModified($from) > $mountManager->lastModified($to);
             }
 
-            if (!$fileExists || $sourceIsNewer) {
+            if (!$destinationExists || $sourceIsNewer) {
                 $result = $this->putFile($mountManager, $from, $to, $config);
                 if (false === $result) {
                     $hasErrors = true;
                 }
+            } else {
+                $this->logger->debug("Skipped file $from. Destination $to is already up to date.");
             }
         } else {
             $result = $this->syncDirectory($mountManager, $from, $to, $config);
@@ -66,6 +70,29 @@ class SyncPlugin implements SyncPluginInterface
         }
 
         return !$hasErrors;
+    }
+
+    /**
+     * Resolve the destination for a single file source, so that an existing directory destination means "copy into
+     * this directory", as cp, rsync and aws s3 cp all do.
+     *
+     * Without this, a directory destination satisfies the destination existence check (MountManager::has() is true
+     * for directories) and the directory's own mtime wins the timestamp comparison, so the sync copies nothing,
+     * reports nothing and still succeeds.
+     */
+    private function resolveFileDestination(MountManager $mountManager, string $from, string $to): string
+    {
+        if (!$mountManager->directoryExists($to)) {
+            return $to;
+        }
+
+        [, $fromPath] = $mountManager->getPrefixAndPath($from);
+        [$toPrefix, $toPath] = $mountManager->getPrefixAndPath($to);
+        $to = sprintf('%s://%s/%s', $toPrefix, rtrim($toPath, '/'), basename($fromPath));
+
+        $this->logger->debug("Destination is a directory. Resolved destination to $to.");
+
+        return $to;
     }
 
     /**
