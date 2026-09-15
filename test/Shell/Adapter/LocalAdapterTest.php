@@ -85,6 +85,106 @@ class LocalAdapterTest extends TestCase
     }
 
     /**
+     * The three probes below are the point of running steps under
+     * `bash -Eeuo pipefail -c` (CTAP-1712). Under a bare `bash -c` each of them
+     * exits 0, so a failing statement in the middle of a multi-line plan step is
+     * silently ignored and only the last statement decides whether a deploy
+     * continues.
+     */
+    public function testRunShellCommandFailsOnAFailingIntermediateStatement()
+    {
+        $this->expectException(Exception\RuntimeException::class);
+        $this->adapter->runShellCommand("false\necho reached");
+    }
+
+    public function testRunShellCommandFailsOnAnUnsetVariableExpansion()
+    {
+        $this->expectException(Exception\RuntimeException::class);
+        $this->adapter->runShellCommand('echo "${CONDUCTOR_TEST_UNSET_VARIABLE}"');
+    }
+
+    public function testRunShellCommandFailsOnAFailureInsideAPipeline()
+    {
+        $this->expectException(Exception\RuntimeException::class);
+        $this->adapter->runShellCommand('sh -c "exit 3" | cat');
+    }
+
+    /**
+     * A guard that does not fire is the last statement's exit status, and an
+     * unfired `[[ … ]] && cmd` is a failing step under both shells. Pinned here
+     * because it looks like something strict mode introduced and is not — see
+     * CTAP-1711.
+     */
+    public function testRunShellCommandStillFailsOnAnUnfiredTrailingGuard()
+    {
+        $this->expectException(Exception\RuntimeException::class);
+        $this->adapter->runShellCommand('[[ -f /nonexistent ]] && echo x');
+    }
+
+    /**
+     * `pipefail` makes a SIGPIPE'd producer a step failure, so the long-standing
+     * `… | head -n1` idiom now aborts with exit 141. Deliberate, and the reason
+     * such a pipeline has to be written to tolerate the early reader — see
+     * CTAP-1710.
+     */
+    public function testRunShellCommandFailsWhenAPipelineReaderExitsEarly()
+    {
+        $this->expectException(Exception\RuntimeException::class);
+        $this->adapter->runShellCommand('seq 1 200000 | head -n1');
+    }
+
+    /**
+     * The behavior tests above cover errexit, nounset and pipefail. errtrace has
+     * no failure of its own to show -- it only decides whether an ERR trap a step
+     * sets is inherited by functions and subshells -- so assert the flag set
+     * directly rather than contriving a case for it.
+     */
+    public function testRunShellCommandRunsUnderStrictShellOptions()
+    {
+        $options = explode(':', trim($this->adapter->runShellCommand('echo "$SHELLOPTS"')));
+
+        $this->assertContains('errexit', $options);
+        $this->assertContains('errtrace', $options);
+        $this->assertContains('nounset', $options);
+        $this->assertContains('pipefail', $options);
+    }
+
+    /**
+     * Strict mode must not turn an ordinary successful multi-line step into a
+     * failure: the statements still run in order and stdout is still returned
+     * whole.
+     */
+    public function testRunShellCommandStillRunsAPassingMultiLineStep()
+    {
+        $output = $this->adapter->runShellCommand("echo one\necho two\necho three");
+
+        $this->assertSame("one\ntwo\nthree\n", $output);
+    }
+
+    /**
+     * `-u` must not fire on the guarded-default idiom every plan step already
+     * uses for optional variables.
+     */
+    public function testRunShellCommandAllowsGuardedDefaultsForUnsetVariables()
+    {
+        $this->assertSame(
+            "fallback\n",
+            $this->adapter->runShellCommand('echo "${CONDUCTOR_TEST_UNSET_VARIABLE:-fallback}"')
+        );
+    }
+
+    public function testRunShellCommandPassesEnvironmentVariablesThroughStrictMode()
+    {
+        $output = $this->adapter->runShellCommand(
+            'echo "$CONDUCTOR_TEST_SET_VARIABLE"',
+            null,
+            ['CONDUCTOR_TEST_SET_VARIABLE' => 'value']
+        );
+
+        $this->assertSame("value\n", $output);
+    }
+
+    /**
      * Each call registers its own event loop callbacks; consecutive calls must not
      * leak state from the previous run into the next.
      */

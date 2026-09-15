@@ -35,7 +35,10 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
     ): string {
 
         $this->logger->debug("Running shell command: $command");
-        $command = 'bash -c ' . escapeshellarg($command);
+        // Strict mode, so a failing statement in the middle of a multi-line command is a failure
+        // rather than being overwritten by the exit status of the last statement alone. -E keeps
+        // an ERR trap alive inside functions and subshells.
+        $command = 'bash -Eeuo pipefail -c ' . escapeshellarg($command);
         if (ShellAdapterInterface::PRIORITY_LOW === $priority) {
             $command = 'ionice -c3 nice -n 19 ' . $command;
         } elseif (ShellAdapterInterface::PRIORITY_HIGH === $priority) {

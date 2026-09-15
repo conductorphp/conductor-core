@@ -99,10 +99,13 @@ class FilesystemSyncCommand extends Command
                 10
             )
             ->setDescription(
-                'Copy a directory from a source filesystem directory to a destination filesystem directory.'
+                'Copy a file or directory from a source filesystem to a destination filesystem.'
             )
             ->setHelp(
-                "This command copies a directory from a source filesystem directory to a destination filesystem directory."
+                "This command copies a file or directory from a source filesystem to a destination filesystem.\n"
+                . "A directory source syncs its contents into the destination directory. A file source is copied to "
+                . "the destination path, or into the destination directory as {destination}/{filename} if the "
+                . "destination is an existing directory."
             );
     }
 
