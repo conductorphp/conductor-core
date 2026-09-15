@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace ConductorCoreTest\Config;
 
 use ConductorCore\Config\EnvVarInterpolator;
+use ConductorCore\Exception\InvalidArgumentException;
 use ConductorCore\Exception\InvalidConfigException;
+use ConductorCore\Exception\InvalidPlaceholderException;
 use ConductorCore\Exception\UndefinedVariableException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
+use function base64_encode;
+use function chunk_split;
 use function putenv;
 
 /**
@@ -112,6 +116,130 @@ class EnvVarInterpolatorTest extends TestCase
         $this->assertTrue($config['bool']);
         $this->assertNull($config['null']);
         $this->assertSame(['value', 7], $config['list']);
+    }
+
+    // ------------------------------------------------------------------ filters (CTAP-1728)
+
+    /** The shared `var-export.php.twig` has no per-field hook, so the decode has to happen here. */
+    public function testB64decodeFilterDecodesTheValue(): void
+    {
+        $pem          = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkq\n-----END PRIVATE KEY-----\n";
+        $interpolator = new EnvVarInterpolator(['AMAZON_PAY_PRIVATE_KEY' => base64_encode($pem)]);
+
+        $config = $interpolator->interpolate([
+            'data' => ['AMAZON_PAY' => ['private_key' => '${AMAZON_PAY_PRIVATE_KEY|b64decode}']],
+        ]);
+
+        $this->assertSame($pem, $config['data']['AMAZON_PAY']['private_key']);
+    }
+
+    /** `base64` wraps at 76 columns and appends a newline unless told otherwise; both are tolerated. */
+    public function testB64decodeToleratesWrappedInputWithATrailingNewline(): void
+    {
+        $pem          = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n";
+        $interpolator = new EnvVarInterpolator(['TLS_CERT' => chunk_split(base64_encode($pem), 76, "\n")]);
+
+        $this->assertSame($pem, $interpolator->interpolateString('${TLS_CERT|b64decode}', 'x'));
+    }
+
+    /** Proven by making it fail: not base64 is an error naming the variable, never a truncated key. */
+    public function testAValueThatIsNotBase64IsAnErrorNamingTheVariableAndPath(): void
+    {
+        $interpolator = new EnvVarInterpolator(['AMAZON_PAY_PRIVATE_KEY' => '-----BEGIN PRIVATE KEY-----']);
+
+        try {
+            $interpolator->interpolate([
+                'template_vars' => ['data' => ['private_key' => '${AMAZON_PAY_PRIVATE_KEY|b64decode}']],
+            ]);
+            $this->fail('Expected InvalidPlaceholderException');
+        } catch (InvalidPlaceholderException $exception) {
+            $this->assertStringContainsString('"b64decode"', $exception->getMessage());
+            $this->assertStringContainsString('"AMAZON_PAY_PRIVATE_KEY"', $exception->getMessage());
+            $this->assertStringContainsString('template_vars.data.private_key', $exception->getMessage());
+            $this->assertStringContainsString('not valid base64', $exception->getMessage());
+            $this->assertInstanceOf(InvalidConfigException::class, $exception);
+        }
+    }
+
+    /** A typo in the filter name is not a silent no-op, and is reported even if the variable is unset. */
+    public function testAnUnknownFilterFailsLoudly(): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        try {
+            $interpolator->interpolateString('${KEY|base64decode}', 'template_vars.key');
+            $this->fail('Expected InvalidPlaceholderException');
+        } catch (InvalidPlaceholderException $exception) {
+            $this->assertStringContainsString('Unknown filter "base64decode"', $exception->getMessage());
+            $this->assertStringContainsString('"${KEY|base64decode}"', $exception->getMessage());
+            $this->assertStringContainsString('template_vars.key', $exception->getMessage());
+            $this->assertStringContainsString('b64decode', $exception->getMessage());
+        }
+    }
+
+    public function testAPlaceholderWithoutAFilterIsUnchangedInBehavior(): void
+    {
+        $encoded      = base64_encode('raw');
+        $interpolator = new EnvVarInterpolator(['KEY' => $encoded]);
+
+        $this->assertSame($encoded, $interpolator->interpolateString('${KEY}', 'x'));
+    }
+
+    public function testAnUndefinedVariableWithAFilterIsStillReportedAsUndefined(): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        try {
+            $interpolator->interpolate(['a' => '${MISSING_KEY|b64decode}', 'b' => '${ALSO_MISSING}']);
+            $this->fail('Expected UndefinedVariableException');
+        } catch (UndefinedVariableException $exception) {
+            $this->assertSame([['MISSING_KEY', 'a'], ['ALSO_MISSING', 'b']], $exception->references);
+        }
+    }
+
+    public function testAnEmptyValueWithAFilterCountsAsUnset(): void
+    {
+        $interpolator = new EnvVarInterpolator(['EMPTY_KEY' => '']);
+
+        $this->expectException(UndefinedVariableException::class);
+
+        $interpolator->interpolateString('${EMPTY_KEY|b64decode}', 'x');
+    }
+
+    public function testEscapedPlaceholderWithAFilterRendersLiterally(): void
+    {
+        $interpolator = new EnvVarInterpolator(['KEY' => base64_encode('x')]);
+
+        $this->assertSame('${KEY|b64decode}', $interpolator->interpolateString('$${KEY|b64decode}', 'x'));
+    }
+
+    /** A decoded value containing `${…}` is data, not a placeholder to expand. */
+    public function testADecodedValueIsNotExpandedAgain(): void
+    {
+        $interpolator = new EnvVarInterpolator(['B64' => base64_encode('${INNER}'), 'INNER' => 'never']);
+
+        $this->assertSame('${INNER}', $interpolator->interpolateString('${B64|b64decode}', 'x'));
+    }
+
+    public function testFilteredPlaceholdersInASkippedSubtreeAreLeftAlone(): void
+    {
+        $interpolator = new EnvVarInterpolator(['KEY' => 'not*base64'], ['*.plans.*.steps']);
+        $steps        = ['write-key' => 'echo "${KEY|b64decode}" > key.pem'];
+
+        $config = $interpolator->interpolate(['deploy' => ['plans' => ['default' => ['steps' => $steps]]]]);
+
+        $this->assertSame($steps, $config['deploy']['plans']['default']['steps']);
+    }
+
+    /** The Twig `b64decode` filter decodes through this, so both layers agree. */
+    public function testApplyFilterIsTheSharedDecoder(): void
+    {
+        $this->assertSame('raw', EnvVarInterpolator::applyFilter('b64decode', base64_encode('raw')));
+        $this->assertSame(['b64decode'], EnvVarInterpolator::FILTERS);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        EnvVarInterpolator::applyFilter('rot13', 'x');
     }
 
     // ------------------------------------------------------------------ failing loudly

@@ -153,8 +153,8 @@ a phantom value.
 #### Writing a literal `${VAR}`
 
 `$${VAR}` renders as the literal text `${VAR}`, for the rare template that needs one. Only `${NAME}`
-with a shell-style name (`[A-Za-z_][A-Za-z0-9_]*`) is a placeholder; `${VAR:-default}` and `$VAR` are
-not and pass through untouched.
+and `${NAME|filter}` with a shell-style name (`[A-Za-z_][A-Za-z0-9_]*`) are placeholders;
+`${VAR:-default}` and `$VAR` are not and pass through untouched.
 
 Substitution is a single pass: a value that itself contains `${…}` is not expanded again, so a secret
 cannot inject a reference.
@@ -169,15 +169,35 @@ is not mistaken for configuration. Nothing changes for existing plans.
 #### Multi-line values (PEM keys, certificates)
 
 Environment variables are single-line by convention; a PEM key is not. Put the value in the variable
-**base64 encoded** and decode it in the template with the `b64decode` filter:
+**base64 encoded**:
 
 ```bash
-JWT_PRIVATE_KEY_B64=$(base64 -w0 < jwt-private.pem)
+AMAZON_PAY_PRIVATE_KEY=$(base64 -w0 < amazon-pay-private.pem)
 ```
+
+Then decode it at the point of use with a **filter on the placeholder**:
 
 ```yaml
 template_vars:
-  jwt_private_key: '${JWT_PRIVATE_KEY_B64}'
+  data:
+    AMAZON_PAY:
+      private_key: '${AMAZON_PAY_PRIVATE_KEY|b64decode}'
+```
+
+The variable's value is decoded before it is written into the config, so the file rendered from it —
+here through conductor's own `var-export.php.twig`, which has no per-field hook — receives the PEM
+itself. This is the form to use whenever the value goes through a shared template, or is read by
+anything other than a template you own.
+
+The filter is explicit on purpose. Nothing is decoded because of how a variable is *named*; the
+variable is named for what it is, and `|b64decode` says what to do with it. `b64decode` is the only
+filter today.
+
+The alternative, for a Twig template the project owns, is the same filter inside the template:
+
+```yaml
+template_vars:
+  jwt_private_key: '${JWT_PRIVATE_KEY}'
 ```
 
 ```twig
@@ -188,9 +208,12 @@ return [
 ];
 ```
 
-The decoded bytes are written exactly. Wrapped base64 and a trailing newline are tolerated; anything
-that is not base64 is an error at deploy time, not a truncated key. A `${file:/path}` source that reads
-a mounted secret file directly is a possible follow-up; it is not supported today.
+Both routes decode identically: whitespace is stripped first (`base64` wraps at 76 columns unless told
+`-w0`), then a strict decode, so wrapped input and a trailing newline are fine and anything that is not
+base64 is an error naming the variable — at config load for the placeholder form, at deploy time for
+the Twig form — rather than a truncated key. A misspelled filter name is an error too, not a silent
+no-op. A `${file:/path}` source that reads a mounted secret file directly is a possible follow-up; it is
+not supported today.
 
 #### Config caching
 

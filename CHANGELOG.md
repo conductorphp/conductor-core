@@ -1,3 +1,10 @@
+[5.2.0](https://github.com/conductorphp/conductor-core/compare/5.1.0...5.2.0) (2026-09-15)
+
+### Features
+* placeholder filter (CTAP-1728) ([36cd3b2](https://github.com/conductorphp/conductor-core/commit/36cd3b27f19eabfdc51a9beef337b1e763a746b4))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [5.1.0](https://github.com/conductorphp/conductor-core/compare/5.0.0...5.1.0) (2026-09-15)
 
 ### Features
