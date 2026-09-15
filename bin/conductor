@@ -54,5 +54,8 @@ try {
     }
 
     echo $message . "\e[1;0m";
+    // A bootstrap failure — config that does not load, an undefined `${VAR}` — must fail the
+    // calling script. Falling off the end here exited 0 and let CI treat a broken deploy as a pass.
+    exit(1);
 }
 

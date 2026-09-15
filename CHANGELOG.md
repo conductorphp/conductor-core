@@ -1,3 +1,10 @@
+[5.1.0](https://github.com/conductorphp/conductor-core/compare/5.0.0...5.1.0) (2026-09-15)
+
+### Features
+* interpolation and CONDUCTOR_ENVIRONMENT resolution (CTAP-1724) ([d8ed6dc](https://github.com/conductorphp/conductor-core/commit/d8ed6dc98edf9eb062d8de9cc08944d7da5ac507))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [5.0.0](https://github.com/conductorphp/conductor-core/compare/4.0.1...5.0.0) (2026-09-14)
 
 
