@@ -63,12 +63,10 @@ An empty `CONDUCTOR_ENVIRONMENT` counts as unset. `CONDUCTOR_CRYPT_KEY` works th
 needed while the configuration still carries `ENC[...]` values (see
 [Encrypting configuration values](#encrypting-configuration-values-enc)).
 
-Every conductor project used to carry both values in a `config/env.php` written onto the instance.
-That file is deprecated (CTAP-1741): on the 5.x line conductor still reads it when it is present and
-emits one `E_USER_DEPRECATED` warning naming the file, and with neither a variable nor a file it
-still selects `development` and warns about that too. `conductor/core` 6.0 stops reading the file
-and fails when `CONDUCTOR_ENVIRONMENT` is unset. Move the values into the process environment and
-delete the file; the warning going quiet is the confirmation.
+`CONDUCTOR_ENVIRONMENT` is required. When it is unset or empty, `EnvironmentConfig::resolve()` throws
+naming the variable and `bin/conductor` exits 1, before any plan step runs. There is no default
+environment and no file fallback (CTAP-1741): the process environment is the only source, so a
+deploy runner that forgets the variable stops instead of deploying against `development`.
 
 ### Environment variables in configuration
 
@@ -236,7 +234,7 @@ use Laminas\ConfigAggregator\ConfigAggregator;
 use Laminas\ConfigAggregator\PhpFileProvider;
 
 // CONDUCTOR_ENVIRONMENT / CONDUCTOR_CRYPT_KEY from the process environment.
-$environmentConfig = EnvironmentConfig::resolve(__DIR__);
+$environmentConfig = EnvironmentConfig::resolve();
 $environment = $environmentConfig->environment;
 $cryptKey = $environmentConfig->cryptKey;
 
