@@ -1,3 +1,10 @@
+[5.3.1](https://github.com/conductorphp/conductor-core/compare/5.3.0...5.3.1) (2026-09-16)
+
+### Bug Fixes
+* commands accept a missing crypt_key so the CLI can boot (CTAP-1730) ([bc087df](https://github.com/conductorphp/conductor-core/commit/bc087dfe68449abbecf97e23e12efd7ace6f6b1b))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [5.3.0](https://github.com/conductorphp/conductor-core/compare/5.2.0...5.3.0) (2026-09-16)
 
 ### Features

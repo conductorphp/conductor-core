@@ -18,12 +18,12 @@ class EncryptCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     private Crypt $crypt;
-    private string $key;
+    private ?string $key;
     private LoggerInterface $logger;
 
     public function __construct(
         Crypt            $crypt,
-        string           $key,
+        ?string          $key = null,
         ?LoggerInterface $logger = null,
         ?string          $name = null
     ) {
@@ -55,6 +55,17 @@ class EncryptCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if (empty($this->key)) {
+            // The factory builds this command without a key so that a conductor with no crypt_key (secrets
+            // carried as ${VAR} placeholders) can still boot: Symfony instantiates every command to render
+            // the list. Refuse at use, not at build, and say how to fix it.
+            throw new Exception\RuntimeException(
+                'Configuration key "crypt_key" must be set. '
+                . 'This can be generated with the crypt:generate-key command and must be added '
+                . 'to config/autoload/local.php'
+            );
+        }
+
         $message = $input->getArgument('message');
         $file = $input->getOption('file');
 

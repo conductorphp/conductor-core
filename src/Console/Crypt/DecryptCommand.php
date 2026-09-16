@@ -18,7 +18,7 @@ class DecryptCommand extends Command
     use MonologConsoleHandlerAwareTrait;
 
     private Crypt $crypt;
-    private string $key;
+    private ?string $key;
     private LoggerInterface $logger;
 
     public function __construct(
