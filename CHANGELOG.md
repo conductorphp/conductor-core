@@ -1,3 +1,10 @@
+[5.3.0](https://github.com/conductorphp/conductor-core/compare/5.2.0...5.3.0) (2026-09-16)
+
+### Features
+* the narrative at -v and step output at -vv (CTAP-1736) ([97def44](https://github.com/conductorphp/conductor-core/commit/97def44578c713683513012e36c6b24f381d30f6))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [5.2.0](https://github.com/conductorphp/conductor-core/compare/5.1.0...5.2.0) (2026-09-15)
 
 ### Features

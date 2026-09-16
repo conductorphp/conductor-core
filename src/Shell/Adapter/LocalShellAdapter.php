@@ -3,6 +3,7 @@
 namespace ConductorCore\Shell\Adapter;
 
 use ConductorCore\Exception;
+use ConductorCore\Shell\ChildProcessVerbosity;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -35,6 +36,13 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
     ): string {
 
         $this->logger->debug("Running shell command: $command");
+        // A null environment inherits conductor's own, SHELL_VERBOSITY included, which would run the
+        // child at conductor's -v/-vv. An explicit environment is the caller's decision and is passed
+        // through as given (PlanRunner applies the same policy to its inherited base before layering
+        // a step's own variables on top).
+        if (null === $environmentVariables) {
+            $environmentVariables = ChildProcessVerbosity::forChild(getenv());
+        }
         // Strict mode, so a failing statement in the middle of a multi-line command is a failure
         // rather than being overwritten by the exit status of the last statement alone. -E keeps
         // an ERR trap alive inside functions and subshells.

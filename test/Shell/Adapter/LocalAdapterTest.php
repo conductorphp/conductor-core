@@ -35,6 +35,51 @@ class LocalAdapterTest extends TestCase
         $this->assertIsString($this->adapter->runShellCommand('ls'));
     }
 
+    /**
+     * Symfony exports SHELL_VERBOSITY for conductor's own -v/-vv, and a child would inherit it and
+     * run just as loud. Below debug the child runs at its own default instead.
+     */
+    public function testChildProcessesRunAtTheirDefaultVerbosityBelowDebug(): void
+    {
+        $this->withShellVerbosity('2', function (): void {
+            $this->assertSame(
+                "unset\n",
+                $this->adapter->runShellCommand('echo "${SHELL_VERBOSITY:-unset}"')
+            );
+        });
+    }
+
+    public function testDebugVerbosityReachesChildProcesses(): void
+    {
+        $this->withShellVerbosity('3', function (): void {
+            $this->assertSame("3\n", $this->adapter->runShellCommand('echo "${SHELL_VERBOSITY:-unset}"'));
+        });
+    }
+
+    /** A caller who builds the environment has decided what the child gets. */
+    public function testAnExplicitEnvironmentIsPassedThroughUnchanged(): void
+    {
+        $this->withShellVerbosity('3', function (): void {
+            $output = $this->adapter->runShellCommand(
+                'echo "${SHELL_VERBOSITY:-unset}"',
+                null,
+                ['PATH' => getenv('PATH'), 'SHELL_VERBOSITY' => '2']
+            );
+            $this->assertSame("2\n", $output);
+        });
+    }
+
+    private function withShellVerbosity(string $level, callable $test): void
+    {
+        $previous = getenv('SHELL_VERBOSITY');
+        putenv('SHELL_VERBOSITY=' . $level);
+        try {
+            $test();
+        } finally {
+            putenv(false === $previous ? 'SHELL_VERBOSITY' : 'SHELL_VERBOSITY=' . $previous);
+        }
+    }
+
     public function testRunShellCommandReturnsStdout()
     {
         $this->assertSame("hello\n", $this->adapter->runShellCommand('echo hello'));
