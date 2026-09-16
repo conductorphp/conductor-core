@@ -1,3 +1,10 @@
+[5.4.0](https://github.com/conductorphp/conductor-core/compare/5.3.1...5.4.0) (2026-09-16)
+
+### Features
+* deprecation warning for env.php and the development default (CTAP-1741) ([95eaabc](https://github.com/conductorphp/conductor-core/commit/95eaabc6fdd3fb25dbd82451e906be3df4b38584))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [5.3.1](https://github.com/conductorphp/conductor-core/compare/5.3.0...5.3.1) (2026-09-16)
 
 ### Bug Fixes

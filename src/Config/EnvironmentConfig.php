@@ -9,22 +9,28 @@ use function is_array;
 use function is_file;
 use function is_string;
 use function rtrim;
+use function sprintf;
+use function trigger_error;
+
+use const E_USER_DEPRECATED;
 
 /**
  * Which environment conductor is running against, and the key for any `ENC[…]` values.
  *
- * Both used to be read straight out of `config/env.php` by every project's scaffolded
- * `config/config.php`. That forces a PHP file to be written onto every instance just to carry two
- * values, and it is the one thing a platform whose secret store surfaces values as environment
- * variables cannot do for us. So the environment variables come first and `env.php` is the fallback
- * (CTAP-1724, CTAP-1721):
+ * Both come from the process environment (CTAP-1724, CTAP-1721):
  *
  *     CONDUCTOR_ENVIRONMENT=production CONDUCTOR_CRYPT_KEY=def000… conductor app:deploy
  *
- * The names are the placeholder strings `config/env.php.dist` has always shipped with. An empty
- * environment variable counts as unset, consistent with {@see EnvVarInterpolator}.
+ * They used to be read out of `config/env.php` by every project's scaffolded `config/config.php`.
+ * That forces a PHP file to be written onto every instance just to carry two values, and it is the
+ * one thing a platform whose secret store surfaces values as environment variables cannot do for us.
+ * The file is still honored as a fallback on the 5.x line, with a deprecation warning whenever it is
+ * present; `conductor/core` 6.0 stops reading it, and an unset `CONDUCTOR_ENVIRONMENT` fails instead
+ * of defaulting to `development` (CTAP-1741).
  *
- * A project's `config/config.php` replaces its `env.php` block with:
+ * An empty environment variable counts as unset, consistent with {@see EnvVarInterpolator}.
+ *
+ * A project's `config/config.php` reads:
  *
  *     $environmentConfig = EnvironmentConfig::resolve(__DIR__);
  *     $environment       = $environmentConfig->environment;
@@ -39,7 +45,12 @@ final readonly class EnvironmentConfig
 {
     public const ENVIRONMENT_VARIABLE = 'CONDUCTOR_ENVIRONMENT';
     public const CRYPT_KEY_VARIABLE   = 'CONDUCTOR_CRYPT_KEY';
-    public const DEFAULT_ENVIRONMENT  = 'development';
+
+    /**
+     * @deprecated since 5.4, removed in 6.0 (CTAP-1741). An unset `CONDUCTOR_ENVIRONMENT` fails
+     *     instead of selecting this environment.
+     */
+    public const DEFAULT_ENVIRONMENT = 'development';
 
     public function __construct(
         public string $environment,
@@ -48,27 +59,61 @@ final readonly class EnvironmentConfig
     }
 
     /**
-     * Environment variables first, then `<configDir>/env.php`, then the historical defaults.
+     * Environment variables first, then the deprecated `<configDir>/env.php`, then the historical
+     * default.
      *
-     * The file's values are used exactly as written, as the scaffolded `config.php` always did, so
-     * an `env.php`-only setup behaves identically to before. The only new behavior is that a
-     * non-empty `CONDUCTOR_ENVIRONMENT` or `CONDUCTOR_CRYPT_KEY` in the process environment wins.
+     * A non-empty `CONDUCTOR_ENVIRONMENT` or `CONDUCTOR_CRYPT_KEY` always wins. When the file is
+     * present, its values fill whichever of the two the environment did not supply, exactly as the
+     * scaffolded `config.php` always used them, and one `E_USER_DEPRECATED` warning names the file.
+     * With neither a variable nor a file, the environment is `development` and the warning says so.
+     * Both fallbacks go away in 6.0 (CTAP-1741).
      *
      * @param string $configDir The project's `config/` directory, i.e. `__DIR__` from `config.php`.
      */
     public static function resolve(string $configDir): self
     {
-        $fromFile = self::readEnvFile(rtrim($configDir, '/') . '/env.php');
+        $environment = self::fromEnvironment(self::ENVIRONMENT_VARIABLE);
+        $cryptKey    = self::fromEnvironment(self::CRYPT_KEY_VARIABLE);
 
-        $environment = self::fromEnvironment(self::ENVIRONMENT_VARIABLE)
-            ?? (isset($fromFile['environment']) && is_string($fromFile['environment'])
+        $envFile = rtrim($configDir, '/') . '/env.php';
+        if (is_file($envFile)) {
+            $fromFile = self::readEnvFile($envFile);
+
+            $environment ??= isset($fromFile['environment']) && is_string($fromFile['environment'])
                 ? $fromFile['environment']
-                : self::DEFAULT_ENVIRONMENT);
-
-        $cryptKey = self::fromEnvironment(self::CRYPT_KEY_VARIABLE)
-            ?? (isset($fromFile['crypt_key']) && is_string($fromFile['crypt_key'])
+                : null;
+            $cryptKey ??= isset($fromFile['crypt_key']) && is_string($fromFile['crypt_key'])
                 ? $fromFile['crypt_key']
-                : null);
+                : null;
+
+            trigger_error(
+                sprintf(
+                    'Reading %s is deprecated and conductor/core 6.0 ignores the file (CTAP-1741).'
+                    . ' Set %s, and %s while the configuration still carries ENC[...] values,'
+                    . ' in the process environment and delete the file.',
+                    $envFile,
+                    self::ENVIRONMENT_VARIABLE,
+                    self::CRYPT_KEY_VARIABLE,
+                ),
+                E_USER_DEPRECATED,
+            );
+        }
+
+        if ($environment === null) {
+            if (! is_file($envFile)) {
+                trigger_error(
+                    sprintf(
+                        '%1$s is not set. Defaulting to the "%2$s" environment is deprecated and'
+                        . ' conductor/core 6.0 fails instead (CTAP-1741). Set %1$s in the process environment.',
+                        self::ENVIRONMENT_VARIABLE,
+                        self::DEFAULT_ENVIRONMENT,
+                    ),
+                    E_USER_DEPRECATED,
+                );
+            }
+
+            $environment = self::DEFAULT_ENVIRONMENT;
+        }
 
         return new self($environment, $cryptKey);
     }
@@ -96,10 +141,6 @@ final readonly class EnvironmentConfig
     /** @return array<string, mixed> */
     private static function readEnvFile(string $file): array
     {
-        if (! is_file($file)) {
-            return [];
-        }
-
         $config = include $file;
 
         return is_array($config) ? $config : [];

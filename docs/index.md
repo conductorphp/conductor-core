@@ -59,16 +59,16 @@ environment it is running against, and the values that differ per environment or
 CONDUCTOR_ENVIRONMENT=production conductor app:deploy --plan production
 ```
 
-If it is not set, conductor falls back to `config/env.php`, which is how every conductor project used to
-carry the value. Keep that file out of version control:
-
-```bash
-echo 'config/env.php' >> .gitignore
-```
-
 An empty `CONDUCTOR_ENVIRONMENT` counts as unset. `CONDUCTOR_CRYPT_KEY` works the same way and is only
 needed while the configuration still carries `ENC[...]` values (see
 [Encrypting configuration values](#encrypting-configuration-values-enc)).
+
+Every conductor project used to carry both values in a `config/env.php` written onto the instance.
+That file is deprecated (CTAP-1741): on the 5.x line conductor still reads it when it is present and
+emits one `E_USER_DEPRECATED` warning naming the file, and with neither a variable nor a file it
+still selects `development` and warns about that too. `conductor/core` 6.0 stops reading the file
+and fails when `CONDUCTOR_ENVIRONMENT` is unset. Move the values into the process environment and
+delete the file; the warning going quiet is the confirmation.
 
 ### Environment variables in configuration
 
@@ -219,8 +219,8 @@ not supported today.
 
 When `ConfigAggregator::ENABLE_CACHE` is on, the merged configuration — with placeholders filled and
 `ENC[...]` values decrypted — is written to `config_cache_path` and read back on later runs without
-consulting the environment again. Clear that file when a variable changes, and treat it as sensitive
-for the same reason `env.php` is. Development mode (`composer development-enable`) disables the cache.
+consulting the environment again. Clear that file when a variable changes, and treat it as sensitive:
+it holds every secret in plaintext. Development mode (`composer development-enable`) disables the cache.
 
 ### The `config/config.php` scaffold
 
@@ -235,8 +235,7 @@ use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
 use Laminas\ConfigAggregator\PhpFileProvider;
 
-// CONDUCTOR_ENVIRONMENT / CONDUCTOR_CRYPT_KEY from the process environment first,
-// config/env.php as the fallback.
+// CONDUCTOR_ENVIRONMENT / CONDUCTOR_CRYPT_KEY from the process environment.
 $environmentConfig = EnvironmentConfig::resolve(__DIR__);
 $environment = $environmentConfig->environment;
 $cryptKey = $environmentConfig->cryptKey;
@@ -299,15 +298,10 @@ The one interaction to know: decryption runs before interpolation, so a decrypte
 happens to contain a `${NAME}` sequence would be interpolated. Carry such a value as a base64
 environment variable instead.
 
-Set the key with `CONDUCTOR_CRYPT_KEY`, or in `config/env.php`:
+Set the key with `CONDUCTOR_CRYPT_KEY`:
 
-```php
-<?php
-
-return [
-    'environment' => 'development',
-    'crypt_key' => 'yourcryptkeyhere',
-];
+```bash
+CONDUCTOR_ENVIRONMENT=production CONDUCTOR_CRYPT_KEY=yourcryptkeyhere conductor app:deploy --plan production
 ```
 
 Generate an encryption key and save it by running:
