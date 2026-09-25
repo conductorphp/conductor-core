@@ -69,6 +69,18 @@ class LocalAdapterTest extends TestCase
         });
     }
 
+    private function recordingLogger(): AbstractLogger
+    {
+        return new class extends AbstractLogger {
+            public array $messages = [];
+
+            public function log($level, string|Stringable $message, array $context = []): void
+            {
+                $this->messages[] = (string) $message;
+            }
+        };
+    }
+
     private function withShellVerbosity(string $level, callable $test): void
     {
         $previous = getenv('SHELL_VERBOSITY');
@@ -101,20 +113,72 @@ class LocalAdapterTest extends TestCase
 
     public function testRunShellCommandSendsStderrToTheLogger()
     {
-        $logger = new class extends AbstractLogger {
-            public array $messages = [];
-
-            public function log($level, string|Stringable $message, array $context = []): void
-            {
-                $this->messages[] = (string) $message;
-            }
-        };
-
+        $logger = $this->recordingLogger();
         $this->adapter->setLogger($logger);
         $output = $this->adapter->runShellCommand('echo out; echo err 1>&2');
 
         $this->assertSame("out\n", $output);
         $this->assertContains("err\n", $logger->messages);
+    }
+
+    /**
+     * A Symfony Console progress bar redraws with `\r` on stderr, so the child leaves a partial
+     * line there and carries on writing stdout. Reading either pipe a line at a time blocked on
+     * the partial stderr line while stdout filled the pipe buffer, and the child blocked in turn
+     * (CTAP-1946). The command runs under `timeout` so a regression fails instead of hanging.
+     */
+    public function testAPartialStderrLineDoesNotStallALargeStdout(): void
+    {
+        $logger = $this->recordingLogger();
+        $this->adapter->setLogger($logger);
+
+        $output = $this->adapter->runShellCommand(
+            "timeout 10 bash -c \"printf 'partial' >&2; head -c 200000 /dev/zero | tr '\\\\0' a; echo >&2\""
+        );
+
+        $this->assertSame(str_repeat('a', 200000), $output);
+        $this->assertContains("partial\n", $logger->messages);
+    }
+
+    public function testAPartialStderrLineAtExitIsStillLogged(): void
+    {
+        $logger = $this->recordingLogger();
+        $this->adapter->setLogger($logger);
+
+        $this->adapter->runShellCommand("printf 'first\\nlast' >&2");
+
+        $this->assertContains("first\n", $logger->messages);
+        $this->assertContains('last', $logger->messages);
+    }
+
+    public function testInterleavedOutputOnBothStreamsIsKeptApart(): void
+    {
+        $logger = $this->recordingLogger();
+        $this->adapter->setLogger($logger);
+
+        $output = $this->adapter->runShellCommand(
+            'timeout 10 bash -c \'for i in $(seq 1 5000); do echo "out $i"; echo "err $i" >&2; done\''
+        );
+
+        $expected = implode('', array_map(static fn (int $i): string => "out $i\n", range(1, 5000)));
+        $this->assertSame($expected, $output);
+        $stderrLines = array_values(array_filter(
+            $logger->messages,
+            static fn (string $message): bool => str_starts_with($message, 'err ')
+        ));
+        $this->assertSame(array_map(static fn (int $i): string => "err $i\n", range(1, 5000)), $stderrLines);
+    }
+
+    public function testANonZeroExitAfterLargeOutputThrowsWithTheOutput(): void
+    {
+        try {
+            $this->adapter->runShellCommand(
+                "timeout 10 bash -c \"printf 'partial' >&2; head -c 100000 /dev/zero | tr '\\\\0' a; exit 3\""
+            );
+            $this->fail('Expected a RuntimeException.');
+        } catch (Exception\RuntimeException $exception) {
+            $this->assertStringContainsString(str_repeat('a', 100000), $exception->getMessage());
+        }
     }
 
     public function testRunShellCommandThrowsExceptionOnError()

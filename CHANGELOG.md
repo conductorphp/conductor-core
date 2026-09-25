@@ -1,3 +1,10 @@
+[6.0.1](https://github.com/conductorphp/conductor-core/compare/6.0.0...6.0.1) (2026-09-25)
+
+### Bug Fixes
+* LocalShellAdapter deadlocking on a partial stderr line (CTAP-1946) ([0e97278](https://github.com/conductorphp/conductor-core/commit/0e97278980a75397eeda89906264fd30fcf92792))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.0.0](https://github.com/conductorphp/conductor-core/compare/5.4.0...6.0.0) (2026-09-16)
 
 

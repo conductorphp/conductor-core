@@ -74,16 +74,29 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             throw new Exception\RuntimeException(sprintf('Failed to open process for command "%s".', $command));
         }
 
-        // Allow for input?
-        //fwrite($pipes[0], ' ');
+        // Nothing is written to the child's stdin, so close it now rather than leave a reader such
+        // as `docker exec -i` waiting on it.
+        fclose($pipes[0]);
+
+        // Both pipes are read without blocking, a chunk at a time. A blocking line read on stderr
+        // waits for a newline the child may never write while stdout fills its pipe buffer, and
+        // the child then blocks writing stdout: a progress bar redrawing with `\r` is enough
+        // (CTAP-1946).
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
 
         $logger = $this->logger;
+        $stderr = '';
         EventLoop::onReadable(
             $pipes[2],
-            static function (string $callbackId, $socket) use ($logger) {
-                $line = fgets($socket);
-                if ($line) {
-                    $logger->debug($line);
+            static function (string $callbackId, $socket) use ($logger, &$stderr) {
+                $chunk = fread($socket, 8192);
+                if (false !== $chunk && '' !== $chunk) {
+                    $stderr .= $chunk;
+                    while (false !== ($end = strpos($stderr, "\n"))) {
+                        $logger->debug(substr($stderr, 0, $end + 1));
+                        $stderr = substr($stderr, $end + 1);
+                    }
                 } elseif (!is_resource($socket) || feof($socket)) {
                     EventLoop::cancel($callbackId);
                 }
@@ -94,9 +107,9 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         EventLoop::onReadable(
             $pipes[1],
             static function (string $callbackId, $socket) use (&$output) {
-                $line = fgets($socket);
-                if ($line) {
-                    $output .= $line;
+                $chunk = fread($socket, 8192);
+                if (false !== $chunk && '' !== $chunk) {
+                    $output .= $chunk;
                 } elseif (!is_resource($socket) || feof($socket)) {
                     EventLoop::cancel($callbackId);
                 }
@@ -105,13 +118,10 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
 
         EventLoop::run();
 
-        $output .= stream_get_contents($pipes[1]);
-        $remainingStderr = stream_get_contents($pipes[2]);
-        if ($remainingStderr) {
-            $this->logger->debug($remainingStderr);
+        if ('' !== $stderr) {
+            $this->logger->debug($stderr);
         }
 
-        fclose($pipes[0]);
         fclose($pipes[1]);
         fclose($pipes[2]);
 
