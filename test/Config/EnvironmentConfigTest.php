@@ -42,6 +42,7 @@ class EnvironmentConfigTest extends TestCase
     {
         putenv(EnvironmentConfig::ENVIRONMENT_VARIABLE);
         putenv(EnvironmentConfig::CRYPT_KEY_VARIABLE);
+        putenv(EnvironmentConfig::CRYPT_KEYS_PREVIOUS_VARIABLE);
 
         @unlink($this->configDir . '/env.php');
         @rmdir($this->configDir);
@@ -65,7 +66,26 @@ class EnvironmentConfigTest extends TestCase
 
         $this->assertSame('production', $config->environment);
         $this->assertSame('def000key', $config->cryptKey);
-        $this->assertSame(['environment' => 'production', 'crypt_key' => 'def000key'], $config->toArray());
+        $this->assertNull($config->cryptKeysPrevious);
+        $this->assertTrue($config->hasCryptKeys());
+        $this->assertSame(
+            ['environment' => 'production', 'crypt_key' => 'def000key', 'crypt_keys_previous' => null],
+            $config->toArray(),
+        );
+    }
+
+    /** CTAP-1968: retired keys ride along in their own variable, comma-separated, and count as keys. */
+    public function testPreviousKeysAreResolvedFromTheirOwnVariable(): void
+    {
+        putenv(EnvironmentConfig::ENVIRONMENT_VARIABLE . '=production');
+        putenv(EnvironmentConfig::CRYPT_KEYS_PREVIOUS_VARIABLE . '=oldA,oldB');
+
+        $config = EnvironmentConfig::resolve();
+
+        $this->assertNull($config->cryptKey);
+        $this->assertSame('oldA,oldB', $config->cryptKeysPrevious);
+        $this->assertTrue($config->hasCryptKeys());
+        $this->assertSame('oldA,oldB', $config->toArray()['crypt_keys_previous']);
     }
 
     /** A `${VAR}`-only configuration has no `ENC[…]` values and needs no key at all (CTAP-1730). */
@@ -73,7 +93,11 @@ class EnvironmentConfigTest extends TestCase
     {
         putenv(EnvironmentConfig::ENVIRONMENT_VARIABLE . '=production');
 
-        $this->assertNull(EnvironmentConfig::resolve()->cryptKey);
+        $config = EnvironmentConfig::resolve();
+
+        $this->assertNull($config->cryptKey);
+        $this->assertNull($config->cryptKeysPrevious);
+        $this->assertFalse($config->hasCryptKeys());
     }
 
     /** `CONDUCTOR_CRYPT_KEY=` passed through by compose for an unset host variable is not a key. */

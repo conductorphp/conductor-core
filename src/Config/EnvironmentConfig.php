@@ -11,11 +11,11 @@ use function is_string;
 use function sprintf;
 
 /**
- * Which environment conductor is running against, and the key for any `ENC[…]` values.
+ * Which environment conductor is running against, and the keys for any encrypted values.
  *
- * Both come from the process environment, and from nowhere else (CTAP-1724, CTAP-1721, CTAP-1741):
+ * All come from the process environment, and from nowhere else (CTAP-1724, CTAP-1721, CTAP-1741):
  *
- *     CONDUCTOR_ENVIRONMENT=production CONDUCTOR_CRYPT_KEY=def000… conductor app:deploy
+ *     CONDUCTOR_ENVIRONMENT=production CONDUCTOR_CRYPT_KEY=<base64 key> conductor app:deploy
  *
  * Every project's scaffolded `config/config.php` used to include a PHP file carrying the two values,
  * which forced a file to be written onto every instance and was the one thing a platform whose
@@ -30,26 +30,31 @@ use function sprintf;
  *
  *     $environmentConfig = EnvironmentConfig::resolve();
  *     $environment       = $environmentConfig->environment;
- *     $cryptKey          = $environmentConfig->cryptKey;
+ *     $crypt             = (new CryptResolverFactory())->fromEnvironmentConfig($environmentConfig);
  *     …
  *     new ArrayProvider($environmentConfig->toArray()),
  *
- * The crypt key is optional. A configuration that carries its secrets as `${VAR}` placeholders
- * instead of `ENC[…]` values needs no key at all.
+ * The keys are optional. `CONDUCTOR_CRYPT_KEY` is the current key, what `crypt:encrypt` writes
+ * under; `CONDUCTOR_CRYPT_KEYS_PREVIOUS` holds retired keys, comma-separated, so a value encrypted
+ * before a rotation still decrypts (CTAP-1968). A configuration that carries its secrets as `${VAR}`
+ * placeholders instead of encrypted values needs neither.
  */
 final readonly class EnvironmentConfig
 {
-    public const ENVIRONMENT_VARIABLE = 'CONDUCTOR_ENVIRONMENT';
-    public const CRYPT_KEY_VARIABLE   = 'CONDUCTOR_CRYPT_KEY';
+    public const ENVIRONMENT_VARIABLE         = 'CONDUCTOR_ENVIRONMENT';
+    public const CRYPT_KEY_VARIABLE           = 'CONDUCTOR_CRYPT_KEY';
+    public const CRYPT_KEYS_PREVIOUS_VARIABLE = 'CONDUCTOR_CRYPT_KEYS_PREVIOUS';
 
     public function __construct(
         public string $environment,
         public ?string $cryptKey = null,
+        public ?string $cryptKeysPrevious = null,
     ) {
     }
 
     /**
-     * `CONDUCTOR_ENVIRONMENT` is required; `CONDUCTOR_CRYPT_KEY` is optional and `null` when unset.
+     * `CONDUCTOR_ENVIRONMENT` is required; `CONDUCTOR_CRYPT_KEY` and `CONDUCTOR_CRYPT_KEYS_PREVIOUS`
+     * are optional and `null` when unset.
      *
      * @param string|null $configDir Ignored. Accepted so a `config.php` written against 5.x, which
      *     passed `__DIR__`, keeps working; nothing is read from the directory any more.
@@ -68,19 +73,31 @@ final readonly class EnvironmentConfig
             ));
         }
 
-        return new self($environment, self::fromEnvironment(self::CRYPT_KEY_VARIABLE));
+        return new self(
+            $environment,
+            self::fromEnvironment(self::CRYPT_KEY_VARIABLE),
+            self::fromEnvironment(self::CRYPT_KEYS_PREVIOUS_VARIABLE),
+        );
+    }
+
+    /** Whether any key, current or retired, is configured: whether encrypted values can be decrypted at all. */
+    public function hasCryptKeys(): bool
+    {
+        return $this->cryptKey !== null || $this->cryptKeysPrevious !== null;
     }
 
     /**
-     * The `['environment' => …, 'crypt_key' => …]` pair the merged config has always carried.
+     * The `['environment' => …, 'crypt_key' => …]` pair the merged config has always carried, plus
+     * `crypt_keys_previous` since 6.1.
      *
-     * @return array{environment: string, crypt_key: string|null}
+     * @return array{environment: string, crypt_key: string|null, crypt_keys_previous: string|null}
      */
     public function toArray(): array
     {
         return [
-            'environment' => $this->environment,
-            'crypt_key'   => $this->cryptKey,
+            'environment'         => $this->environment,
+            'crypt_key'           => $this->cryptKey,
+            'crypt_keys_previous' => $this->cryptKeysPrevious,
         ];
     }
 

@@ -9,6 +9,9 @@ return [
     'aliases'            => [
         \League\Flysystem\MountManager::class => Filesystem\MountManager\MountManager::class,
         Shell\Adapter\ShellAdapterInterface::class => Shell\Adapter\LocalShellAdapter::class,
+        // What the container hands out for encryption: the resolver over both envelopes (CTAP-1968).
+        Crypt\CryptInterface::class => Crypt\CryptResolver::class,
+        \Rmg\Lib\Crypt\Api\EncryptionKeyGeneratorInterface::class => \Rmg\Lib\Crypt\Sodium\EncryptionKeyGenerator::class,
     ],
     // Console I/O services. These must be registered explicitly: left to the
     // ReflectionBasedAbstractFactory, servicemanager v4 resolves ArgvInput's
@@ -25,6 +28,7 @@ return [
         \Psr\Log\LoggerInterface::class                    => DefaultLoggerFactory::class,
         Console\Crypt\DecryptCommand::class                => Console\Crypt\DecryptCommandFactory::class,
         Console\Crypt\EncryptCommand::class                => Console\Crypt\EncryptCommandFactory::class,
+        Crypt\CryptResolver::class                         => Crypt\CryptResolverFactory::class,
         Database\DatabaseAdapterManager::class             => Database\DatabaseAdapterManagerFactory::class,
         Database\DatabaseImportExportAdapterManager::class => Database\DatabaseImportExportAdapterManagerFactory::class,
         Filesystem\MountManager\MountManager::class        => Filesystem\MountManager\MountManagerFactory::class,

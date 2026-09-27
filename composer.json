@@ -1,6 +1,6 @@
 {
   "name": "conductor/core",
-  "version": "6.0.1",
+  "version": "6.1.0",
   "description": "Conductor Core",
   "type": "library",
   "homepage": "https://github.com/conductorphp/conductor-core",
@@ -26,6 +26,8 @@
     "league/flysystem-sftp-v3": "^3.12.3",
     "monolog/monolog": "^3.3.1",
     "revolt/event-loop": "^1.0",
+    "rmg/lib-crypt-api": "^1.1.1",
+    "rmg/lib-crypt-sodium": "^1.1.1",
     "symfony/console": "^8.0",
     "symfony/monolog-bridge": "^8.0",
     "symfony/yaml": "^8.0"

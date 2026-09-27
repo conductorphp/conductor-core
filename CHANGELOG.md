@@ -1,3 +1,11 @@
+[6.1.0](https://github.com/conductorphp/conductor-core/compare/6.0.1...6.1.0) (2026-09-27)
+
+### Features
+* through rmg/lib-crypt-sodium instead of an in-tree copy (CTAP-1968) ([0840079](https://github.com/conductorphp/conductor-core/commit/08400791d0b9892cf80b72ae68989147b5c45ff8))
+* values use the sodium enc:v1 envelope (CTAP-1968) ([fef0a25](https://github.com/conductorphp/conductor-core/commit/fef0a2534d6d8c293ad36b0230edee12846984df))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.0.1](https://github.com/conductorphp/conductor-core/compare/6.0.0...6.0.1) (2026-09-25)
 
 ### Bug Fixes

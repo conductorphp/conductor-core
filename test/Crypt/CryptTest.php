@@ -1,96 +1,97 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ConductorCoreTest\Crypt;
 
+use ConductorCore\Config\EnvironmentConfig;
 use ConductorCore\Crypt\Crypt;
+use Rmg\Lib\Crypt\Sodium\EncryptionKeyGenerator;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class CryptTest extends TestCase
+use function array_replace_recursive;
+use function putenv;
+use function restore_error_handler;
+use function set_error_handler;
+
+use const E_USER_DEPRECATED;
+
+/**
+ * The deprecated per-provider wrapper (CTAP-1968): kept for one release so a `config/config.php`
+ * written against core 5.x/6.0 keeps decrypting, now both envelopes, while saying what to change.
+ */
+final class CryptTest extends TestCase
 {
-    const TEST_KEY = 'def00000de54d8d8cb4804e9748968de2edc1b130ba31df5c5fa0eb662bfe4c6d2caaec614eb5de3628bd3220331f21b3e3b6ccb1332a7691d081b6317c721657ded544f';
-    const TEST_MESSAGE = 'Encrypt me!';
+    private const KEY   = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
+    private const VALUE = 'enc:v1:630dcd2966c43366:jMXfEsjW2rV1az2mT9WTo+AhUlLjQoS6NNAmtSXuNxqKW2vZrfHRC/MwcwaxX66JX248';
 
-    /**
-     * @var Crypt
-     */
-    private $crypt;
+    /** @var list<string> */
+    private array $deprecations = [];
 
-    public function setUp(): void
+    protected function setUp(): void
     {
-        $this->crypt = new Crypt();
+        set_error_handler(function (int $level, string $message): bool {
+            if ($level === E_USER_DEPRECATED) {
+                $this->deprecations[] = $message;
+
+                return true;
+            }
+
+            return false;
+        });
     }
 
-    public function testGenerateKey()
+    protected function tearDown(): void
     {
-        $this->assertIsString($this->crypt->generateKey());
+        restore_error_handler();
+        putenv(EnvironmentConfig::CRYPT_KEYS_PREVIOUS_VARIABLE);
     }
 
-    public function testEncrypt()
+    /** @return array<string, mixed> */
+    private function merge(callable $generator): array
     {
-        $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
-        $this->assertNotEquals(self::TEST_MESSAGE, $ciphertext);
-    }
-
-    public function testDecrypt()
-    {
-        $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
-        $message = $this->crypt->decrypt($ciphertext, self::TEST_KEY);
-        $this->assertEquals(self::TEST_MESSAGE, $message);
-    }
-
-    public function testDecryptExpressiveConfigWithNoKey()
-    {
-        $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
-        $config = [
-            'plaintext' => self::TEST_MESSAGE,
-            'encrypted' => $ciphertext,
-        ];
-
-        $generator = $this->crypt::decryptExpressiveConfig($config);
         $config = [];
         foreach ($generator() as $data) {
             $config = array_replace_recursive($config, $data);
         }
-        $this->assertEquals(self::TEST_MESSAGE, $config['plaintext']);
-        $this->assertEquals($ciphertext, $config['encrypted']);
+
+        return $config;
     }
 
-    public function testDecryptExpressiveConfigWithArray()
+    #[Test]
+    public function stillDecryptsAnArrayAndEmitsOneDeprecation(): void
     {
-        $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
-        $config = [
-            'plaintext' => self::TEST_MESSAGE,
-            'encrypted' => $ciphertext,
-        ];
+        $config = $this->merge(Crypt::decryptExpressiveConfig(['plaintext' => 'x', 'encrypted' => self::VALUE], self::KEY));
 
-        $generator = $this->crypt::decryptExpressiveConfig($config, self::TEST_KEY);
-        $config = [];
-        foreach ($generator() as $data) {
-            $config = array_replace_recursive($config, $data);
-        }
-        $this->assertEquals(self::TEST_MESSAGE, $config['plaintext']);
-        $this->assertEquals(self::TEST_MESSAGE, $config['encrypted']);
+        $this->assertSame(['plaintext' => 'x', 'encrypted' => 'Encrypt me!'], $config);
+        $this->assertCount(1, $this->deprecations);
+        $this->assertStringContainsString('DecryptConfigPostProcessor', $this->deprecations[0]);
+        $this->assertStringContainsString('7.0 removes it', $this->deprecations[0]);
     }
 
-    public function testDecryptExpressiveConfigWithGenerator()
+    #[Test]
+    public function stillDecryptsAProviderGeneratorFileByFile(): void
     {
-        $config = function () {
-            $ciphertext = $this->crypt->encrypt(self::TEST_MESSAGE, self::TEST_KEY);
-            return [
-                [
-                    'plaintext' => self::TEST_MESSAGE,
-                    'encrypted' => $ciphertext,
-                ],
-            ];
-        };
+        $provider = static fn (): array => [['a' => self::VALUE], ['b' => self::VALUE]];
 
-        $generator = $this->crypt::decryptExpressiveConfig($config, self::TEST_KEY);
-        $config = [];
-        foreach ($generator() as $data) {
-            $config = array_replace_recursive($config, $data);
-        }
-        $this->assertEquals(self::TEST_MESSAGE, $config['plaintext']);
-        $this->assertEquals(self::TEST_MESSAGE, $config['encrypted']);
+        $this->assertSame(['a' => 'Encrypt me!', 'b' => 'Encrypt me!'], $this->merge(Crypt::decryptExpressiveConfig($provider, self::KEY)));
     }
 
+    #[Test]
+    public function withNoKeyValuesPassThroughAsBefore(): void
+    {
+        $this->assertSame(['encrypted' => self::VALUE], $this->merge(Crypt::decryptExpressiveConfig(['encrypted' => self::VALUE])));
+    }
+
+    /** The wrapper only ever received the current key, so retired keys are read from the variable directly. */
+    #[Test]
+    public function retiredKeysComeFromTheEnvironmentVariable(): void
+    {
+        putenv(EnvironmentConfig::CRYPT_KEYS_PREVIOUS_VARIABLE . '=' . self::KEY);
+
+        $config = $this->merge(Crypt::decryptExpressiveConfig(['encrypted' => self::VALUE], (new EncryptionKeyGenerator())->generate()));
+
+        $this->assertSame('Encrypt me!', $config['encrypted']);
+    }
 }

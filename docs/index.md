@@ -6,8 +6,13 @@ This module offers common core functionality for [Conductor](https://github.com/
 ## Installation
 
 ```bash
+composer config repositories.rmg-libs composer https://composer.rmgmedia.com/lib/   # rmg/lib-crypt-* (private)
 composer require conductor/core
 ```
+
+Core encrypts configuration values with `rmg/lib-crypt-sodium`, a private RMG library; the `lib`
+section of `composer.rmgmedia.com` must be declared by the consuming project (a repository inside a
+dependency's `composer.json` is ignored by composer) and its credentials configured.
 
 ## Basic Usage
 
@@ -59,9 +64,9 @@ environment it is running against, and the values that differ per environment or
 CONDUCTOR_ENVIRONMENT=production conductor app:deploy --plan production
 ```
 
-An empty `CONDUCTOR_ENVIRONMENT` counts as unset. `CONDUCTOR_CRYPT_KEY` works the same way and is only
-needed while the configuration still carries `ENC[...]` values (see
-[Encrypting configuration values](#encrypting-configuration-values-enc)).
+An empty `CONDUCTOR_ENVIRONMENT` counts as unset. `CONDUCTOR_CRYPT_KEY` and
+`CONDUCTOR_CRYPT_KEYS_PREVIOUS` work the same way and are only needed while the configuration carries
+encrypted values (see [Encrypting configuration values](#encrypting-configuration-values-encv1)).
 
 `CONDUCTOR_ENVIRONMENT` is required. When it is unset or empty, `EnvironmentConfig::resolve()` throws
 naming the variable and `bin/conductor` exits 1, before any plan step runs. There is no default
@@ -226,17 +231,19 @@ it holds every secret in plaintext. Development mode (`composer development-enab
 <?php
 
 use ConductorAppOrchestration\Config\EnvVarInterpolationPostProcessor;
+use ConductorCore\Config\DecryptConfigPostProcessor;
 use ConductorCore\Config\EnvironmentConfig;
-use ConductorCore\Crypt\Crypt;
+use ConductorCore\Crypt\CryptResolverFactory;
 use ConductorCore\YamlFileProvider;
 use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
 use Laminas\ConfigAggregator\PhpFileProvider;
 
-// CONDUCTOR_ENVIRONMENT / CONDUCTOR_CRYPT_KEY from the process environment.
+// CONDUCTOR_ENVIRONMENT / CONDUCTOR_CRYPT_KEY / CONDUCTOR_CRYPT_KEYS_PREVIOUS from the process environment.
 $environmentConfig = EnvironmentConfig::resolve();
 $environment = $environmentConfig->environment;
-$cryptKey = $environmentConfig->cryptKey;
+// Null when no key is configured: encrypted values are then left as written.
+$crypt = (new CryptResolverFactory())->fromEnvironmentConfig($environmentConfig);
 
 // To enable or disable caching, set the `ConfigAggregator::ENABLE_CACHE` boolean in
 // `config/autoload/local.php`.
@@ -262,8 +269,8 @@ $aggregator = new ConfigAggregator(
         //   - `local.php`
         //   - `*.local.php`
         new PhpFileProvider('config/autoload/{,*.}global.php'),
-        Crypt::decryptExpressiveConfig(new YamlFileProvider('config/app/{,*.}yaml'), $cryptKey),
-        Crypt::decryptExpressiveConfig(new YamlFileProvider('config/app/environments/' . $environment . '/{,*.}yaml'), $cryptKey),
+        new YamlFileProvider('config/app/{,*.}yaml'),
+        new YamlFileProvider('config/app/environments/' . $environment . '/{,*.}yaml'),
         new PhpFileProvider('config/autoload/{,*.}local.php'),
         // Load development config if it exists
         new PhpFileProvider('config/development.config.php'),
@@ -271,6 +278,9 @@ $aggregator = new ConfigAggregator(
     ],
     $cacheConfig['config_cache_path'],
     [
+        // Encrypted values anywhere in the merged config, decrypted with the keys above. First, so
+        // interpolation sees plaintext.
+        new DecryptConfigPostProcessor($crypt),
         // `${VAR}` placeholders anywhere in the merged config. Undefined variables fail the load.
         new EnvVarInterpolationPostProcessor(),
     ]
@@ -284,25 +294,46 @@ return $aggregator->getMergedConfig();
 `\ConductorCore\Config\EnvVarInterpolator::fromProcessEnvironment()` as the post-processor instead and
 get the process environment as the only source.
 
-### Encrypting configuration values (`ENC[...]`)
+### Encrypting configuration values (`enc:v1:...`)
 
 Before `${VAR}` interpolation, the only way to carry a secret into configuration was to encrypt it in
-place. It still works, and the two coexist in one configuration: a value is either an `ENC[...]` string
-or contains `${VAR}` placeholders, and each mechanism ignores the other's syntax. Prefer `${VAR}` for
-new configuration — it needs no key, and the platform that owns the environment owns the secret. A
-configuration with no `ENC[...]` values needs no `crypt_key` at all.
+place. It still works, and the two coexist in one configuration: a value is either an encrypted string
+or contains `${VAR}` placeholders, and each mechanism ignores the other's syntax. Prefer `${VAR}` for a
+value the environment's owner manages (a database password, a hosting endpoint); encrypt a value that
+is yours and never changes per host (a payment gateway credential, a signing key). A configuration
+with no encrypted values needs no key at all.
 
 The one interaction to know: decryption runs before interpolation, so a decrypted plaintext that
 happens to contain a `${NAME}` sequence would be interpolated. Carry such a value as a base64
 environment variable instead.
 
-Set the key with `CONDUCTOR_CRYPT_KEY`:
+Since core 6.1 (CTAP-1968) an encrypted value is the self-describing envelope the middleware's
+secret attributes use, produced by the same library (`rmg/lib-crypt-sodium`), so one string works in
+conductor YAML and in the application alike:
 
-```bash
-CONDUCTOR_ENVIRONMENT=production CONDUCTOR_CRYPT_KEY=yourcryptkeyhere conductor app:deploy --plan production
+```
+enc:v1:<keyId>:<base64 of nonce + ciphertext>
 ```
 
-Generate an encryption key and save it by running:
+`v1` is libsodium secretbox (XSalsa20-Poly1305); `<keyId>` is a fingerprint of the key the value was
+encrypted under, so a value says which key opens it and a rotation is a lookup, not a guess.
+
+Two variables carry the keys, both read from the process environment by `EnvironmentConfig` and from
+nowhere else:
+
+| Variable | Holds | Used for |
+|---|---|---|
+| `CONDUCTOR_CRYPT_KEY` | exactly one key, base64 of 32 bytes (`crypt:generate-key`) | `crypt:encrypt`, and decrypting values that name it |
+| `CONDUCTOR_CRYPT_KEYS_PREVIOUS` | zero or more retired keys, comma-separated | decrypting values encrypted before a rotation |
+
+The deploy key is not the application's `ENCRYPTION_KEY`: same format, different key, held by
+different parties. Conductor never reads the application's variables.
+
+```bash
+CONDUCTOR_ENVIRONMENT=production CONDUCTOR_CRYPT_KEY=<key> conductor app:deploy --plan production
+```
+
+Generate a key:
 
 ```bash
 ./vendor/bin/conductor crypt:generate-key
@@ -314,17 +345,45 @@ Get the encrypted value for a string by writing it to a file, then running:
 ./vendor/bin/conductor crypt:encrypt --file yourplaintextfile.txt
 ```
 
-Or, get the encrypted value for a string by running this directly:
+Or directly:
 
 ```bash
 ./vendor/bin/conductor crypt:encrypt yourplaintextstring
 ```
 
-Replace the plain text string in your configuration with the returned ciphertext including the wrapping ENC[] tag.
+Replace the plaintext in your configuration with the printed `enc:v1:...` string as-is; there is no
+wrapper to add. `crypt:decrypt` reads a value back with whichever configured key it names.
 
 Note that a value encrypted in `global.yaml` must decrypt under every environment's key, which in
-practice forces one key across all environments. Values that differ per environment belong in that
-environment's file, or in a `${VAR}`.
+practice means one key per tier that shares the file (non-production environments together,
+production on its own). Values that differ per environment belong in that environment's file, or in a
+`${VAR}`.
+
+#### Rotating the key
+
+1. Move the current key from `CONDUCTOR_CRYPT_KEY` into `CONDUCTOR_CRYPT_KEYS_PREVIOUS`; put the new
+   key from `crypt:generate-key` in `CONDUCTOR_CRYPT_KEY`. Every existing value still decrypts.
+2. Re-encrypt each value with `crypt:encrypt` and commit the new ciphertext.
+3. Drop the retired key. From then on a value still naming it fails the load by key id:
+
+```
+Error decrypting configuration key "application_orchestration/application/…": no key with id
+630dcd2966c43366 is carried by CONDUCTOR_CRYPT_KEY or CONDUCTOR_CRYPT_KEYS_PREVIOUS
+```
+
+#### `ENC[defuse/php-encryption,...]` values
+
+Core 6.1 still reads the envelope every value encrypted before it carries, with the defuse key
+(`def000…`) from `CONDUCTOR_CRYPT_KEY` or, once a sodium key has replaced it there, from
+`CONDUCTOR_CRYPT_KEYS_PREVIOUS`. It no longer writes one, and core 7.0 stops reading it. Converting
+is the rotation above with the defuse key as the retired one: list it in
+`CONDUCTOR_CRYPT_KEYS_PREVIOUS`, `crypt:decrypt` each `ENC[…]` value and `crypt:encrypt` it again,
+then drop the defuse key. A configuration mixing both envelopes decrypts each with its own key
+meanwhile.
+
+`Crypt::decryptExpressiveConfig()`, the per-provider wrapper a `config/config.php` written against
+core 5.x or 6.0 calls, still works and decrypts both envelopes, but emits a deprecation naming
+`DecryptConfigPostProcessor` and is removed in 7.0.
 
 ## Known Issues
 
