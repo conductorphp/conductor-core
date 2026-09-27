@@ -19,6 +19,7 @@ use function putenv;
 
 /**
  * CTAP-1724. `${VAR}` interpolation across a config tree, failing loudly on an undefined variable.
+ * CTAP-1984 adds `${VAR:-default}` and rejects every other shell form instead of passing it through.
  */
 class EnvVarInterpolatorTest extends TestCase
 {
@@ -67,9 +68,9 @@ class EnvVarInterpolatorTest extends TestCase
         );
     }
 
-    /** Only `${NAME}` is a placeholder; shell forms and stray dollars pass through untouched. */
+    /** Text that is not `${NAME…}` at all is not a placeholder and passes through untouched. */
     #[DataProvider('notPlaceholders')]
-    public function testShellSyntaxThatIsNotAPlaceholderPassesThrough(string $value): void
+    public function testTextThatIsNotAPlaceholderPassesThrough(string $value): void
     {
         $interpolator = new EnvVarInterpolator([]);
 
@@ -79,12 +80,237 @@ class EnvVarInterpolatorTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function notPlaceholders(): iterable
     {
-        yield 'default form'  => ['${VAR:-default}'];
-        yield 'required form' => ['${VAR:?message}'];
-        yield 'no braces'     => ['$VAR'];
-        yield 'bad name'      => ['${9VAR}'];
-        yield 'empty'         => ['${}'];
-        yield 'price'         => ['costs $5'];
+        yield 'no braces' => ['$VAR'];
+        yield 'bad name'  => ['${9VAR}'];
+        yield 'empty'     => ['${}'];
+        yield 'price'     => ['costs $5'];
+        yield 'unclosed'  => ['${VAR'];
+    }
+
+    // ------------------------------------------------------------------ defaults (CTAP-1984)
+
+    /** The four cases from the ticket: the default fills an unset variable and yields to a set one. */
+    public function testADefaultAppliesWhenTheVariableIsUnsetAndYieldsWhenItIsSet(): void
+    {
+        $unset = new EnvVarInterpolator([]);
+        $set   = new EnvVarInterpolator(['DATABASE_PORT' => '3307']);
+
+        $this->assertSame('3306', $unset->interpolateString('${DATABASE_PORT:-3306}', 'x'));
+        $this->assertSame('3307', $set->interpolateString('${DATABASE_PORT:-3306}', 'x'));
+        $this->assertSame('3307', $set->interpolateString('${DATABASE_PORT}', 'x'));
+
+        $this->expectException(UndefinedVariableException::class);
+
+        $unset->interpolateString('${DATABASE_PORT}', 'x');
+    }
+
+    /** Empty is unset here as everywhere else in this class, and as the shell's `:-` treats it. */
+    public function testADefaultAppliesWhenTheVariableIsEmpty(): void
+    {
+        $interpolator = new EnvVarInterpolator(['RABBITMQ_VIRTUAL_HOST' => '']);
+
+        $this->assertSame('/', $interpolator->interpolateString('${RABBITMQ_VIRTUAL_HOST:-/}', 'x'));
+    }
+
+    /** `${NAME:-}` is how a config says a value may legitimately be blank. */
+    public function testAnEmptyDefaultRendersAnEmptyString(): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        $this->assertSame('', $interpolator->interpolateString('${OPTIONAL:-}', 'x'));
+        $this->assertSame('a=,b=1', $interpolator->interpolateString('a=${OPTIONAL:-},b=1', 'x'));
+    }
+
+    /** The default is literal text to the closing brace: spaces, colons, dashes, dots and slashes included. */
+    #[DataProvider('literalDefaults')]
+    public function testTheDefaultIsLiteralTextUpToTheClosingBrace(string $default): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        $this->assertSame($default, $interpolator->interpolateString('${VAR:-' . $default . '}', 'x'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function literalDefaults(): iterable
+    {
+        yield 'url'           => ['https://example.test:8443/path'];
+        yield 'dash and colon' => ['-:-'];
+        yield 'spaces'        => ['two words'];
+        yield 'dollar'        => ['$5'];
+        yield 'equals'        => ['a=b'];
+    }
+
+    /** A default is data, like a value: what it contains is not expanded again. */
+    public function testTheDefaultIsNotExpandedAgain(): void
+    {
+        $interpolator = new EnvVarInterpolator(['INNER' => 'never']);
+
+        $this->assertSame('$INNER', $interpolator->interpolateString('${OUTER:-$INNER}', 'x'));
+    }
+
+    public function testADefaultAndAValueInTheSameStringResolveIndependently(): void
+    {
+        $interpolator = new EnvVarInterpolator(['HOST' => 'db']);
+
+        $this->assertSame('db:3306', $interpolator->interpolateString('${HOST:-localhost}:${PORT:-3306}', 'x'));
+    }
+
+    /** Filter first, then default; the filter applies to whichever value wins. */
+    public function testTheFilterAppliesToTheDefaultWhenItWins(): void
+    {
+        $unset = new EnvVarInterpolator([]);
+        $set   = new EnvVarInterpolator(['KEY' => base64_encode('from-env')]);
+
+        $placeholder = '${KEY|b64decode:-' . base64_encode('from-default') . '}';
+
+        $this->assertSame('from-default', $unset->interpolateString($placeholder, 'x'));
+        $this->assertSame('from-env', $set->interpolateString($placeholder, 'x'));
+        $this->assertSame('', $unset->interpolateString('${KEY|b64decode:-}', 'x'));
+    }
+
+    /** A default that is not base64 is caught before the operator ever leaves the variable unset. */
+    public function testAFilterThatRejectsTheDefaultFailsLoudly(): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        $this->expectException(InvalidPlaceholderException::class);
+        $this->expectExceptionMessage('Filter "b64decode" failed for variable "KEY"');
+
+        $interpolator->interpolateString('${KEY|b64decode:-not*base64}', 'x');
+    }
+
+    public function testAnUnknownFilterWithADefaultIsStillAnError(): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        $this->expectException(InvalidPlaceholderException::class);
+        $this->expectExceptionMessage('Unknown filter "rot13"');
+
+        $interpolator->interpolateString('${KEY|rot13:-x}', 'x');
+    }
+
+    /** A defaulted placeholder is never undefined, so it does not show up in the report. */
+    public function testADefaultedPlaceholderIsNotReportedAsUndefined(): void
+    {
+        $interpolator = new EnvVarInterpolator([]);
+
+        try {
+            $interpolator->interpolate(['a' => '${PORT:-3306}', 'b' => '${MISSING}']);
+            $this->fail('Expected UndefinedVariableException');
+        } catch (UndefinedVariableException $exception) {
+            $this->assertSame([['MISSING', 'b']], $exception->references);
+            $this->assertStringContainsString('${NAME:-default}', $exception->getMessage());
+        }
+    }
+
+    public function testDefaultsFillAcrossTheTree(): void
+    {
+        $interpolator = new EnvVarInterpolator(['MYSQL_HOST' => 'db.internal']);
+
+        $config = $interpolator->interpolate([
+            'database' => ['adapters' => ['default' => ['arguments' => [
+                'host' => '${MYSQL_HOST:-localhost}',
+                'port' => '${MYSQL_PORT:-3306}',
+            ]]]],
+        ]);
+
+        $this->assertSame(
+            ['host' => 'db.internal', 'port' => '3306'],
+            $config['database']['adapters']['default']['arguments'],
+        );
+    }
+
+    // ------------------------------------------------------------------ rejected forms (CTAP-1984)
+
+    /**
+     * The actual bug: every one of these used to pass through as literal text with no error, whether or
+     * not the variable was set. Now each fails the load naming the variable and the config path.
+     */
+    #[DataProvider('unsupportedPlaceholders')]
+    public function testAnUnsupportedShellOperatorFailsNamingTheVariableAndPath(
+        string $placeholder,
+        string $reason,
+        ?string $reported = null,
+    ): void {
+        // The pattern stops at the first `}`, so a nested `${VAR:-${OTHER}}` is reported up to there.
+        $reported ??= $placeholder;
+
+        foreach ([new EnvVarInterpolator([]), new EnvVarInterpolator(['VAR' => 'set'])] as $interpolator) {
+            try {
+                $interpolator->interpolate(['database' => ['port' => "prefix {$placeholder} suffix"]]);
+                $this->fail("Expected InvalidPlaceholderException for {$placeholder}");
+            } catch (InvalidPlaceholderException $exception) {
+                $this->assertStringContainsString("Unsupported placeholder \"{$reported}\"", $exception->getMessage());
+                $this->assertStringContainsString('variable "VAR"', $exception->getMessage());
+                $this->assertStringContainsString('at "database.port"', $exception->getMessage());
+                $this->assertStringContainsString($reason, $exception->getMessage());
+                $this->assertStringContainsString(InvalidPlaceholderException::SUPPORTED_FORMS, $exception->getMessage());
+                $this->assertStringContainsString("\"\${$reported}\"", $exception->getMessage());
+                $this->assertInstanceOf(InvalidConfigException::class, $exception);
+            }
+        }
+    }
+
+    /** @return iterable<string, array{string, string, 2?: string}> */
+    public static function unsupportedPlaceholders(): iterable
+    {
+        $operators = 'only ":-" is supported';
+        $order     = 'the filter goes before the default';
+        $nested    = 'cannot contain another placeholder';
+
+        yield 'unset-only default'    => ['${VAR-x}', $operators];
+        yield 'assign default'        => ['${VAR:=x}', $operators];
+        yield 'required'              => ['${VAR:?}', $operators];
+        yield 'required with message' => ['${VAR:?message}', $operators];
+        yield 'alternate'             => ['${VAR:+x}', $operators];
+        yield 'substring'             => ['${VAR:0:2}', $operators];
+        yield 'suffix strip'          => ['${VAR%/}', $operators];
+        yield 'empty filter'          => ['${VAR|}', $operators];
+        yield 'two filters'           => ['${VAR|b64decode|b64decode}', $operators];
+        yield 'space'                 => ['${VAR }', $operators];
+        yield 'filter after default'  => ['${VAR:-x|b64decode}', $order];
+        yield 'filter twice'          => ['${VAR|b64decode:-x|b64decode}', $order];
+        yield 'nested placeholder'    => ['${VAR:-${OTHER}}', $nested, '${VAR:-${OTHER}'];
+        yield 'nested with filter'    => ['${VAR|b64decode:-${OTHER}}', $nested, '${VAR|b64decode:-${OTHER}'];
+    }
+
+    /** `${#VAR}` has no leading identifier, so it is not a placeholder by the pattern, like `${9VAR}`. */
+    public function testALengthExpansionIsNotAPlaceholderAtAll(): void
+    {
+        $interpolator = new EnvVarInterpolator(['VAR' => 'set']);
+
+        $this->assertSame('${#VAR}', $interpolator->interpolateString('${#VAR}', 'x'));
+    }
+
+    /** The escape covers the whole braced text, so a shell form is a literal too, never validated. */
+    #[DataProvider('escapedShellForms')]
+    public function testAnEscapedShellFormRendersLiterally(string $literal): void
+    {
+        $interpolator = new EnvVarInterpolator(['VAR' => 'set']);
+
+        $this->assertSame($literal, $interpolator->interpolateString('$' . $literal, 'x'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function escapedShellForms(): iterable
+    {
+        yield 'default'  => ['${VAR:-x}'];
+        yield 'assign'   => ['${VAR:=x}'];
+        yield 'required' => ['${VAR:?}'];
+    }
+
+    /** A plan step's `${CONDUCTOR_CRYPT_KEY:-}` and `${attempt}` are the shell's business, as before. */
+    public function testShellFormsInASkippedSubtreeAreNeitherFilledNorRejected(): void
+    {
+        $interpolator = new EnvVarInterpolator(['VAR' => 'set'], ['*.plans.*.steps', '*.plans.*.*_steps']);
+        $steps        = [
+            'key'   => 'test -n "${CONDUCTOR_CRYPT_KEY:-}"',
+            'retry' => 'echo "${attempt:?} of ${VAR:=x} ${VAR:-y}"',
+        ];
+
+        $config = $interpolator->interpolate(['deploy' => ['plans' => ['default' => ['steps' => $steps]]]]);
+
+        $this->assertSame($steps, $config['deploy']['plans']['default']['steps']);
     }
 
     /** A value is substituted once; what it contains is data, not more placeholders. */

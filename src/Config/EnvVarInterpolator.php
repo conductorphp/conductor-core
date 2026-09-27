@@ -25,6 +25,8 @@ use function sprintf;
 use function str_contains;
 use function substr;
 
+use const PREG_UNMATCHED_AS_NULL;
+
 /**
  * Fills `${NAME}` placeholders in a config tree from a set of variables, failing loudly on any it
  * cannot fill.
@@ -37,14 +39,25 @@ use function substr;
  * ## Rules
  *
  * - `${NAME}` is replaced by the variable's value. `NAME` is `[A-Za-z_][A-Za-z0-9_]*`, the same
- *   set the shell accepts, so `${VAR:-default}` and friends are not placeholders and pass through.
+ *   set the shell accepts.
+ * - `${NAME:-default}` falls back to `default` when the variable is unset or empty (CTAP-1984), the
+ *   shell's `:-` rule and this class's own rule that empty counts as unset. The default is literal
+ *   text up to the closing `}`: it is not expanded again, and it may be empty, so `${NAME:-}` is the
+ *   way to say "this value may legitimately be blank". It is for a stock infrastructure value — a
+ *   port, a virtual host — never for a secret, which has no sensible default.
  * - `${NAME|b64decode}` passes the value through a filter first. Filters are explicit at the point
  *   of use — a variable is never transformed because of how it is named — and there is exactly one
  *   today: `b64decode`, for the multi-line value (a PEM key) that travels as one base64 environment
  *   variable. An unknown filter name and a value the filter rejects are both errors at config load
  *   naming the variable, so a typo is not a silent no-op and a mangled key is not a deploy-time
- *   surprise ({@see InvalidPlaceholderException}).
- * - `$${NAME}` emits a literal `${NAME}`, for the rare template that needs one.
+ *   surprise ({@see InvalidPlaceholderException}). With a default the filter comes first,
+ *   `${NAME|b64decode:-default}`, and applies to whichever value wins; a default may not contain `|`.
+ * - Every other `${NAME…}` form is an error naming the variable and the config path. The shell's
+ *   `${NAME-x}`, `${NAME:=x}`, `${NAME:?x}` and `${NAME:+x}` are not supported, and until 6.2 they
+ *   passed through as literal text with no error, which is how a config written by shell habit
+ *   shipped a broken value. `${9VAR}`, `${}` and `$VAR` are not placeholders at all and still pass.
+ * - `$${NAME}` emits a literal `${NAME}`, for the rare template that needs one. The escape covers the
+ *   whole braced text, so `$${NAME:?x}` is a literal too.
  * - An undefined variable is an error, never an empty string and never the literal passed through.
  *   Every undefined reference in the tree is reported in ONE exception, naming the variable and the
  *   config path (`application_orchestration.application.skeleton.files[config/autoload/db.php]…`),
@@ -73,14 +86,28 @@ use function substr;
 final class EnvVarInterpolator
 {
     /**
-     * `${NAME}` or `${NAME|filter}` to interpolate, `$${NAME}` for a literal.
+     * Anything shaped like a placeholder: `${NAME` followed by modifiers up to the closing `}`, or
+     * `$${…}` for a literal.
      *
-     * Group 1 is the escape marker (`$` or empty), group 2 the variable name, group 3 the filter
-     * name or empty. Public so any other code that recognizes placeholders agrees on exactly one
+     * Group 1 is the escape marker (`$`, or unmatched), group 2 the variable name, group 3 the
+     * modifiers (`|filter`, `:-default`, both, or empty). Deliberately wide: a `${NAME:=x}` has to
+     * be MATCHED to be rejected, and the old pattern, which matched only the forms it supported,
+     * let every other one through as literal text. {@see MODIFIERS_PATTERN} decides what group 3
+     * may contain. Public so any other code that recognizes placeholders agrees on exactly one
      * syntax; {@see \ConductorAppOrchestration\Config\ReplacementConfig} goes further and uses this
      * class to do the filling, so there is one parser rather than one pattern in two places.
      */
-    public const PLACEHOLDER_PATTERN = '/\$(\$)?\{([A-Za-z_][A-Za-z0-9_]*)(?:\|([A-Za-z_][A-Za-z0-9_]*))?\}/';
+    public const PLACEHOLDER_PATTERN = '/\$(\$)?\{([A-Za-z_][A-Za-z0-9_]*)([^}]*)\}/';
+
+    /**
+     * The modifiers a placeholder accepts, in this order: an optional `|filter`, then an optional
+     * `:-default`. Group 1 is the filter name, group 2 the default text (empty for `${NAME:-}`,
+     * unmatched when there is no `:-`).
+     *
+     * The default may not contain `|` — the filter goes before the default, and this is what rejects
+     * `${NAME:-x|filter}` rather than silently treating `x|filter` as the default text.
+     */
+    public const MODIFIERS_PATTERN = '/^(?:\|([A-Za-z_][A-Za-z0-9_]*))?(?::-([^|]*))?$/';
 
     /** The filters `${NAME|filter}` accepts. */
     public const FILTERS = ['b64decode'];
@@ -250,39 +277,94 @@ final class EnvVarInterpolator
         return (string) preg_replace_callback(
             self::PLACEHOLDER_PATTERN,
             function (array $matches) use ($path, &$undefined): string {
-                $escaped = $matches[1];
-                $name    = $matches[2];
-                $filter  = $matches[3] ?? '';
+                [$placeholder, $escaped, $name, $modifiers] = $matches;
 
-                if ($escaped !== '') {
-                    // Everything after the leading `$`, filter included, verbatim.
-                    return substr($matches[0], 1);
+                if ($escaped !== null) {
+                    // Everything after the leading `$`, modifiers included, verbatim and unchecked.
+                    return substr($placeholder, 1);
                 }
 
-                // A bad filter is a bad placeholder whether or not the variable is set: fail on the
-                // typo now rather than after the operator has also defined the variable.
-                if ($filter !== '' && ! in_array($filter, self::FILTERS, true)) {
+                // A bad placeholder is bad whether or not the variable is set: fail on the typo now
+                // rather than after the operator has also defined the variable.
+                [$filter, $default] = self::parseModifiers($modifiers, $placeholder, $name, $path);
+
+                if ($filter !== null && ! in_array($filter, self::FILTERS, true)) {
                     throw InvalidPlaceholderException::unknownFilter($filter, $name, $path, self::FILTERS);
                 }
 
-                if (! isset($this->variables[$name])) {
+                $winner = $this->variables[$name] ?? $default;
+
+                if ($winner === null) {
                     $undefined[] = [$name, $path];
 
-                    return $matches[0];
+                    return $placeholder;
                 }
 
-                if ($filter === '') {
-                    return $this->variables[$name];
+                if ($filter === null) {
+                    return $winner;
                 }
 
                 try {
-                    return self::applyFilter($filter, $this->variables[$name]);
+                    return self::applyFilter($filter, $winner);
                 } catch (InvalidArgumentException $exception) {
                     throw InvalidPlaceholderException::filterFailed($filter, $name, $path, $exception->getMessage());
                 }
             },
             $value,
+            flags: PREG_UNMATCHED_AS_NULL,
         );
+    }
+
+    /**
+     * Split a placeholder's modifiers into `[filter, default]`, either of which may be absent.
+     *
+     * `${NAME:-}` yields a default of `''`, distinct from no default at all: the first renders an
+     * empty string where the variable is unset, the second is an undefined variable.
+     *
+     * @return array{?string, ?string}
+     * @throws InvalidPlaceholderException On any modifier other than `|filter` and `:-default`.
+     */
+    private static function parseModifiers(
+        string $modifiers,
+        string $placeholder,
+        string $name,
+        string $path,
+    ): array {
+        if ($modifiers === '') {
+            return [null, null];
+        }
+
+        if (preg_match(self::MODIFIERS_PATTERN, $modifiers, $parts, PREG_UNMATCHED_AS_NULL) !== 1) {
+            // Well-formed up to the default, so the default itself is what carries the `|`.
+            if (preg_match('/^(?:\|[A-Za-z_][A-Za-z0-9_]*)?:-/', $modifiers) === 1) {
+                throw InvalidPlaceholderException::unsupportedSyntax(
+                    $placeholder,
+                    $name,
+                    $path,
+                    'a default may not contain "|"; the filter goes before the default: "${NAME|filter:-default}"',
+                );
+            }
+
+            throw InvalidPlaceholderException::unsupportedSyntax(
+                $placeholder,
+                $name,
+                $path,
+                'only ":-" is supported; the shell\'s "-", ":=", ":?" and ":+" operators are not',
+            );
+        }
+
+        [, $filter, $default] = $parts;
+
+        if ($default !== null && str_contains($default, '${')) {
+            throw InvalidPlaceholderException::unsupportedSyntax(
+                $placeholder,
+                $name,
+                $path,
+                'a default is literal text and is not expanded, so it cannot contain another placeholder',
+            );
+        }
+
+        return [$filter, $default];
     }
 
     /** @throws InvalidArgumentException */

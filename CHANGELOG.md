@@ -1,3 +1,10 @@
+[6.2.0](https://github.com/conductorphp/conductor-core/compare/6.1.0...6.2.0) (2026-09-27)
+
+### Features
+* placeholders; reject other shell forms (CTAP-1984) ([4cd1c44](https://github.com/conductorphp/conductor-core/commit/4cd1c447628c11be10a8073dbed20c5b05e7e204))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.1.0](https://github.com/conductorphp/conductor-core/compare/6.0.1...6.1.0) (2026-09-27)
 
 ### Features

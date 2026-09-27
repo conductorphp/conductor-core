@@ -153,11 +153,40 @@ Define it in the process environment (an empty value counts as unset), or write 
 `conductor` exits non-zero, so a CI step or a platform's deploy hook fails rather than deploying with
 a phantom value.
 
+#### Defaults for infrastructure values (`${VAR:-default}`)
+
+`${VAR:-default}` renders `default` when `VAR` is unset **or empty** — the shell's `:-` rule, and the
+same rule this layer already applies everywhere (an empty variable is an unset one). It is for a value
+that has a stock answer wherever the compose file is not the one supplying it:
+
+```yaml
+environment_vars:
+  DATABASE_PORT: '${MYSQL_PORT:-3306}'
+  RABBITMQ_VIRTUAL_HOST: '${RABBITMQ_VHOST:-/}'
+```
+
+The default is literal text up to the closing `}`. It is not expanded again, it may contain spaces,
+colons, slashes and dashes, and it may be empty: `${VAR:-}` renders `""` and is how a config says
+"this may legitimately be blank" without the load failing. A default may not contain `|` or `${`.
+Like every interpolated value it is a string; `3306` here is `'3306'`.
+
+A filter goes **before** the default and applies to whichever value wins:
+`${TLS_CERT|b64decode:-}`. Writing it after (`${VAR:-x|b64decode}`) is an error, not a default of
+`x|b64decode`.
+
+A secret has no sensible default. Give a default to a port or a host name, not to a password.
+
 #### Writing a literal `${VAR}`
 
-`$${VAR}` renders as the literal text `${VAR}`, for the rare template that needs one. Only `${NAME}`
-and `${NAME|filter}` with a shell-style name (`[A-Za-z_][A-Za-z0-9_]*`) are placeholders;
-`${VAR:-default}` and `$VAR` are not and pass through untouched.
+`$${VAR}` renders as the literal text `${VAR}`, for the rare template that needs one, and the escape
+covers whatever is inside the braces: `$${VAR:?}` is a literal too. Only `${NAME}`, `${NAME|filter}`,
+`${NAME:-default}` and `${NAME|filter:-default}` with a shell-style name (`[A-Za-z_][A-Za-z0-9_]*`)
+are placeholders. `$VAR`, `${}` and `${9VAR}` are not and pass through untouched.
+
+Any other `${NAME…}` form is an error at config load naming the variable and the config path. The
+shell's `${VAR-x}`, `${VAR:=x}`, `${VAR:?}` and `${VAR:+x}` are the ones a reader writes by habit;
+before core 6.2 they passed through as literal text with no error, which is exactly how a broken
+value shipped (CTAP-1984).
 
 Substitution is a single pass: a value that itself contains `${…}` is not expanded again, so a secret
 cannot inject a reference.

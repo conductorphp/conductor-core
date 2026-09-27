@@ -57,7 +57,7 @@ class UndefinedVariableException extends InvalidConfigException
         }
 
         $message .= "\nDefine it in the process environment (an empty value counts as unset), "
-            . 'or write "$${NAME}" where a literal "${NAME}" is intended.';
+            . 'give it a default with "${NAME:-default}", or write "$${NAME}" where a literal "${NAME}" is intended.';
 
         return new self($message, $references);
     }
