@@ -1,3 +1,10 @@
+[6.2.1](https://github.com/conductorphp/conductor-core/compare/6.2.0...6.2.1) (2026-09-28)
+
+### Bug Fixes
+* failed forked worker exits instead of running the rest of the plan (CTAP-1989) ([c6f4249](https://github.com/conductorphp/conductor-core/commit/c6f4249737f58277be9775786ceec22a5f368d80))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.2.0](https://github.com/conductorphp/conductor-core/compare/6.1.0...6.2.0) (2026-09-27)
 
 ### Features
