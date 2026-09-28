@@ -2,7 +2,7 @@
 
 namespace ConductorCore\Shell\Adapter;
 
-use ConductorCore\Exception\RuntimeException;
+use ConductorCore\Exception\ShellCommandFailedException;
 
 interface ShellAdapterInterface
 {
@@ -21,7 +21,8 @@ interface ShellAdapterInterface
      * @param array|null $options Additional options
      *
      * @return string Standard output from the command
-     * @throws RuntimeException if command exits with non-zero status
+     * @throws ShellCommandFailedException if the command exits with a non-zero status; it carries the
+     *                                     exit status and what the command wrote to stdout and stderr
      */
     public function runShellCommand(
         string  $command,

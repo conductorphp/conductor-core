@@ -85,17 +85,22 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         stream_set_blocking($pipes[1], false);
         stream_set_blocking($pipes[2], false);
 
+        // stderr is streamed to the logger a line at a time as it arrives, for live progress, and
+        // also retained whole: the streamed copy is DEBUG and gone at default verbosity, and a
+        // failure has to be able to report what the command said (CTAP-2006).
         $logger = $this->logger;
         $stderr = '';
+        $pendingStderrLine = '';
         EventLoop::onReadable(
             $pipes[2],
-            static function (string $callbackId, $socket) use ($logger, &$stderr) {
+            static function (string $callbackId, $socket) use ($logger, &$stderr, &$pendingStderrLine) {
                 $chunk = fread($socket, 8192);
                 if (false !== $chunk && '' !== $chunk) {
                     $stderr .= $chunk;
-                    while (false !== ($end = strpos($stderr, "\n"))) {
-                        $logger->debug(substr($stderr, 0, $end + 1));
-                        $stderr = substr($stderr, $end + 1);
+                    $pendingStderrLine .= $chunk;
+                    while (false !== ($end = strpos($pendingStderrLine, "\n"))) {
+                        $logger->debug(substr($pendingStderrLine, 0, $end + 1));
+                        $pendingStderrLine = substr($pendingStderrLine, $end + 1);
                     }
                 } elseif (!is_resource($socket) || feof($socket)) {
                     EventLoop::cancel($callbackId);
@@ -118,8 +123,8 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
 
         EventLoop::run();
 
-        if ('' !== $stderr) {
-            $this->logger->debug($stderr);
+        if ('' !== $pendingStderrLine) {
+            $this->logger->debug($pendingStderrLine);
         }
 
         fclose($pipes[1]);
@@ -127,9 +132,8 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
 
         $status = proc_close($process);
         if ($status > 0 && $status <= 255) {
-            throw new Exception\RuntimeException(
-                "An error occurred while running shell command: \"$command\"\nOutput: $output"
-            );
+            // The message is the historical one; the streams and status ride along as properties.
+            throw new Exception\ShellCommandFailedException($command, $status, $output, $stderr);
         }
 
         return $output;

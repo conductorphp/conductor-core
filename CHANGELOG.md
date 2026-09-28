@@ -1,3 +1,10 @@
+[6.3.0](https://github.com/conductorphp/conductor-core/compare/6.2.1...6.3.0) (2026-09-28)
+
+### Features
+* failed shell command carries its stdout, stderr and exit status (CTAP-2006) ([4730ec5](https://github.com/conductorphp/conductor-core/commit/4730ec52890d210e49dccfee35b7568ed0b4b202))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.2.1](https://github.com/conductorphp/conductor-core/compare/6.2.0...6.2.1) (2026-09-28)
 
 ### Bug Fixes

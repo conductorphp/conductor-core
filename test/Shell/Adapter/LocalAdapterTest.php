@@ -175,10 +175,48 @@ class LocalAdapterTest extends TestCase
             $this->adapter->runShellCommand(
                 "timeout 10 bash -c \"printf 'partial' >&2; head -c 100000 /dev/zero | tr '\\\\0' a; exit 3\""
             );
-            $this->fail('Expected a RuntimeException.');
-        } catch (Exception\RuntimeException $exception) {
+            $this->fail('Expected a ShellCommandFailedException.');
+        } catch (Exception\ShellCommandFailedException $exception) {
             $this->assertStringContainsString(str_repeat('a', 100000), $exception->getMessage());
+            $this->assertSame(3, $exception->getExitStatus());
+            $this->assertSame(str_repeat('a', 100000), $exception->getStdout());
+            $this->assertSame('partial', $exception->getStderr());
         }
+    }
+
+    /**
+     * stderr is streamed at DEBUG as it arrives, which is gone at default verbosity. A failure
+     * carries both streams and the exit status on the exception, so the caller can report them
+     * without picking the message apart (CTAP-2006). The message itself keeps its old shape.
+     */
+    public function testANonZeroExitCarriesBothStreamsAndTheStatus(): void
+    {
+        try {
+            $this->adapter->runShellCommand('echo out; echo err >&2; exit 3');
+            $this->fail('Expected a ShellCommandFailedException.');
+        } catch (Exception\ShellCommandFailedException $exception) {
+            $this->assertSame(3, $exception->getExitStatus());
+            $this->assertSame("out\n", $exception->getStdout());
+            $this->assertSame("err\n", $exception->getStderr());
+            $this->assertStringStartsWith('An error occurred while running shell command: "', $exception->getMessage());
+            $this->assertStringEndsWith("\nOutput: out\n", $exception->getMessage());
+        }
+    }
+
+    public function testAFailureStillStreamsStderrToTheLoggerAsItArrives(): void
+    {
+        $logger = $this->recordingLogger();
+        $this->adapter->setLogger($logger);
+
+        try {
+            $this->adapter->runShellCommand("echo first >&2; printf 'partial' >&2; exit 1");
+            $this->fail('Expected a ShellCommandFailedException.');
+        } catch (Exception\ShellCommandFailedException $exception) {
+            $this->assertSame("first\npartial", $exception->getStderr());
+        }
+
+        $this->assertContains("first\n", $logger->messages);
+        $this->assertContains('partial', $logger->messages);
     }
 
     public function testRunShellCommandThrowsExceptionOnError()
