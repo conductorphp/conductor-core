@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ConductorCoreTest\Crypt;
 
 use ConductorCore\Crypt\CryptResolverFactory;
+use ConductorCore\Crypt\SodiumCrypt;
 use ConductorCore\Crypt\CryptInterface;
 use ConductorCore\Exception\CryptException;
-use Rmg\Lib\Crypt\Sodium\EncryptionKeyGenerator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -19,9 +19,9 @@ use function str_starts_with;
 use function strlen;
 
 /**
- * CTAP-1968 / CTAP-1970. The `enc:v1:<keyId>:<base64>` envelope through rmg/lib-crypt-sodium, the
- * library the middleware uses, wired with conductor's key variables. The fixture below was produced
- * by the middleware before the library existed; it must keep decrypting.
+ * CTAP-1968 / CTAP-2082. The `enc:v1:<keyId>:<base64>` envelope, conductor's own copy of the one the
+ * middleware writes with rmg/lib-crypt-sodium, wired with conductor's key variables. The fixture
+ * below was produced by the middleware; if it stops decrypting, the two copies have drifted apart.
  */
 final class SodiumCryptTest extends TestCase
 {
@@ -75,7 +75,7 @@ final class SodiumCryptTest extends TestCase
     #[Test]
     public function aValueUnderARetiredKeyDecryptsWhileThatKeyIsListedAsPrevious(): void
     {
-        $newKey = (new EncryptionKeyGenerator())->generate();
+        $newKey = SodiumCrypt::generateKey();
 
         $this->assertSame('Encrypt me!', $this->crypt($newKey, self::KEY)->decrypt(self::MODULE_CIPHERTEXT));
         $this->assertSame('Encrypt me!', $this->crypt(null, self::KEY)->decrypt(self::MODULE_CIPHERTEXT), 'no current key, only retired ones');
@@ -87,7 +87,7 @@ final class SodiumCryptTest extends TestCase
         $this->expectException(CryptException::class);
         $this->expectExceptionMessage('no key with id 630dcd2966c43366 is carried by CONDUCTOR_CRYPT_KEY or CONDUCTOR_CRYPT_KEYS_PREVIOUS');
 
-        $this->crypt((new EncryptionKeyGenerator())->generate())->decrypt(self::MODULE_CIPHERTEXT);
+        $this->crypt(SodiumCrypt::generateKey())->decrypt(self::MODULE_CIPHERTEXT);
     }
 
     #[Test]
@@ -160,7 +160,7 @@ final class SodiumCryptTest extends TestCase
     #[Test]
     public function theGeneratedKeyIsBase64Of32BytesAndEncrypts(): void
     {
-        $key = (new EncryptionKeyGenerator())->generate();
+        $key = SodiumCrypt::generateKey();
 
         $this->assertSame(32, strlen((string) base64_decode($key, true)));
         $this->assertTrue($this->crypt($key)->isEncrypted($this->crypt($key)->encrypt('x')));

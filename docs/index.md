@@ -6,13 +6,8 @@ This module offers common core functionality for [Conductor](https://github.com/
 ## Installation
 
 ```bash
-composer config repositories.rmg-libs composer https://composer.rmgmedia.com/lib/   # rmg/lib-crypt-* (private)
 composer require conductor/core
 ```
-
-Core encrypts configuration values with `rmg/lib-crypt-sodium`, a private RMG library; the `lib`
-section of `composer.rmgmedia.com` must be declared by the consuming project (a repository inside a
-dependency's `composer.json` is ignored by composer) and its credentials configured.
 
 ## Basic Usage
 

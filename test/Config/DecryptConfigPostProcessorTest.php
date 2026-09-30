@@ -6,7 +6,7 @@ namespace ConductorCoreTest\Config;
 
 use ConductorCore\Config\DecryptConfigPostProcessor;
 use ConductorCore\Crypt\CryptResolverFactory;
-use Rmg\Lib\Crypt\Sodium\EncryptionKeyGenerator;
+use ConductorCore\Crypt\SodiumCrypt;
 use ConductorCore\Exception\RuntimeException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -64,7 +64,7 @@ final class DecryptConfigPostProcessorTest extends TestCase
     #[Test]
     public function aValueThatCannotBeOpenedFailsTheLoadNamingThePathTheKeyIdAndTheVariables(): void
     {
-        $processor = new DecryptConfigPostProcessor((new CryptResolverFactory())->fromKeys((new EncryptionKeyGenerator())->generate(), null));
+        $processor = new DecryptConfigPostProcessor((new CryptResolverFactory())->fromKeys(SodiumCrypt::generateKey(), null));
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage(
@@ -79,7 +79,7 @@ final class DecryptConfigPostProcessorTest extends TestCase
     #[Test]
     public function theNamedPathIsTheValuesOwn(): void
     {
-        $processor = new DecryptConfigPostProcessor((new CryptResolverFactory())->fromKeys((new EncryptionKeyGenerator())->generate(), null));
+        $processor = new DecryptConfigPostProcessor((new CryptResolverFactory())->fromKeys(SodiumCrypt::generateKey(), null));
 
         try {
             $processor(['a' => ['x' => 'plain', 'y' => 'plain'], 'b' => ['c' => [0 => 'plain', 1 => self::VALUE]]]);

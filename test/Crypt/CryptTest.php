@@ -6,7 +6,7 @@ namespace ConductorCoreTest\Crypt;
 
 use ConductorCore\Config\EnvironmentConfig;
 use ConductorCore\Crypt\Crypt;
-use Rmg\Lib\Crypt\Sodium\EncryptionKeyGenerator;
+use ConductorCore\Crypt\SodiumCrypt;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -90,7 +90,7 @@ final class CryptTest extends TestCase
     {
         putenv(EnvironmentConfig::CRYPT_KEYS_PREVIOUS_VARIABLE . '=' . self::KEY);
 
-        $config = $this->merge(Crypt::decryptExpressiveConfig(['encrypted' => self::VALUE], (new EncryptionKeyGenerator())->generate()));
+        $config = $this->merge(Crypt::decryptExpressiveConfig(['encrypted' => self::VALUE], SodiumCrypt::generateKey()));
 
         $this->assertSame('Encrypt me!', $config['encrypted']);
     }

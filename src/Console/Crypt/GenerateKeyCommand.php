@@ -4,27 +4,19 @@ declare(strict_types=1);
 
 namespace ConductorCore\Console\Crypt;
 
-use Rmg\Lib\Crypt\Api\EncryptionKeyGeneratorInterface;
-use Rmg\Lib\Crypt\Sodium\EncryptionKeyGenerator;
+use ConductorCore\Crypt\SodiumCrypt;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Prints one new sodium key from `rmg/lib-crypt-sodium`'s generator, the same one the middleware's
- * `crypt:keys:generate` uses: the value `CONDUCTOR_CRYPT_KEY` takes (CTAP-1968). Nothing else goes
- * to stdout. Rotating rather than starting out? Move the key that is there now into
- * `CONDUCTOR_CRYPT_KEYS_PREVIOUS` before replacing it, re-encrypt, then drop it.
+ * Prints one new sodium key, the same shape the middleware's `crypt:keys:generate` prints: the value
+ * `CONDUCTOR_CRYPT_KEY` takes (CTAP-1968). Nothing else goes to stdout. Rotating rather than
+ * starting out? Move the key that is there now into `CONDUCTOR_CRYPT_KEYS_PREVIOUS` before
+ * replacing it, re-encrypt, then drop it.
  */
 class GenerateKeyCommand extends Command
 {
-    public function __construct(
-        private readonly EncryptionKeyGeneratorInterface $keyGenerator = new EncryptionKeyGenerator(),
-        ?string $name = null,
-    ) {
-        parent::__construct($name);
-    }
-
     protected function configure(): void
     {
         $this->setName('crypt:generate-key')
@@ -38,7 +30,7 @@ class GenerateKeyCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln($this->keyGenerator->generate());
+        $output->writeln(SodiumCrypt::generateKey());
 
         return self::SUCCESS;
     }

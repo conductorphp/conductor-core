@@ -1,3 +1,10 @@
+[6.5.0](https://github.com/conductorphp/conductor-core/compare/6.4.0...6.5.0) (2026-09-30)
+
+### Features
+* the sodium envelope in-tree, drop rmg/lib-crypt-* (CTAP-2082) ([40347b3](https://github.com/conductorphp/conductor-core/commit/40347b31b399f57a0f2feec1731e8efe57ff923d))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.4.0](https://github.com/conductorphp/conductor-core/compare/6.3.0...6.4.0) (2026-09-30)
 
 ### Features

@@ -7,16 +7,10 @@ namespace ConductorCore\Crypt;
 use ConductorCore\Config\EnvironmentConfig;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Psr\Container\ContainerInterface;
-use Rmg\Lib\Crypt\Sodium\Cipher\SodiumSecretboxCipher;
-use Rmg\Lib\Crypt\Sodium\CipherRegistry;
-use Rmg\Lib\Crypt\Sodium\EncryptionKeyProvider;
-use Rmg\Lib\Crypt\Sodium\EncryptionService;
-use Rmg\Lib\Crypt\Sodium\Envelope;
 
 use function array_filter;
 use function array_map;
 use function array_values;
-use function implode;
 use function is_string;
 use function preg_split;
 use function str_starts_with;
@@ -88,23 +82,8 @@ final class CryptResolverFactory implements FactoryInterface
             }
         }
 
-        // The library's provider, built from conductor's VALUES and told conductor's variable NAMES:
-        // an empty string (not null) for an unset key, so it never falls back to reading the
-        // application's ENCRYPTION_KEY from the environment, and every message it produces names
-        // CONDUCTOR_CRYPT_KEY / CONDUCTOR_CRYPT_KEYS_PREVIOUS.
-        $keyProvider = new EncryptionKeyProvider(
-            $currentKey ?? '',
-            implode(',', $sodiumPrevious),
-            EnvironmentConfig::CRYPT_KEY_VARIABLE,
-            EnvironmentConfig::CRYPT_KEYS_PREVIOUS_VARIABLE,
-        );
-
         return new CryptResolver(
-            new SodiumCrypt(new EncryptionService(
-                $keyProvider,
-                new Envelope(),
-                new CipherRegistry(new SodiumSecretboxCipher()),
-            )),
+            new SodiumCrypt(new SodiumKeyRing($currentKey, $sodiumPrevious)),
             new DefuseCrypt($defuseKey),
         );
     }
