@@ -1,3 +1,10 @@
+[6.4.0](https://github.com/conductorphp/conductor-core/compare/6.3.0...6.4.0) (2026-09-30)
+
+### Features
+* the crypt commands without loading the project config (CTAP-2052) ([ecb72d1](https://github.com/conductorphp/conductor-core/commit/ecb72d1b74e19599e13ca58e567a6c726e9c6bbc))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.3.0](https://github.com/conductorphp/conductor-core/compare/6.2.1...6.3.0) (2026-09-28)
 
 ### Features

@@ -23,6 +23,16 @@ try {
      * Self-called anonymous function that creates its own scope and keep the global namespace clean.
      */
     call_user_func(function () use ($origWorkingDir) {
+        // The crypt commands need only the key variables, so they run without the project config:
+        // a key can be generated before the rest is set up, and values encrypted under someone
+        // else's key can be re-encrypted even though they stop the config loading (CTAP-2052).
+        $keyOnly = (new \ConductorCore\Console\Crypt\KeyOnlyApplication())->forInput(new \Symfony\Component\Console\Input\ArgvInput());
+        if ($keyOnly !== null) {
+            chdir($origWorkingDir);
+            $keyOnly->run();
+            return;
+        }
+
         /** @var ContainerInterface $container */
         $container = require 'config/container.php';
 

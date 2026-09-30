@@ -383,6 +383,11 @@ Or directly:
 Replace the plaintext in your configuration with the printed `enc:v1:...` string as-is; there is no
 wrapper to add. `crypt:decrypt` reads a value back with whichever configured key it names.
 
+The three crypt commands read only the two key variables and never load the configuration (since
+core 6.4, CTAP-2052). A key can be generated before the configuration's other variables are set, and
+values encrypted under a key you do not hold can be replaced one by one while they are still in the
+configuration, even though every other command fails to load until they are gone.
+
 Note that a value encrypted in `global.yaml` must decrypt under every environment's key, which in
 practice means one key per tier that shares the file (non-production environments together,
 production on its own). Values that differ per environment belong in that environment's file, or in a
