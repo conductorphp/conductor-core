@@ -18,7 +18,8 @@ class DefaultLoggerFactory implements FactoryInterface
      * flag: -v added nothing over the default, and the plan/step narrative (INFO) only appeared
      * together with nothing else at -vv. Here INFO shows at -v and DEBUG at -vv, so:
      *
-     * - default: warnings and errors
+     * - default: notices, warnings and errors. NOTICE is for what the operator must read — a plan
+     *            step's `notice:`, a step skipped for a reason they can fix
      * - -v:      plus the deploy narrative — "Deploying", "Plan: …", "Step: …", "completed"
      * - -vv:     plus every shell command conductor runs and what it printed
      * - -vvv:    the same lines as -vv; the difference is that child processes now run at -vvv too
@@ -26,7 +27,7 @@ class DefaultLoggerFactory implements FactoryInterface
      */
     public const VERBOSITY_LEVEL_MAP = [
         OutputInterface::VERBOSITY_QUIET => Level::Error,
-        OutputInterface::VERBOSITY_NORMAL => Level::Warning,
+        OutputInterface::VERBOSITY_NORMAL => Level::Notice,
         OutputInterface::VERBOSITY_VERBOSE => Level::Info,
         OutputInterface::VERBOSITY_VERY_VERBOSE => Level::Debug,
         OutputInterface::VERBOSITY_DEBUG => Level::Debug,

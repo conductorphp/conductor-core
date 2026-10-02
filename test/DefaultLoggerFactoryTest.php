@@ -49,6 +49,18 @@ class DefaultLoggerFactoryTest extends TestCase
         $this->assertStringContainsString('disk is nearly full', $output->fetch());
     }
 
+    /** A plan step's `notice:` is written for the operator, who runs at the default (CTAP-2143). */
+    public function testNoticesShowAtTheDefaultVerbosityButNotQuiet(): void
+    {
+        $output = new BufferedOutput(OutputInterface::VERBOSITY_NORMAL);
+        $this->logger($output)->notice('Run the sync plan');
+        $this->assertStringContainsString('Run the sync plan', $output->fetch());
+
+        $output = new BufferedOutput(OutputInterface::VERBOSITY_QUIET);
+        $this->logger($output)->notice('Run the sync plan');
+        $this->assertSame('', $output->fetch());
+    }
+
     private function logger(OutputInterface $output): Logger
     {
         $logger = (new DefaultLoggerFactory())($this->createStub(ContainerInterface::class), Logger::class);

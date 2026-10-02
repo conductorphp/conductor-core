@@ -1,3 +1,10 @@
+[6.6.0](https://github.com/conductorphp/conductor-core/compare/6.5.0...6.6.0) (2026-10-02)
+
+### Features
+* NOTICE at default verbosity (CTAP-2143) ([2a3fa78](https://github.com/conductorphp/conductor-core/commit/2a3fa78b8398fb909cd5f2c1d355f5c4a29e05c6))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.5.0](https://github.com/conductorphp/conductor-core/compare/6.4.0...6.5.0) (2026-09-30)
 
 ### Features
