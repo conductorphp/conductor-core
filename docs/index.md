@@ -31,6 +31,7 @@ The Conductor supports many platforms. Here are a few common platforms:
 * [Magento 1](https://github.com/conductorphp/conductor-magento-1-platform-support)
 * [Drupal](https://github.com/conductorphp/conductor-drupal-platform-support)
 * [WordPress](https://github.com/conductorphp/conductor-wordpress-platform-support)
+* [Clicktap](https://github.com/conductorphp/conductor-clicktap-platform-support)
 
 The Conductor can interact with a number of different filesystems. Here are a few common ones:
 
