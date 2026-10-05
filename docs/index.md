@@ -189,8 +189,8 @@ cannot inject a reference.
 
 #### Plan steps are left to the shell
 
-Everything under a plan's `steps` (and `preflight_steps`, `clean_steps`, `rollback_*_steps`) is shell
-text. `PlanRunner` runs it under `bash` with the process environment already merged in, so `${VAR}`
+Everything under a plan's `steps` (and `preflight_steps`, `clean_steps`, `rollback_*_steps`,
+`on_failure_steps`) is shell text. `PlanRunner` runs it under `bash` with the process environment already merged in, so `${VAR}`
 there is expanded by the shell at run time, and a shell variable such as `${attempt}` in a retry loop
 is not mistaken for configuration. Nothing changes for existing plans.
 
