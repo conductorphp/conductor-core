@@ -1,3 +1,10 @@
+[6.6.3](https://github.com/conductorphp/conductor-core/compare/6.6.2...6.6.3) (2026-10-06)
+
+### Bug Fixes
+* masks passwords in what it logs and reports (CTAP-2218) ([4e947ec](https://github.com/conductorphp/conductor-core/commit/4e947ec06bb443b6679d9954bf7511a0032cc603))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.6.2](https://github.com/conductorphp/conductor-core/compare/6.6.1...6.6.2) (2026-10-05)
 
 

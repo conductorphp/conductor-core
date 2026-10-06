@@ -4,6 +4,7 @@ namespace ConductorCore\Shell\Adapter;
 
 use ConductorCore\Exception;
 use ConductorCore\Shell\ChildProcessVerbosity;
+use ConductorCore\Shell\SecretRedactor;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -35,7 +36,10 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         ?array  $options = null
     ): string {
 
-        $this->logger->debug("Running shell command: $command");
+        // Everything this adapter logs or reports is masked: a failed command's message is logged at
+        // ERROR, and a password on the command line went with it (CTAP-2218). The command that runs
+        // is untouched.
+        $this->logger->debug('Running shell command: ' . SecretRedactor::redact($command));
         // A null environment inherits conductor's own, SHELL_VERBOSITY included, which would run the
         // child at conductor's -v/-vv. An explicit environment is the caller's decision and is passed
         // through as given (PlanRunner applies the same policy to its inherited base before layering
@@ -43,19 +47,8 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         if (null === $environmentVariables) {
             $environmentVariables = ChildProcessVerbosity::forChild(getenv());
         }
-        // Strict mode, so a failing statement in the middle of a multi-line command is a failure
-        // rather than being overwritten by the exit status of the last statement alone. -E keeps
-        // an ERR trap alive inside functions and subshells.
-        $command = 'bash -Eeuo pipefail -c ' . escapeshellarg($command);
-        if (ShellAdapterInterface::PRIORITY_LOW === $priority) {
-            $command = 'ionice -c3 nice -n 19 ' . $command;
-        } elseif (ShellAdapterInterface::PRIORITY_HIGH === $priority) {
-            if (0 === posix_getuid()) {
-                $command = 'ionice -c 1 -n 0 ' . $command;
-            } else {
-                $command = 'ionice -c 2 -n 0 ' . $command;
-            }
-        }
+        $reportedCommand = $this->wrap(SecretRedactor::redact($command), $priority);
+        $command = $this->wrap($command, $priority);
 
         $descriptorSpec = [
             0 => ['pipe', 'r'],  // stdin
@@ -71,7 +64,9 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             $options
         );
         if (!is_resource($process)) {
-            throw new Exception\RuntimeException(sprintf('Failed to open process for command "%s".', $command));
+            throw new Exception\RuntimeException(
+                sprintf('Failed to open process for command "%s".', $reportedCommand)
+            );
         }
 
         // Nothing is written to the child's stdin, so close it now rather than leave a reader such
@@ -99,7 +94,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
                     $stderr .= $chunk;
                     $pendingStderrLine .= $chunk;
                     while (false !== ($end = strpos($pendingStderrLine, "\n"))) {
-                        $logger->debug(substr($pendingStderrLine, 0, $end + 1));
+                        $logger->debug(SecretRedactor::redact(substr($pendingStderrLine, 0, $end + 1)));
                         $pendingStderrLine = substr($pendingStderrLine, $end + 1);
                     }
                 } elseif (!is_resource($socket) || feof($socket)) {
@@ -124,7 +119,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         EventLoop::run();
 
         if ('' !== $pendingStderrLine) {
-            $this->logger->debug($pendingStderrLine);
+            $this->logger->debug(SecretRedactor::redact($pendingStderrLine));
         }
 
         fclose($pipes[1]);
@@ -133,10 +128,38 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         $status = proc_close($process);
         if ($status > 0 && $status <= 255) {
             // The message is the historical one; the streams and status ride along as properties.
-            throw new Exception\ShellCommandFailedException($command, $status, $output, $stderr);
+            // All of it is for reporting, so all of it is masked.
+            throw new Exception\ShellCommandFailedException(
+                $reportedCommand,
+                $status,
+                SecretRedactor::redact($output),
+                SecretRedactor::redact($stderr)
+            );
         }
 
         return $output;
+    }
+
+    /**
+     * Strict mode, so a failing statement in the middle of a multi-line command is a failure rather
+     * than being overwritten by the exit status of the last statement alone. -E keeps an ERR trap
+     * alive inside functions and subshells.
+     */
+    private function wrap(string $command, int $priority): string
+    {
+        $command = 'bash -Eeuo pipefail -c ' . escapeshellarg($command);
+        if (ShellAdapterInterface::PRIORITY_LOW === $priority) {
+            return 'ionice -c3 nice -n 19 ' . $command;
+        }
+        if (ShellAdapterInterface::PRIORITY_HIGH === $priority) {
+            if (0 === posix_getuid()) {
+                return 'ionice -c 1 -n 0 ' . $command;
+            }
+
+            return 'ionice -c 2 -n 0 ' . $command;
+        }
+
+        return $command;
     }
 
     public function setLogger(LoggerInterface $logger): void

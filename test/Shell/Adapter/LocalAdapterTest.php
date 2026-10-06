@@ -69,6 +69,44 @@ class LocalAdapterTest extends TestCase
         });
     }
 
+    /**
+     * A failed command's message is logged at ERROR, so a password on its command line reached the
+     * app log, cron mail and log shipping (CTAP-2218). Nothing this adapter reports may carry it.
+     */
+    public function testAFailingCommandReportsNoPasswordItWasGiven(): void
+    {
+        $password = 'hunter2-' . bin2hex(random_bytes(4));
+        $logger = $this->recordingLogger();
+        $this->adapter->setLogger($logger);
+
+        try {
+            $this->adapter->runShellCommand(
+                'mysql() { echo "MYSQL_PWD=' . $password . '" >&2; echo "--password=' . $password . '"; return 1; }; '
+                . "mysql -u 'app' -p" . escapeshellarg($password) . " 'db'"
+            );
+            $this->fail('Expected a ShellCommandFailedException.');
+        } catch (Exception\ShellCommandFailedException $exception) {
+            $this->assertStringContainsString("-p*** '\\''db'\\''", $exception->getMessage());
+            foreach ([$exception->getMessage(), $exception->getCommand(), $exception->getStdout(), $exception->getStderr()] as $reported) {
+                $this->assertStringNotContainsString($password, $reported);
+            }
+        }
+
+        $this->assertNotEmpty($logger->messages);
+        foreach ($logger->messages as $message) {
+            $this->assertStringNotContainsString($password, $message);
+        }
+    }
+
+    /** Masking is for what is reported. The command that runs still gets the real value. */
+    public function testTheCommandStillRunsWithTheRealPassword(): void
+    {
+        $this->assertSame(
+            "-pit's\n",
+            $this->adapter->runShellCommand('mysql() { echo "$1"; }; mysql -p' . escapeshellarg("it's"))
+        );
+    }
+
     private function recordingLogger(): AbstractLogger
     {
         return new class extends AbstractLogger {
