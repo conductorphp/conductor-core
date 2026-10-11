@@ -2,35 +2,40 @@
 
 namespace ConductorCore\Database;
 
+use Closure;
 use ConductorCore\Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 class DatabaseImportExportAdapterManager
 {
-    /** @var DatabaseImportExportAdapterInterface[] */
+    /** @var array<string, DatabaseImportExportAdapterInterface|Closure(): DatabaseImportExportAdapterInterface> */
     private array $adapters;
+    private ?LoggerInterface $logger = null;
 
     /**
-     * @param DatabaseImportExportAdapterInterface[] $adapters
+     * An entry may be a built adapter or a closure that builds one; see {@see DatabaseAdapterManager}.
+     *
+     * @param array<string, DatabaseImportExportAdapterInterface|Closure(): DatabaseImportExportAdapterInterface> $adapters
      */
     public function __construct(array $adapters, ?LoggerInterface $logger = null)
     {
-        if (is_null($logger)) {
-            $logger = new NullLogger();
-        }
         $this->adapters = $adapters;
+        $this->logger   = $logger;
     }
 
-    /**
-     * @return DatabaseImportExportAdapterInterface
-     * @throws Exception\DomainException If requested import adapter not found in those provided during construction
-     */
     public function getAdapter(string $name): DatabaseImportExportAdapterInterface
     {
         if (!array_key_exists($name, $this->adapters)) {
             throw new Exception\DomainException("Database import/export adapter not found by name \"$name\".");
+        }
+
+        if ($this->adapters[$name] instanceof Closure) {
+            $adapter = ($this->adapters[$name])();
+            if ($this->logger !== null && $adapter instanceof LoggerAwareInterface) {
+                $adapter->setLogger($this->logger);
+            }
+            $this->adapters[$name] = $adapter;
         }
 
         return $this->adapters[$name];
@@ -43,6 +48,7 @@ class DatabaseImportExportAdapterManager
 
     public function setLogger(LoggerInterface $logger): void
     {
+        $this->logger = $logger;
         foreach ($this->adapters as $adapter) {
             if ($adapter instanceof LoggerAwareInterface) {
                 $adapter->setLogger($logger);
@@ -50,4 +56,3 @@ class DatabaseImportExportAdapterManager
         }
     }
 }
-

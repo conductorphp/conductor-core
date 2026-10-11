@@ -2,30 +2,41 @@
 
 namespace ConductorCore\Database;
 
+use Closure;
 use ConductorCore\Exception;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 
 class DatabaseAdapterManager implements LoggerAwareInterface
 {
-    /** @var DatabaseAdapterInterface[] */
+    /** @var array<string, DatabaseAdapterInterface|Closure(): DatabaseAdapterInterface> */
     private array $adapters;
+    private ?LoggerInterface $logger = null;
 
     /**
-     * @param DatabaseAdapterInterface[] $databaseAdapters
+     * An entry may be a built adapter or a closure that builds one. The factory passes closures, so a
+     * configured adapter is built, and its runtime requirements checked, on the first getAdapter()
+     * for its name rather than when the manager is (CTAP-1759).
+     *
+     * @param array<string, DatabaseAdapterInterface|Closure(): DatabaseAdapterInterface> $databaseAdapters
      */
     public function __construct(array $databaseAdapters)
     {
         $this->adapters = $databaseAdapters;
     }
 
-    /**
-     * @throws Exception\DomainException If requested database adapter not found in those provided during construction
-     */
     public function getAdapter(string $name): DatabaseAdapterInterface
     {
         if (!array_key_exists($name, $this->adapters)) {
             throw new Exception\DomainException("Database adapter \"$name\" not found.");
+        }
+
+        if ($this->adapters[$name] instanceof Closure) {
+            $adapter = ($this->adapters[$name])();
+            if ($this->logger !== null && $adapter instanceof LoggerAwareInterface) {
+                $adapter->setLogger($this->logger);
+            }
+            $this->adapters[$name] = $adapter;
         }
 
         return clone $this->adapters[$name];
@@ -38,6 +49,7 @@ class DatabaseAdapterManager implements LoggerAwareInterface
 
     public function setLogger(LoggerInterface $logger): void
     {
+        $this->logger = $logger;
         foreach ($this->adapters as $adapter) {
             if ($adapter instanceof LoggerAwareInterface) {
                 $adapter->setLogger($logger);
@@ -45,4 +57,3 @@ class DatabaseAdapterManager implements LoggerAwareInterface
         }
     }
 }
-

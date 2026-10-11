@@ -52,6 +52,22 @@ that does this is scaffolded below.
 Two things about a running conductor come from the process environment rather than from a file: which
 environment it is running against, and the values that differ per environment or must not be committed.
 
+### The configuration directory
+
+Conductor is one installed application (`conductor/conductor`, a phar or an image) run against a
+configuration directory: the one holding `config/app/global.yaml`, plus `config/app/*.yaml`,
+`config/app/files/`, `config/app/environments/<env>/`. It is resolved once at launch, in this order:
+
+1. `--config <dir>`
+2. `CONDUCTOR_CONFIG_DIR`
+3. the working directory, so `cd tools/<app>-conductor && conductor app:deploy` needs no flag
+
+`ConductorCore\Config\ConfigDirectory` is the service that knows the path; application-orchestration
+locates skeleton files and post-import scripts through it. The merged configuration is cached under
+`<dir>/data/cache/config-cache-<conductor version>-<environment>.php`; `CONDUCTOR_CONFIG_CACHE=0`
+turns the cache off. A directory laid out as a host from before `conductor/conductor` (its own
+`config/config.php` or `composer.json`) is refused with the migration steps.
+
 ### Selecting the environment
 
 `CONDUCTOR_ENVIRONMENT` selects the environment:
@@ -249,6 +265,43 @@ When `ConfigAggregator::ENABLE_CACHE` is on, the merged configuration — with p
 `ENC[...]` values decrypted — is written to `config_cache_path` and read back on later runs without
 consulting the environment again. Clear that file when a variable changes, and treat it as sensitive:
 it holds every secret in plaintext. Development mode (`composer development-enable`) disables the cache.
+
+### VCS adapters
+
+Repository access goes through an adapter registry, like shell, filesystem and database adapters.
+A VCS module registers a factory under its adapter class and contributes an entry under
+`vcs.adapters`; `vcs.default_adapter` names the one `RepositoryAdapterInterface` resolves to. Core
+ships no adapter of its own; [git-vcs-support](https://github.com/conductorphp/conductor-git-vcs-support)
+registers `git`, which is also the default name.
+
+```yaml
+vcs:
+  default_adapter: git
+  adapters:
+    git:
+      class: ConductorGitVcsSupport\Adapter\GitVcsAdapter
+```
+
+The default adapter is resolved on first use, so a host without the module still boots; a plan that
+needs the repository fails naming the adapter and the `vcs.adapters.<name>` key.
+
+### Adapter runtime requirements
+
+An adapter that needs a PHP extension or a command on `PATH` declares it
+(`ConductorCore\Runtime\RuntimeRequirementsInterface`); the module `suggest`s the extension or
+package in composer.json rather than requiring it, so installing every module does not force every
+runtime onto every host. The adapter managers build an adapter on the first request for its name and
+check the declaration then, so a configured adapter that is never selected costs nothing and cannot
+fail boot. The refusal names the adapter, its config key and everything missing:
+
+```
+database import/export adapter "default" (database.importexport_adapters.default) needs command
+"mydumper" (the mydumper package), command "myloader" (the mydumper package). Install it where
+conductor runs the command, or select another adapter.
+```
+
+A command is looked up through the shell adapter that will run it. Code that shells out outside an
+adapter (packaging a build with `tar`) asks `ConductorCore\Runtime\RequirementChecker` before it runs.
 
 ### The `config/config.php` scaffold
 

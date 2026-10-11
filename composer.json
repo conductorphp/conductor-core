@@ -1,6 +1,6 @@
 {
   "name": "conductor/core",
-  "version": "6.6.3",
+  "version": "7.0.0",
   "description": "Conductor Core",
   "type": "library",
   "homepage": "https://github.com/conductorphp/conductor-core",
@@ -62,9 +62,6 @@
       "config-provider": "ConductorCore\\ConfigProvider"
     }
   },
-  "bin": [
-    "bin/conductor"
-  ],
   "scripts": {
     "check": [
       "@cs-check",

@@ -8,6 +8,8 @@ return [
     ],
     'aliases'            => [
         \League\Flysystem\MountManager::class => Filesystem\MountManager\MountManager::class,
+        // Core's own default for the conductor host's shell. Modules register their adapters under
+        // their class and are selected through ShellAdapterManager; none binds this interface.
         Shell\Adapter\ShellAdapterInterface::class => Shell\Adapter\LocalShellAdapter::class,
         // What the container hands out for encryption: the resolver over both envelopes (CTAP-1968).
         Crypt\CryptInterface::class => Crypt\CryptResolver::class,
@@ -33,5 +35,9 @@ return [
         Filesystem\MountManager\MountManager::class        => Filesystem\MountManager\MountManagerFactory::class,
         \League\Flysystem\Local\LocalFilesystemAdapter::class             => Filesystem\LocalAdapterFactory::class,
         Shell\ShellAdapterManager::class                   => Shell\ShellAdapterManagerFactory::class,
+        Repository\RepositoryAdapterManager::class         => Repository\RepositoryAdapterManagerFactory::class,
+        Runtime\RequirementChecker::class                  => Runtime\RequirementCheckerFactory::class,
+        // The adapter `vcs.default_adapter` names, resolved on first use (CTAP-1758).
+        Repository\RepositoryAdapterInterface::class       => Repository\DefaultRepositoryAdapterFactory::class,
     ],
 ];

@@ -15,6 +15,7 @@ class ConfigProvider
             'dependencies' => $this->getDependencyConfig(),
             'filesystem' => $this->getFilesystemConfig(),
             'shell' => $this->getShellConfig(),
+            'vcs' => $this->getVcsConfig(),
         ];
     }
 
@@ -36,6 +37,11 @@ class ConfigProvider
     private function getShellConfig(): array
     {
         return require(__DIR__ . '/../config/shell.php');
+    }
+
+    private function getVcsConfig(): array
+    {
+        return require(__DIR__ . '/../config/vcs.php');
     }
 
 }

@@ -1,3 +1,19 @@
+[7.0.0](https://github.com/conductorphp/conductor-core/compare/6.6.3...7.0.0) (2026-10-11)
+
+### Features
+* declare runtime requirements, managers build on first use (CTAP-1759) ([03f4aaf](https://github.com/conductorphp/conductor-core/commit/03f4aaf66d01c4acc9e0ecfb23dc091b6f2e70ae))
+* the VCS adapter registry with a lazily resolved default (CTAP-1758) ([0454a30](https://github.com/conductorphp/conductor-core/commit/0454a30923d508faa77a4cf0a58b2ae4bacd324c))
+* deprecation warning for env.php and the development default (CTAP-1741) ([95eaabc](https://github.com/conductorphp/conductor-core/commit/95eaabc6fdd3fb25dbd82451e906be3df4b38584))
+* the narrative at -v and step output at -vv (CTAP-1736) ([97def44](https://github.com/conductorphp/conductor-core/commit/97def44578c713683513012e36c6b24f381d30f6))
+* placeholder filter (CTAP-1728) ([36cd3b2](https://github.com/conductorphp/conductor-core/commit/36cd3b27f19eabfdc51a9beef337b1e763a746b4))
+* interpolation and CONDUCTOR_ENVIRONMENT resolution (CTAP-1724) ([d8ed6dc](https://github.com/conductorphp/conductor-core/commit/d8ed6dc98edf9eb062d8de9cc08944d7da5ac507))
+* a config schema layer for typed, validated package config (CTAP-1630) ([c7ea316](https://github.com/conductorphp/conductor-core/commit/c7ea3169c9207783c73fc5474e68f20668ea81a8))
+### Bug Fixes
+* commands accept a missing crypt_key so the CLI can boot (CTAP-1730) ([bc087df](https://github.com/conductorphp/conductor-core/commit/bc087dfe68449abbecf97e23e12efd7ace6f6b1b))
+* a file into a directory destination on filesystem:sync (CTAP-1685) ([1249147](https://github.com/conductorphp/conductor-core/commit/12491477d44b563623ec2b1fd3e2523afcb78b28))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [6.6.3](https://github.com/conductorphp/conductor-core/compare/6.6.2...6.6.3) (2026-10-06)
 
 ### Bug Fixes

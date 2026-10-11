@@ -6,6 +6,8 @@ use ConductorCore\Exception;
 use Laminas\ServiceManager\Exception\ServiceNotCreatedException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Laminas\ServiceManager\ServiceManager;
+use ConductorCore\Runtime\RequirementChecker;
+use ConductorCore\Runtime\RuntimeRequirementsInterface;
 use Psr\Container\ContainerInterface;
 
 class ShellAdapterManagerFactory implements FactoryInterface
@@ -29,23 +31,34 @@ class ShellAdapterManagerFactory implements FactoryInterface
 
                 $class = $adapter['class'];
                 $arguments = !empty($adapter['arguments']) ? $adapter['arguments'] : [];
-                try {
-                    if ($arguments) {
-                        if ($container instanceof ServiceManager) {
-                            $shellAdapter = $container->build($class, $arguments);
+                // Built on the first getAdapter() for this name, not here, so a configured adapter
+                // that is never selected costs nothing and cannot fail boot. Its runtime
+                // requirements are checked at that moment, naming the config key (CTAP-1759).
+                $shellAdapters[$name] = static function () use ($container, $class, $arguments, $name): object {
+                    try {
+                        if ($arguments) {
+                            if ($container instanceof ServiceManager) {
+                                $shellAdapter = $container->build($class, $arguments);
+                            } else {
+                                throw new Exception\LogicException(
+                                    'Adapter arguments not allowed if not using ' . ServiceManager::class . ' container.'
+                                );
+                            }
                         } else {
-                            throw new Exception\LogicException(
-                                'Adapter arguments not allowed if not using ' . ServiceManager::class . ' container.'
-                            );
+                            $shellAdapter = $container->get($class);
                         }
-                    } else {
-                        $shellAdapter = $container->get($class);
+                    } catch (ServiceNotCreatedException $e) {
+                        throw new Exception\RuntimeException("Error in shell/adapters/$name configuration");
                     }
-                } catch (ServiceNotCreatedException $e) {
-                    throw new Exception\RuntimeException("Error in shell/adapters/$name configuration");
-                }
+                    if ($shellAdapter instanceof RuntimeRequirementsInterface) {
+                        $container->get(RequirementChecker::class)->assertUsable(
+                            sprintf('shell adapter "%s" (shell.adapters.%s)', $name, $name),
+                            $shellAdapter,
+                        );
+                    }
 
-                $shellAdapters[$name] = $shellAdapter;
+                    return $shellAdapter;
+                };
             }
         }
         return new ShellAdapterManager($shellAdapters);
