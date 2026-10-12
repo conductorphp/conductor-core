@@ -356,11 +356,11 @@ $aggregator = new ConfigAggregator(
     ],
     $cacheConfig['config_cache_path'],
     [
-        // Encrypted values anywhere in the merged config, decrypted with the keys above. First, so
-        // interpolation sees plaintext.
-        new DecryptConfigPostProcessor($crypt),
         // `${VAR}` placeholders anywhere in the merged config. Undefined variables fail the load.
         new EnvVarInterpolationPostProcessor(),
+        // Encrypted values anywhere in the merged config, decrypted with the keys above. After
+        // interpolation, so an encrypted environment variable is decrypted too.
+        new DecryptConfigPostProcessor($crypt),
     ]
 );
 
@@ -381,9 +381,10 @@ value the environment's owner manages (a database password, a hosting endpoint);
 is yours and never changes per host (a payment gateway credential, a signing key). A configuration
 with no encrypted values needs no key at all.
 
-The one interaction to know: decryption runs before interpolation, so a decrypted plaintext that
-happens to contain a `${NAME}` sequence would be interpolated. Carry such a value as a base64
-environment variable instead.
+Interpolation runs first, then decryption (CTAP-2383). So an environment variable may itself hold an
+encrypted value: `${SNAPSHOT_S3_SECRET}` set to `enc:v1:...` reaches the config as plaintext, exactly
+like the same string written in the YAML. A decrypted plaintext is never scanned, so a secret that
+contains a literal `${NAME}` sequence stays verbatim.
 
 Since core 6.1 (CTAP-1968) an encrypted value is the self-describing envelope the middleware's
 secret attributes use, produced by the same library (`rmg/lib-crypt-sodium`), so one string works in

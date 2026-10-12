@@ -1,3 +1,8 @@
+[7.0.1](https://github.com/conductorphp/conductor-core/compare/7.0.0...7.0.1) (2026-10-12)
+
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [7.0.0](https://github.com/conductorphp/conductor-core/compare/6.6.3...7.0.0) (2026-10-11)
 
 ### Features

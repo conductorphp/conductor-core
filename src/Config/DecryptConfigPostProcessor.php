@@ -15,15 +15,17 @@ use function sprintf;
 /**
  * Decrypts every encrypted string in the merged config, once, at load time (CTAP-1968).
  *
- * Wired into the project's `config/config.php` as the FIRST `ConfigAggregator` post-processor, ahead
- * of `${VAR}` interpolation, so a decrypted plaintext is what the rest of the load sees:
+ * Wired into the project's `config/config.php` as a `ConfigAggregator` post-processor, after `${VAR}`
+ * interpolation, so an encrypted environment variable reached through a placeholder is decrypted like
+ * a value written in the YAML, and a decrypted plaintext is never scanned for placeholders
+ * (CTAP-2383):
  *
  *     $environmentConfig = EnvironmentConfig::resolve();
  *     $crypt             = (new CryptResolverFactory())->fromEnvironmentConfig($environmentConfig);
  *
  *     $aggregator = new ConfigAggregator([…providers…], $cacheConfig['config_cache_path'], [
- *         new DecryptConfigPostProcessor($crypt),
  *         new EnvVarInterpolationPostProcessor(),
+ *         new DecryptConfigPostProcessor($crypt),
  *     ]);
  *
  * Replaces the per-provider `Crypt::decryptExpressiveConfig()` wrapper: one pass over everything,
