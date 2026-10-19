@@ -63,9 +63,9 @@ configuration directory: the one holding `config/app/global.yaml`, plus `config/
 3. the working directory, so `cd tools/<app>-conductor && conductor app:deploy` needs no flag
 
 `ConductorCore\Config\ConfigDirectory` is the service that knows the path; application-orchestration
-locates skeleton files and post-import scripts through it. The merged configuration is cached under
-`<dir>/data/cache/config-cache-<conductor version>-<environment>.php`; `CONDUCTOR_CONFIG_CACHE=0`
-turns the cache off. A directory laid out as a host from before `conductor/conductor` (its own
+locates skeleton files and post-import scripts through it. The application's YAML is cached, as
+written, under `<dir>/data/cache/config-cache-<conductor version>-<environment>.php`;
+`CONDUCTOR_CONFIG_CACHE=0` turns the cache off. See [Config caching](#config-caching). A directory laid out as a host from before `conductor/conductor` (its own
 `config/config.php` or `composer.json`) is refused with the migration steps.
 
 ### Selecting the environment
@@ -261,10 +261,16 @@ not supported today.
 
 #### Config caching
 
-When `ConfigAggregator::ENABLE_CACHE` is on, the merged configuration — with placeholders filled and
-`ENC[...]` values decrypted — is written to `config_cache_path` and read back on later runs without
-consulting the environment again. Clear that file when a variable changes, and treat it as sensitive:
-it holds every secret in plaintext. Development mode (`composer development-enable`) disables the cache.
+The `conductor/conductor` binary caches only the parsed YAML files of `config/app/`, with `${VAR}`
+placeholders and `enc:v1` values as written. Interpolation and decryption run on every load, so a
+changed variable or key takes effect on the next run, and the cache holds no secret that the YAML
+does not. It also records a content hash of every file it parsed: an edited, added or removed file
+rebuilds it on the next run (CTAP-2759).
+
+A host that builds its own `ConfigAggregator` with `ConfigAggregator::ENABLE_CACHE` gets Laminas's
+cache instead: the merged configuration after the post-processors, with placeholders filled and
+values decrypted, never checked against the files. Clear that file when the YAML or a variable
+changes, and treat it as sensitive: it holds every secret in plaintext.
 
 ### VCS adapters
 
