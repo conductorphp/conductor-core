@@ -1,3 +1,10 @@
+[7.1.0](https://github.com/conductorphp/conductor-core/compare/7.0.1...7.1.0) (2026-10-19)
+
+### Features
+* DatabaseEmptyingInterface empties a database without dropping it (CTAP-2756) ([90cb0ae](https://github.com/conductorphp/conductor-core/commit/90cb0ae623e71272300560f104a4448026f714cb))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [7.0.1](https://github.com/conductorphp/conductor-core/compare/7.0.0...7.0.1) (2026-10-12)
 
 

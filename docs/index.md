@@ -285,6 +285,14 @@ vcs:
 The default adapter is resolved on first use, so a host without the module still boots; a plan that
 needs the repository fails naming the adapter and the `vcs.adapters.<name>` key.
 
+### Import preflight
+
+A database import/export adapter that can tell whether an import would succeed without touching the
+file or the target implements `ConductorCore\Database\DatabaseImportPreflightInterface`
+(`assertCanImportFile($filename, $database)`, which throws with the reason). A snapshot restore drops
+the database before it imports, so it asks such an adapter first and stops before the drop when the
+answer is no (CTAP-2732). An adapter without it is imported unchecked, as before.
+
 ### Adapter runtime requirements
 
 An adapter that needs a PHP extension or a command on `PATH` declares it
