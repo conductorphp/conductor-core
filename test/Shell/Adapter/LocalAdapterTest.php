@@ -370,6 +370,34 @@ class LocalAdapterTest extends TestCase
     }
 
     /**
+     * proc_open() drops a variable whose value is empty, so it reached the command unset and a check
+     * that wants it present failed (CTAP-2750). Set to empty stays set to empty.
+     */
+    public function testAnEmptyVariableReachesTheCommandSetAndEmpty(): void
+    {
+        $output = $this->adapter->runShellCommand(
+            'echo "${CONDUCTOR_TEST_EMPTY_VARIABLE-unset}|${CONDUCTOR_TEST_SET_VARIABLE}"',
+            null,
+            ['PATH' => getenv('PATH'), 'CONDUCTOR_TEST_EMPTY_VARIABLE' => '', 'CONDUCTOR_TEST_SET_VARIABLE' => 'value']
+        );
+
+        $this->assertSame("|value\n", $output);
+    }
+
+    public function testAnInheritedEmptyVariableReachesTheCommandSetAndEmpty(): void
+    {
+        putenv('CONDUCTOR_TEST_EMPTY_VARIABLE=');
+        try {
+            $this->assertSame(
+                "set\n",
+                $this->adapter->runShellCommand('echo "${CONDUCTOR_TEST_EMPTY_VARIABLE+set}"')
+            );
+        } finally {
+            putenv('CONDUCTOR_TEST_EMPTY_VARIABLE');
+        }
+    }
+
+    /**
      * Each call registers its own event loop callbacks; consecutive calls must not
      * leak state from the previous run into the next.
      */

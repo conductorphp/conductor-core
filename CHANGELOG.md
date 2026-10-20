@@ -1,3 +1,10 @@
+[7.1.2](https://github.com/conductorphp/conductor-core/compare/7.1.1...7.1.2) (2026-10-20)
+
+### Bug Fixes
+* a variable set to empty reaches a shell command set to empty (CTAP-2750) ([96734a3](https://github.com/conductorphp/conductor-core/commit/96734a3168ae80189bc3f06fc469ed0554b6eab9))
+
+<!--- CHANGELOG SPLIT MARKER -->
+
 [7.1.1](https://github.com/conductorphp/conductor-core/compare/7.1.0...7.1.1) (2026-10-19)
 
 

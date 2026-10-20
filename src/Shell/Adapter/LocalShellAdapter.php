@@ -48,7 +48,7 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
             $environmentVariables = ChildProcessVerbosity::forChild(getenv());
         }
         $reportedCommand = $this->wrap(SecretRedactor::redact($command), $priority);
-        $command = $this->wrap($command, $priority);
+        $command = $this->exportEmptyVariables($environmentVariables) . $this->wrap($command, $priority);
 
         $descriptorSpec = [
             0 => ['pipe', 'r'],  // stdin
@@ -138,6 +138,27 @@ class LocalShellAdapter implements ShellAdapterInterface, LoggerAwareInterface
         }
 
         return $output;
+    }
+
+    /**
+     * proc_open() leaves every variable whose value is the empty string out of the child's
+     * environment, so a variable set to empty arrived unset (CTAP-2750). That is not the same thing:
+     * a config check that wants every variable present rejected an empty password the container
+     * really has. The shell proc_open() starts exports each one again before the command runs.
+     * Only names a shell can export; the values are empty, so nothing here needs masking.
+     *
+     * @param array<string, mixed>|null $environmentVariables
+     */
+    private function exportEmptyVariables(?array $environmentVariables): string
+    {
+        $names = [];
+        foreach ($environmentVariables ?? [] as $name => $value) {
+            if ('' === $value && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', (string) $name)) {
+                $names[] = $name . '=';
+            }
+        }
+
+        return $names ? 'export ' . implode(' ', $names) . '; ' : '';
     }
 
     /**
