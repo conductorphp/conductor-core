@@ -10,6 +10,7 @@ use Psr\Container\ContainerInterface;
 
 use function array_filter;
 use function array_map;
+use function array_unique;
 use function array_values;
 use function is_string;
 use function preg_split;
@@ -67,16 +68,18 @@ final class CryptResolverFactory implements FactoryInterface
             static fn (string $key): bool => $key !== '',
         ));
 
-        $defuseKey = null;
+        // Every defuse key, the current one first: a defuse value names no key, so the reader tries
+        // each in turn. Keeping only the first left a second app's retired key unused (CTAP-2786).
+        $defuseKeys = [];
         if ($currentKey !== null && self::isDefuseKey($currentKey)) {
-            $defuseKey  = $currentKey;
-            $currentKey = null;
+            $defuseKeys[] = $currentKey;
+            $currentKey   = null;
         }
 
         $sodiumPrevious = [];
         foreach ($previous as $key) {
             if (self::isDefuseKey($key)) {
-                $defuseKey ??= $key;
+                $defuseKeys[] = $key;
             } else {
                 $sodiumPrevious[] = $key;
             }
@@ -84,7 +87,7 @@ final class CryptResolverFactory implements FactoryInterface
 
         return new CryptResolver(
             new SodiumCrypt(new SodiumKeyRing($currentKey, $sodiumPrevious)),
-            new DefuseCrypt($defuseKey),
+            new DefuseCrypt(array_values(array_unique($defuseKeys))),
         );
     }
 

@@ -47,6 +47,24 @@ final class CryptResolverTest extends TestCase
         $this->assertTrue(str_starts_with($crypt->encrypt('new'), 'enc:v1:'), 'new values are always sodium');
     }
 
+    /**
+     * Two apps' retired defuse keys in one shared CONDUCTOR_CRYPT_KEYS_PREVIOUS: only the first used to
+     * be read, so the second app's values failed the integrity check (CTAP-2786). Either order works.
+     */
+    #[Test]
+    public function everyDefuseKeyInThePreviousListIsUsed(): void
+    {
+        $otherKey   = Key::createNewRandomKey()->saveToAsciiSafeString();
+        $otherValue = 'ENC[defuse/php-encryption,' . Crypto::encrypt('other', Key::loadFromAsciiSafeString($otherKey)) . ']';
+
+        foreach ([self::DEFUSE_KEY . ',' . $otherKey, $otherKey . ',' . self::DEFUSE_KEY] as $previous) {
+            $crypt = (new CryptResolverFactory())->fromKeys(self::SODIUM_KEY, $previous);
+            $this->assertSame('mine', $crypt->decrypt($this->defuseValue('mine')));
+            $this->assertSame('other', $crypt->decrypt($otherValue));
+            $this->assertSame('Encrypt me!', $crypt->decrypt(self::SODIUM_VALUE));
+        }
+    }
+
     /** `CONDUCTOR_CRYPT_KEY` holding the old defuse key: legacy values read, and writing says what to do. */
     #[Test]
     public function aDefuseKeyInTheVariableServesOnlyTheDefuseSide(): void

@@ -10,6 +10,10 @@ use Defuse\Crypto\Crypto;
 use Defuse\Crypto\Key;
 use Throwable;
 
+use function array_filter;
+use function array_values;
+use function count;
+use function is_string;
 use function preg_match;
 use function sprintf;
 use function str_starts_with;
@@ -25,6 +29,10 @@ use function str_starts_with;
  * once a sodium key has taken its place ({@see CryptResolverFactory} sorts them). A sodium key is
  * never tried against a defuse value: with no defuse key anywhere the value fails by name, because
  * the fix is to re-encrypt it, not to find a key.
+ *
+ * Several defuse keys may be configured, such as two apps' retired keys in one shared
+ * `CONDUCTOR_CRYPT_KEYS_PREVIOUS`. A defuse value names no key, so each is tried in order until one
+ * passes the integrity check (CTAP-2786).
  */
 final class DefuseCrypt implements CryptInterface
 {
@@ -35,9 +43,19 @@ final class DefuseCrypt implements CryptInterface
     /** Defuse's ASCII-safe key format starts with this; a sodium key is base64 of 32 bytes. */
     public const KEY_PREFIX = 'def000';
 
-    /** @param string|null $key The defuse key, or null when no configured key is one. */
-    public function __construct(private readonly ?string $key)
+    /** @var list<string> */
+    private readonly array $keys;
+
+    /**
+     * @param string|list<string>|null $keys The defuse keys, in the order to try them; a key that is
+     *                                       not a defuse key is ignored. Null or none: no defuse key.
+     */
+    public function __construct(string|array|null $keys)
     {
+        $this->keys = array_values(array_filter(
+            (array) $keys,
+            static fn (mixed $key): bool => is_string($key) && str_starts_with($key, self::KEY_PREFIX),
+        ));
     }
 
     public function encrypt(string $plaintext): string
@@ -66,7 +84,7 @@ final class DefuseCrypt implements CryptInterface
             ));
         }
 
-        if (! $this->hasDefuseKey()) {
+        if ($this->keys === []) {
             throw new CryptException(sprintf(
                 'this is a %s value (ENC[…]) but neither %s nor %s holds a defuse (%s…) key. List the'
                 . ' key it was encrypted under in %s and re-encrypt the value with crypt:encrypt, which'
@@ -79,20 +97,25 @@ final class DefuseCrypt implements CryptInterface
             ));
         }
 
-        try {
-            return Crypto::decrypt($ciphertext, Key::loadFromAsciiSafeString((string) $this->key));
-        } catch (Throwable $e) {
-            throw new CryptException(sprintf('%s value could not be decrypted: %s', self::ENCRYPTION_TYPE, $e->getMessage()), 0, $e);
+        $failure = null;
+        foreach ($this->keys as $key) {
+            try {
+                return Crypto::decrypt($ciphertext, Key::loadFromAsciiSafeString($key));
+            } catch (Throwable $e) {
+                $failure = $e;
+            }
         }
+
+        throw new CryptException(sprintf(
+            '%s value could not be decrypted with %s: %s',
+            self::ENCRYPTION_TYPE,
+            count($this->keys) === 1 ? 'the defuse key' : sprintf('any of the %d defuse keys', count($this->keys)),
+            $failure?->getMessage() ?? 'no key',
+        ), 0, $failure);
     }
 
     public function isEncrypted(string $value): bool
     {
         return preg_match(self::ENVELOPE, $value) === 1;
-    }
-
-    private function hasDefuseKey(): bool
-    {
-        return $this->key !== null && str_starts_with($this->key, self::KEY_PREFIX);
     }
 }

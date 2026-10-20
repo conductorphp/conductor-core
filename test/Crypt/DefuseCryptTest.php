@@ -66,6 +66,31 @@ final class DefuseCryptTest extends TestCase
         (new DefuseCrypt($otherKey))->decrypt($this->legacyValue('x'));
     }
 
+    /** A defuse value names no key, so every configured defuse key is tried in turn (CTAP-2786). */
+    #[Test]
+    public function aValueUnderAnyOfSeveralDefuseKeysDecrypts(): void
+    {
+        $otherKey   = Key::createNewRandomKey()->saveToAsciiSafeString();
+        $otherValue = 'ENC[defuse/php-encryption,' . Crypto::encrypt('other', Key::loadFromAsciiSafeString($otherKey)) . ']';
+
+        foreach ([[self::DEFUSE_KEY, $otherKey], [$otherKey, self::DEFUSE_KEY]] as $keys) {
+            $crypt = new DefuseCrypt($keys);
+            $this->assertSame('mine', $crypt->decrypt($this->legacyValue('mine')));
+            $this->assertSame('other', $crypt->decrypt($otherValue));
+        }
+    }
+
+    #[Test]
+    public function aValueUnderNoneOfSeveralDefuseKeysNamesHowManyWereTried(): void
+    {
+        $keys = [Key::createNewRandomKey()->saveToAsciiSafeString(), Key::createNewRandomKey()->saveToAsciiSafeString()];
+
+        $this->expectException(CryptException::class);
+        $this->expectExceptionMessage('defuse/php-encryption value could not be decrypted with any of the 2 defuse keys');
+
+        (new DefuseCrypt($keys))->decrypt($this->legacyValue('x'));
+    }
+
     #[Test]
     public function anUnknownEncTypeIsRefused(): void
     {

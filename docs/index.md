@@ -479,6 +479,11 @@ is the rotation above with the defuse key as the retired one: list it in
 then drop the defuse key. A configuration mixing both envelopes decrypts each with its own key
 meanwhile.
 
+`CONDUCTOR_CRYPT_KEYS_PREVIOUS` may hold more than one defuse key, for example the retired keys of
+two apps that now share one variable. A defuse value names no key, so each defuse key is tried in
+turn, the one in `CONDUCTOR_CRYPT_KEY` first, until one passes the integrity check. Before core
+7.1.3 only the first defuse key in the list was read (CTAP-2786).
+
 `Crypt::decryptExpressiveConfig()`, the per-provider wrapper a `config/config.php` written against
 core 5.x or 6.0 calls, still works and decrypts both envelopes, but emits a deprecation naming
 `DecryptConfigPostProcessor` and is removed in 7.0.
